@@ -66,7 +66,7 @@ const Welcome = () => {
             <h1 className="font-heading text-5xl font-bold tracking-tight text-primary-foreground md:text-7xl">
               Welcome to
               <br />
-              <span className="text-secondary">Toto Academy</span>
+              <span className="text-secondary">Burney Place</span>
             </h1>
             <p className="mx-auto mt-4 max-w-lg text-lg text-primary-foreground/70">
               Learn from the best — anytime, anywhere. Access quality education at
@@ -106,7 +106,7 @@ const Welcome = () => {
       {/* Footer */}
       <div className="relative z-10 bg-primary py-4 text-center">
         <p className="text-xs text-primary-foreground/40">
-          © {new Date().getFullYear()} Toto Academy. All rights reserved.
+          © {new Date().getFullYear()} Burney Place. All rights reserved.
         </p>
       </div>
     </div>
