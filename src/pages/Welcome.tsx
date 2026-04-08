@@ -16,7 +16,7 @@ const Welcome = () => {
             <span className="text-lg font-bold text-secondary-foreground">T</span>
           </div>
           <span className="font-heading text-xl font-bold text-primary-foreground">
-            Toto Academy
+            Burney Place
           </span>
         </div>
         <div className="hidden items-center gap-8 md:flex">
