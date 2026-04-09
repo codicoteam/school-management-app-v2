@@ -25,7 +25,13 @@ const Login = () => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // TODO: integrate with auth
+    // Navigate to role-specific dashboard
+    const dashboardMap: Record<string, string> = {
+      admin: "/admin",
+      student: "/student",
+      parent: "/parent",
+    };
+    navigate(dashboardMap[role] || "/student");
   };
 
   return (
