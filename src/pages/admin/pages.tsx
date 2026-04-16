@@ -13,7 +13,6 @@ export const TeachersPage = () => (
 export const AcademicsPage = () => (
   <PlaceholderPage title="Academic Management" description="Create timetables, assign subjects, manage schedules and learning materials." icon={BookOpen} />
 );
-export { default as ExamsPage } from "./ExamsPage";
 export const AttendancePage = () => (
   <PlaceholderPage title="Attendance Management" description="Mark daily attendance, view absentees, generate reports and track late arrivals." icon={Clock} />
 );
