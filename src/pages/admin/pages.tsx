@@ -4,9 +4,6 @@ import {
   DollarSign, Package, Megaphone, FileText, Settings,
 } from "lucide-react";
 
-export const StudentsPage = () => (
-  <PlaceholderPage title="Student Management" description="Register, update, assign, promote, transfer, and manage student records." icon={GraduationCap} />
-);
 export const TeachersPage = () => (
   <PlaceholderPage title="Teacher Management" description="Add teachers, assign to classes/subjects, manage attendance and performance." icon={Users} />
 );

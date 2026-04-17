@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -11,8 +11,10 @@ import NotFound from "./pages/NotFound.tsx";
 // Admin
 import AdminLayout from "./pages/admin/AdminLayout.tsx";
 import AdminDashboard from "./pages/admin/AdminDashboard.tsx";
+import StudentsPage from "./pages/admin/StudentsPage.tsx";
+import ExamsPage from "./pages/admin/ExamsPage.tsx";
 import {
-  StudentsPage, TeachersPage, AcademicsPage as AdminAcademicsPage,
+  TeachersPage, AcademicsPage as AdminAcademicsPage,
   AttendancePage as AdminAttendancePage, FeesPage as AdminFeesPage,
   InventoryPage, AnnouncementsPage as AdminAnnouncementsPage,
   CertificatesPage, SettingsPage,
@@ -55,7 +57,7 @@ const App = () => (
             <Route path="students" element={<StudentsPage />} />
             <Route path="teachers" element={<TeachersPage />} />
             <Route path="academics" element={<AdminAcademicsPage />} />
-            <Route path="exams" element={<Navigate to="/admin" replace />} />
+            <Route path="exams" element={<ExamsPage />} />
             <Route path="attendance" element={<AdminAttendancePage />} />
             <Route path="fees" element={<AdminFeesPage />} />
             <Route path="inventory" element={<InventoryPage />} />
