@@ -13,30 +13,34 @@ import AdminLayout from "./pages/admin/AdminLayout.tsx";
 import AdminDashboard from "./pages/admin/AdminDashboard.tsx";
 import StudentsPage from "./pages/admin/StudentsPage.tsx";
 import ExamsPage from "./pages/admin/ExamsPage.tsx";
-import {
-  TeachersPage, AcademicsPage as AdminAcademicsPage,
-  AttendancePage as AdminAttendancePage, FeesPage as AdminFeesPage,
-  InventoryPage, AnnouncementsPage as AdminAnnouncementsPage,
-  CertificatesPage, SettingsPage,
-} from "./pages/admin/pages.tsx";
+import TeachersPage from "./pages/admin/TeachersPage.tsx";
+import AdminAcademicsPage from "./pages/admin/AcademicsPage.tsx";
+import AdminAttendancePage from "./pages/admin/AttendancePage.tsx";
+import AdminFeesPage from "./pages/admin/FeesPage.tsx";
+import InventoryPage from "./pages/admin/InventoryPage.tsx";
+import AdminAnnouncementsPage from "./pages/admin/AnnouncementsPage.tsx";
+import CertificatesPage from "./pages/admin/CertificatesPage.tsx";
+import SettingsPage from "./pages/admin/SettingsPage.tsx";
 
 // Student
 import StudentLayout from "./pages/student/StudentLayout.tsx";
 import StudentDashboard from "./pages/student/StudentDashboard.tsx";
-import {
-  ProfilePage, AcademicsPage as StudentAcademicsPage,
-  ExamsPage as StudentExamsPage, AttendancePage as StudentAttendancePage,
-  FeesPage as StudentFeesPage, AnnouncementsPage as StudentAnnouncementsPage,
-} from "./pages/student/pages.tsx";
+import StudentProfilePage from "./pages/student/ProfilePage.tsx";
+import StudentAcademicsPage from "./pages/student/AcademicsPage.tsx";
+import StudentExamsPage from "./pages/student/ExamsPage.tsx";
+import StudentAttendancePage from "./pages/student/AttendancePage.tsx";
+import StudentFeesPage from "./pages/student/FeesPage.tsx";
+import StudentAnnouncementsPage from "./pages/student/AnnouncementsPage.tsx";
 
 // Parent
 import ParentLayout from "./pages/parent/ParentLayout.tsx";
 import ParentDashboard from "./pages/parent/ParentDashboard.tsx";
-import {
-  ChildProfilePage, ResultsPage, AttendancePage as ParentAttendancePage,
-  FeesPage as ParentFeesPage, AnnouncementsPage as ParentAnnouncementsPage,
-  DocumentsPage,
-} from "./pages/parent/pages.tsx";
+import ChildProfilePage from "./pages/parent/ChildProfilePage.tsx";
+import ResultsPage from "./pages/parent/ResultsPage.tsx";
+import ParentAttendancePage from "./pages/parent/AttendancePage.tsx";
+import ParentFeesPage from "./pages/parent/FeesPage.tsx";
+import ParentAnnouncementsPage from "./pages/parent/AnnouncementsPage.tsx";
+import DocumentsPage from "./pages/parent/DocumentsPage.tsx";
 
 const queryClient = new QueryClient();
 
@@ -51,7 +55,7 @@ const App = () => (
           <Route path="/select-role" element={<SelectRole />} />
           <Route path="/login" element={<Login />} />
 
-          {/* Admin Routes */}
+          {/* Admin */}
           <Route path="/admin" element={<AdminLayout />}>
             <Route index element={<AdminDashboard />} />
             <Route path="students" element={<StudentsPage />} />
@@ -66,10 +70,10 @@ const App = () => (
             <Route path="settings" element={<SettingsPage />} />
           </Route>
 
-          {/* Student Routes */}
+          {/* Student */}
           <Route path="/student" element={<StudentLayout />}>
             <Route index element={<StudentDashboard />} />
-            <Route path="profile" element={<ProfilePage />} />
+            <Route path="profile" element={<StudentProfilePage />} />
             <Route path="academics" element={<StudentAcademicsPage />} />
             <Route path="exams" element={<StudentExamsPage />} />
             <Route path="attendance" element={<StudentAttendancePage />} />
@@ -77,7 +81,7 @@ const App = () => (
             <Route path="announcements" element={<StudentAnnouncementsPage />} />
           </Route>
 
-          {/* Parent Routes */}
+          {/* Parent */}
           <Route path="/parent" element={<ParentLayout />}>
             <Route index element={<ParentDashboard />} />
             <Route path="child" element={<ChildProfilePage />} />
