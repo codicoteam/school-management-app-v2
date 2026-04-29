@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import {
   Upload,
   Download,
-  Trash2,
   Search,
   Filter,
   FolderOpen,
@@ -10,11 +9,13 @@ import {
   Image as ImageIcon,
   Video,
   Music,
-  Plus,
+  BookOpen,
+  Users,
   Clock,
+  MoreVertical,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import {
   Select,
@@ -29,14 +30,15 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
   DialogFooter,
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 interface Resource {
   id: string;
   name: string;
+  description: string;
   type: 'pdf' | 'image' | 'video' | 'document' | 'audio';
   subject: string;
   class: string;
@@ -49,6 +51,7 @@ const mockResources: Resource[] = [
   {
     id: '1',
     name: 'Quadratic Equations Worksheet',
+    description: 'Practice worksheet for quadratic equations',
     type: 'pdf',
     subject: 'Mathematics',
     class: 'Class 10A',
@@ -59,6 +62,7 @@ const mockResources: Resource[] = [
   {
     id: '2',
     name: 'Newton\'s Laws Presentation',
+    description: 'PowerPoint presentation on Newton\'s three laws',
     type: 'document',
     subject: 'Physics',
     class: 'Class 11A',
@@ -69,6 +73,7 @@ const mockResources: Resource[] = [
   {
     id: '3',
     name: 'Chemistry Lab Diagrams',
+    description: 'Diagrams for chemistry lab experiments',
     type: 'image',
     subject: 'Chemistry',
     class: 'Class 11B',
@@ -79,6 +84,7 @@ const mockResources: Resource[] = [
   {
     id: '4',
     name: 'Photosynthesis Animation',
+    description: 'Video animation explaining photosynthesis',
     type: 'video',
     subject: 'Biology',
     class: 'Class 10B',
@@ -89,6 +95,7 @@ const mockResources: Resource[] = [
   {
     id: '5',
     name: 'English Literature Notes',
+    description: 'Study notes for English literature',
     type: 'document',
     subject: 'English',
     class: 'Class 10A',
@@ -96,20 +103,9 @@ const mockResources: Resource[] = [
     uploadedDate: '2024-04-16',
     downloads: 19,
   },
-  {
-    id: '6',
-    name: 'Historical Timeline Audio',
-    type: 'audio',
-    subject: 'History',
-    class: 'Class 11C',
-    size: '45 MB',
-    uploadedDate: '2024-04-15',
-    downloads: 12,
-  },
 ];
 
-const subjects = [
-  'All Subjects',
+const subjectOptions = [
   'Mathematics',
   'Physics',
   'Chemistry',
@@ -117,8 +113,8 @@ const subjects = [
   'English',
   'History',
 ];
-const classes = [
-  'All Classes',
+
+const classOptions = [
   'Class 10A',
   'Class 10B',
   'Class 11A',
@@ -138,7 +134,6 @@ export default function ResourcesPage() {
     class: '',
   });
 
-
   const getResourceIcon = (type: string) => {
     switch (type) {
       case 'pdf':
@@ -155,6 +150,28 @@ export default function ResourcesPage() {
     }
   };
 
+  const handleFileUpload = () => {
+    // TODO: Implement file upload logic
+    setIsUploadDialogOpen(false);
+    setUploadData({
+      name: '',
+      type: 'pdf',
+      subject: '',
+      class: '',
+    });
+  };
+
+  const filteredResources = mockResources.filter((resource) => {
+    const matchesSubject = selectedSubject === 'All Subjects' || resource.subject === selectedSubject;
+    const matchesClass = selectedClass === 'All Classes' || resource.class === selectedClass;
+    const matchesSearch = resource.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      resource.subject.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      resource.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      resource.class.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      resource.type.toLowerCase().includes(searchTerm.toLowerCase());
+    return matchesSubject && matchesClass && matchesSearch;
+  });
+
   const stats = {
     totalResources: mockResources.length,
     totalDownloads: mockResources.reduce((acc, r) => acc + r.downloads, 0),
@@ -163,24 +180,6 @@ export default function ResourcesPage() {
 
   return (
     <div className="space-y-6 p-6">
-      {/* Header */}
-      <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Resources</h1>
-          <p className="text-sm text-gray-600">
-            Upload, organize, and manage learning materials
-          </p>
-        </div>
-        <Button
-          size="sm"
-          className="gap-2"
-          onClick={() => setIsUploadDialogOpen(true)}
-        >
-          <Upload className="h-4 w-4" />
-          Upload Resource
-        </Button>
-      </div>
-
       {/* Stats Cards */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <Card className="hover:shadow-lg transition-shadow">
@@ -228,182 +227,189 @@ export default function ResourcesPage() {
       <Card>
         <CardContent className="pt-6">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-            <div className="relative">
-              <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-              <Input
-                placeholder="Search resources..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
-              />
+            <div>
+              <Label htmlFor="subject-filter">Subject</Label>
+              <Select value={selectedSubject} onValueChange={setSelectedSubject}>
+                <SelectTrigger>
+                  <SelectValue placeholder="All Subjects" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="All Subjects">All Subjects</SelectItem>
+                  {subjectOptions.map((subject) => (
+                    <SelectItem key={subject} value={subject}>
+                      {subject}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
-            <Select value={selectedSubject} onValueChange={setSelectedSubject}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {subjects.map((subject) => (
-                  <SelectItem key={subject} value={subject}>
-                    {subject}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Select value={selectedClass} onValueChange={setSelectedClass}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {classes.map((cls) => (
-                  <SelectItem key={cls} value={cls}>
-                    {cls}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div>
+              <Label htmlFor="class-filter">Class</Label>
+              <Select value={selectedClass} onValueChange={setSelectedClass}>
+                <SelectTrigger>
+                  <SelectValue placeholder="All Classes" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="All Classes">All Classes</SelectItem>
+                  {classOptions.map((className) => (
+                    <SelectItem key={className} value={className}>
+                      {className}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label htmlFor="search">Search</Label>
+              <div className="relative">
+                <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                <Input
+                  id="search"
+                  placeholder="Search resources..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+            </div>
           </div>
         </CardContent>
       </Card>
 
       {/* Resources Grid */}
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {filteredResources.map((resource) => (
-          <Card
-            key={resource.id}
-            className="hover:shadow-lg transition-shadow flex flex-col"
-          >
-            <CardContent className="pt-6 flex-1 flex flex-col">
-              <div className="flex items-start justify-between mb-3">
-                <div className="p-2 bg-blue-100 rounded-lg text-blue-600">
-                  {getResourceIcon(resource.type)}
-                </div>
-                <Badge variant="outline" className="text-xs">
-                  {resource.type.toUpperCase()}
-                </Badge>
-              </div>
-              <div className="flex-1">
-                <h3 className="font-medium text-gray-900 mb-2 line-clamp-2">
-                  {resource.name}
-                </h3>
-                <div className="space-y-1 text-xs text-gray-600 mb-4">
-                  <p>Subject: {resource.subject}</p>
-                  <p>Class: {resource.class}</p>
-                  <p>Size: {resource.size}</p>
-                  <div className="flex items-center gap-1 text-gray-500 pt-1">
-                    <Clock className="h-3 w-3" />
-                    <span>{new Date(resource.uploadedDate).toLocaleDateString()}</span>
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        {filteredResources.length > 0 ? (
+          filteredResources.map((resource) => (
+            <Card key={resource.id} className="hover:shadow-lg transition-shadow">
+              <CardContent className="pt-6">
+                <div className="space-y-4">
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-center space-x-3">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
+                        {getResourceIcon(resource.type)}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium truncate" title={resource.name}>
+                          {resource.name}
+                        </p>
+                        <p className="text-xs text-muted-foreground">{resource.size}</p>
+                      </div>
+                    </div>
+                    <Button variant="ghost" size="sm">
+                      <MoreVertical className="h-4 w-4" />
+                    </Button>
                   </div>
-                </div>
-              </div>
-              <div className="flex items-center justify-between pt-4 border-t">
-                <span className="text-xs font-medium text-gray-600">
-                  {resource.downloads} downloads
-                </span>
-                <div className="flex gap-2">
-                  <Button variant="ghost" size="sm">
-                    <Download className="h-4 w-4" />
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2 text-sm">
+                      <BookOpen className="h-4 w-4 text-muted-foreground" />
+                      <span>{resource.subject}</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm">
+                      <Users className="h-4 w-4 text-muted-foreground" />
+                      <span>{resource.class}</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm">
+                      <Download className="h-4 w-4 text-muted-foreground" />
+                      <span>{resource.downloads} downloads</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm">
+                      <Clock className="h-4 w-4 text-muted-foreground" />
+                      <span>{resource.uploadDate}</span>
+                    </div>
+                  </div>
+                  <Button className="w-full" variant="outline">
+                    <Download className="h-4 w-4 mr-2" />
+                    Download
                   </Button>
-                  <Button variant="ghost" size="sm">
-                    <Trash2 className="h-4 w-4 text-red-500" />
-                  </Button>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+              </CardContent>
+            </Card>
+          ))
+        ) : (
+          <div className="col-span-full">
+            <div className="text-center py-8">
+              <FolderOpen className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-muted-foreground">No resources found</h3>
+              <p className="text-sm text-muted-foreground">
+                Try adjusting your filters or upload some teaching materials.
+              </p>
+            </div>
+          </div>
+        )}
       </div>
-
-      {filteredResources.length === 0 && (
-        <Card className="text-center py-12">
-          <CardContent>
-            <FileText className="h-12 w-12 text-gray-400 mx-auto mb-3" />
-            <p className="text-gray-600">No resources found</p>
-            <p className="text-sm text-gray-500">Try adjusting your search filters</p>
-          </CardContent>
-        </Card>
-      )}
 
       {/* Upload Dialog */}
       <Dialog open={isUploadDialogOpen} onOpenChange={setIsUploadDialogOpen}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Upload Resource</DialogTitle>
+            <DialogDescription>
+              Add a new teaching material to your resource library.
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div>
-              <Label htmlFor="resourceName">Resource Name</Label>
+              <Label htmlFor="name">Resource Name</Label>
               <Input
-                id="resourceName"
+                id="name"
                 value={uploadData.name}
-                onChange={(e) =>
-                  setUploadData({ ...uploadData, name: e.target.value })
-                }
+                onChange={(e) => setUploadData({ ...uploadData, name: e.target.value })}
                 placeholder="Enter resource name"
               />
             </div>
             <div>
-              <Label htmlFor="resourceType">Resource Type</Label>
-              <select
-                id="resourceType"
+              <Label htmlFor="type">Resource Type</Label>
+              <Select
                 value={uploadData.type}
-                onChange={(e) =>
-                  setUploadData({
-                    ...uploadData,
-                    type: e.target.value as any,
-                  })
-                }
-                className="w-full rounded-md border border-gray-300 px-3 py-2"
+                onValueChange={(value) => setUploadData({ ...uploadData, type: value as any })}
               >
-                <option value="pdf">PDF</option>
-                <option value="document">Document</option>
-                <option value="image">Image</option>
-                <option value="video">Video</option>
-                <option value="audio">Audio</option>
-              </select>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="pdf">PDF Document</SelectItem>
+                  <SelectItem value="image">Image</SelectItem>
+                  <SelectItem value="video">Video</SelectItem>
+                  <SelectItem value="audio">Audio</SelectItem>
+                  <SelectItem value="document">Document</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             <div>
-              <Label htmlFor="resourceSubject">Subject</Label>
-              <select
-                id="resourceSubject"
+              <Label htmlFor="subject">Subject</Label>
+              <Select
                 value={uploadData.subject}
-                onChange={(e) =>
-                  setUploadData({ ...uploadData, subject: e.target.value })
-                }
-                className="w-full rounded-md border border-gray-300 px-3 py-2"
+                onValueChange={(value) => setUploadData({ ...uploadData, subject: value })}
               >
-                <option value="">Select Subject</option>
-                {subjects.slice(1).map((subject) => (
-                  <option key={subject} value={subject}>
-                    {subject}
-                  </option>
-                ))}
-              </select>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select subject" />
+                </SelectTrigger>
+                <SelectContent>
+                  {subjectOptions.map((subject) => (
+                    <SelectItem key={subject} value={subject}>
+                      {subject}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div>
-              <Label htmlFor="resourceClass">Class</Label>
-              <select
-                id="resourceClass"
+              <Label htmlFor="class">Class</Label>
+              <Select
                 value={uploadData.class}
-                onChange={(e) =>
-                  setUploadData({ ...uploadData, class: e.target.value })
-                }
-                className="w-full rounded-md border border-gray-300 px-3 py-2"
+                onValueChange={(value) => setUploadData({ ...uploadData, class: value })}
               >
-                <option value="">Select Class</option>
-                {classes.slice(1).map((cls) => (
-                  <option key={cls} value={cls}>
-                    {cls}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <Label htmlFor="file">Select File</Label>
-              <input
-                id="file"
-                type="file"
-                className="w-full rounded-md border border-gray-300 px-3 py-2"
-              />
+                <SelectTrigger>
+                  <SelectValue placeholder="Select class" />
+                </SelectTrigger>
+                <SelectContent>
+                  {classOptions.map((className) => (
+                    <SelectItem key={className} value={className}>
+                      {className}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
           <DialogFooter>
@@ -413,142 +419,22 @@ export default function ResourcesPage() {
             >
               Cancel
             </Button>
-            <Button onClick={handleUploadResource}>Upload</Button>
+            <Button onClick={handleFileUpload}>Upload</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Upload Button */}
+      <div className="flex justify-center">
+        <Button
+          size="lg"
+          className="gap-2"
+          onClick={() => setIsUploadDialogOpen(true)}
+        >
+          <Upload className="h-5 w-5" />
+          Upload New Resource
+        </Button>
+      </div>
     </div>
   );
 }
-
-
-  const filteredResources = mockResources.filter(resource => {
-    const matchesSubject = !selectedSubject || resource.subject === selectedSubject;
-    const matchesClass = !selectedClass || resource.class === selectedClass;
-    const matchesSearch = !searchQuery ||
-      resource.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      resource.subject.toLowerCase().includes(searchQuery.toLowerCase());
-
-    return matchesSubject && matchesClass && matchesSearch;
-  });
-
-  return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="font-heading text-2xl font-bold text-foreground">Resources</h1>
-        <div>
-          <input
-            type="file"
-            id="file-upload"
-            className="hidden"
-            onChange={handleFileUpload}
-            accept=".pdf,.doc,.docx,.ppt,.pptx,.jpg,.jpeg,.png,.mp4,.avi"
-          />
-          <Button asChild>
-            <label htmlFor="file-upload" className="cursor-pointer">
-              <Upload className="h-4 w-4 mr-2" />
-              Upload Resource
-            </label>
-          </Button>
-        </div>
-      </div>
-
-      {/* Filters */}
-      <Card>
-        <CardContent className="pt-6">
-          <div className="flex flex-col sm:flex-row gap-4">
-            <div className="flex-1">
-              <div className="relative">
-                <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search resources..."
-                  className="pl-9"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
-              </div>
-            </div>
-            <Select value={selectedSubject} onValueChange={setSelectedSubject}>
-              <SelectTrigger className="w-full sm:w-[180px]">
-                <SelectValue placeholder="All Subjects" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="">All Subjects</SelectItem>
-                <SelectItem value="Mathematics">Mathematics</SelectItem>
-                <SelectItem value="Physics">Physics</SelectItem>
-                <SelectItem value="Chemistry">Chemistry</SelectItem>
-                <SelectItem value="Biology">Biology</SelectItem>
-              </SelectContent>
-            </Select>
-            <Select value={selectedClass} onValueChange={setSelectedClass}>
-              <SelectTrigger className="w-full sm:w-[180px]">
-                <SelectValue placeholder="All Classes" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="">All Classes</SelectItem>
-                <SelectItem value="Form 3A">Form 3A</SelectItem>
-                <SelectItem value="Form 4A">Form 4A</SelectItem>
-                <SelectItem value="Form 4B">Form 4B</SelectItem>
-                <SelectItem value="Form 3B">Form 3B</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Resources Grid */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {filteredResources.map((resource) => (
-          <Card key={resource.id} className="hover:shadow-md transition-shadow">
-            <CardContent className="pt-6">
-              <div className="space-y-4">
-                <div className="flex items-start justify-between">
-                  <div className="flex items-center space-x-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
-                      {getFileIcon(resource.type)}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate" title={resource.name}>
-                        {resource.name}
-                      </p>
-                      <p className="text-xs text-muted-foreground">{resource.size}</p>
-                    </div>
-                  </div>
-                  <Button variant="ghost" size="sm">
-                    <Download className="h-4 w-4" />
-                  </Button>
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <Badge variant="secondary">{resource.subject}</Badge>
-                  <Badge variant="outline">{resource.class}</Badge>
-                </div>
-
-                <div className="flex items-center justify-between text-xs text-muted-foreground">
-                    <span>Uploaded: {resource.uploadedDate}</span>
-                  <span>{resource.downloads} downloads</span>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
-      {filteredResources.length === 0 && (
-        <Card>
-          <CardContent className="pt-6">
-            <div className="text-center py-8">
-              <FolderOpen className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-muted-foreground">No resources found</h3>
-              <p className="text-sm text-muted-foreground">
-                Try adjusting your filters or upload some teaching materials.
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-    </div>
-  );
-};
-
-export default ResourcesPage;

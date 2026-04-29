@@ -476,7 +476,6 @@ export default function ReportsPage() {
           </div>
         </CardContent>
       </Card>
-    </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
@@ -673,5 +672,3 @@ export default function ReportsPage() {
     </div>
   );
 };
-
-export default ReportsPage;

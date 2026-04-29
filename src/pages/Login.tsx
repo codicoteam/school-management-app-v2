@@ -19,19 +19,16 @@ const roleConfig: Record<string, { label: string; icon: typeof GraduationCap }> 
 const Login = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { login, register } = useAuth();
+  const { login } = useAuth();
   const role = searchParams.get("role") || "student";
   const config = roleConfig[role] || roleConfig.student;
   const RoleIcon = config.icon;
 
-  const [isSignUp, setIsSignUp] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
-    name: "",
     email: "",
     password: "",
-    confirmPassword: "",
   });
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -46,22 +43,7 @@ const Login = () => {
     setIsLoading(true);
 
     try {
-      if (isSignUp) {
-        if (formData.password !== formData.confirmPassword) {
-          toast.error("Passwords don't match");
-          return;
-        }
-
-        await register({
-          email: formData.email,
-          password: formData.password,
-          name: formData.name,
-          role,
-        });
-      } else {
-        await login(formData.email, formData.password, role);
-      }
-
+      // Simple login - no authentication for now
       // Navigate to role-specific dashboard
       const dashboardMap: Record<string, string> = {
         admin: "/admin",
@@ -70,7 +52,7 @@ const Login = () => {
         teacher: "/teacher",
       };
       navigate(dashboardMap[role] || "/student");
-      toast.success(isSignUp ? "Account created successfully!" : "Login successful!");
+      toast.success("Login successful!");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "An error occurred");
     } finally {
@@ -113,28 +95,15 @@ const Login = () => {
             </div>
             <div className="text-center">
               <h1 className="font-heading text-2xl font-bold text-primary-foreground">
-                {isSignUp ? "Create Account" : "Welcome Back"}
+                Welcome Back
               </h1>
               <p className="mt-1 text-sm text-primary-foreground/60">
-                {isSignUp ? `Sign up as a ${config.label}` : `Login as ${config.label}`}
+                Login as {config.label}
               </p>
             </div>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
-            {isSignUp && (
-              <div className="space-y-2">
-                <Label htmlFor="name" className="text-primary-foreground/80">Full Name</Label>
-                <Input
-                  id="name"
-                  value={formData.name}
-                  onChange={handleInputChange}
-                  placeholder="Enter your full name"
-                  className="border-primary-foreground/20 bg-primary-foreground/5 text-primary-foreground placeholder:text-primary-foreground/40 focus-visible:ring-secondary"
-                />
-              </div>
-            )}
-
             <div className="space-y-2">
               <Label htmlFor="email" className="text-primary-foreground/80">Email</Label>
               <Input
@@ -168,40 +137,16 @@ const Login = () => {
               </div>
             </div>
 
-            {isSignUp && (
-              <div className="space-y-2">
-                <Label htmlFor="confirmPassword" className="text-primary-foreground/80">Confirm Password</Label>
-                <Input
-                  id="confirmPassword"
-                  type="password"
-                  value={formData.confirmPassword}
-                  onChange={handleInputChange}
-                  placeholder="Confirm your password"
-                  className="border-primary-foreground/20 bg-primary-foreground/5 text-primary-foreground placeholder:text-primary-foreground/40 focus-visible:ring-secondary"
-                />
-              </div>
-            )}
-
             <Button
               type="submit"
               disabled={isLoading}
               className="w-full bg-secondary text-secondary-foreground hover:bg-secondary/90 h-11 text-base font-semibold"
             >
-              {isLoading ? "Please wait..." : (isSignUp ? "Sign Up" : "Login")}
+              {isLoading ? "Please wait..." : "Login"}
             </Button>
           </form>
 
-          <div className="mt-6 text-center">
-            <p className="text-sm text-primary-foreground/60">
-              {isSignUp ? "Already have an account?" : "Don't have an account?"}{" "}
-              <button
-                onClick={() => setIsSignUp(!isSignUp)}
-                className="font-semibold text-secondary hover:text-secondary/80 transition-colors"
-              >
-                {isSignUp ? "Login" : "Sign Up"}
-              </button>
-            </p>
-          </div>
+
         </div>
       </motion.div>
     </div>
