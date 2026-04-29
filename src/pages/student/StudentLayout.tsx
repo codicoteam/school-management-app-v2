@@ -2,7 +2,7 @@ import { Outlet } from "react-router-dom";
 import DashboardLayout, { NavGroup } from "@/components/DashboardLayout";
 import {
   LayoutDashboard, User, BookOpen, ClipboardList, Clock,
-  DollarSign, Bell,
+  DollarSign, Bell, MessageSquare,
 } from "lucide-react";
 
 const navGroups: NavGroup[] = [
@@ -25,6 +25,7 @@ const navGroups: NavGroup[] = [
     title: "Other",
     items: [
       { label: "Fees Status", href: "/student/fees", icon: DollarSign },
+      { label: "Messages", href: "/student/messages", icon: MessageSquare },
       { label: "Announcements", href: "/student/announcements", icon: Bell },
     ],
   },

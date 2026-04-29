@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { GraduationCap, ShieldCheck, Users, ArrowLeft } from "lucide-react";
+import { GraduationCap, ShieldCheck, Users, UserCog, ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import heroBg from "@/assets/hero-bg.jpg";
 
@@ -15,6 +15,12 @@ const roles = [
     label: "Parent",
     description: "Monitor your child's learning journey and performance",
     icon: Users,
+  },
+  {
+    id: "teacher",
+    label: "Teacher",
+    description: "Manage classes, assignments and student performance",
+    icon: UserCog,
   },
   {
     id: "admin",
