@@ -1,0 +1,8 @@
+[env.production]
+name = "guardian-portal-nexus"
+pages_build_output_dir = "dist"
+compatibility_date = "2026-04-23"
+framework = "react-router"
+
+[build]
+command = "npm run build"

@@ -1,37 +1,81 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { ArrowLeft, Eye, EyeOff, GraduationCap, ShieldCheck, Users } from "lucide-react";
+import { ArrowLeft, Eye, EyeOff, GraduationCap, ShieldCheck, Users, UserCog } from "lucide-react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "sonner";
 import heroBg from "@/assets/hero-bg.jpg";
 
 const roleConfig: Record<string, { label: string; icon: typeof GraduationCap }> = {
   student: { label: "Student", icon: GraduationCap },
   parent: { label: "Parent", icon: Users },
+  teacher: { label: "Teacher", icon: UserCog },
   admin: { label: "Admin", icon: ShieldCheck },
 };
 
 const Login = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const { login, register } = useAuth();
   const role = searchParams.get("role") || "student";
   const config = roleConfig[role] || roleConfig.student;
   const RoleIcon = config.icon;
 
   const [isSignUp, setIsSignUp] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [formData, setFormData] = useState({
+    name: "",
+    email: "",
+    password: "",
+    confirmPassword: "",
+  });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData(prev => ({
+      ...prev,
+      [e.target.id]: e.target.value
+    }));
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Navigate to role-specific dashboard
-    const dashboardMap: Record<string, string> = {
-      admin: "/admin",
-      student: "/student",
-      parent: "/parent",
-    };
-    navigate(dashboardMap[role] || "/student");
+    setIsLoading(true);
+
+    try {
+      if (isSignUp) {
+        if (formData.password !== formData.confirmPassword) {
+          toast.error("Passwords don't match");
+          return;
+        }
+
+        await register({
+          email: formData.email,
+          password: formData.password,
+          name: formData.name,
+          role,
+        });
+      } else {
+        await login(formData.email, formData.password, role);
+      }
+
+      // Navigate to role-specific dashboard
+      const dashboardMap: Record<string, string> = {
+        admin: "/admin",
+        student: "/student",
+        parent: "/parent",
+        teacher: "/teacher",
+      };
+      navigate(dashboardMap[role] || "/student");
+      toast.success(isSignUp ? "Account created successfully!" : "Login successful!");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "An error occurred");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -83,6 +127,8 @@ const Login = () => {
                 <Label htmlFor="name" className="text-primary-foreground/80">Full Name</Label>
                 <Input
                   id="name"
+                  value={formData.name}
+                  onChange={handleInputChange}
                   placeholder="Enter your full name"
                   className="border-primary-foreground/20 bg-primary-foreground/5 text-primary-foreground placeholder:text-primary-foreground/40 focus-visible:ring-secondary"
                 />
@@ -94,6 +140,8 @@ const Login = () => {
               <Input
                 id="email"
                 type="email"
+                value={formData.email}
+                onChange={handleInputChange}
                 placeholder="Enter your email"
                 className="border-primary-foreground/20 bg-primary-foreground/5 text-primary-foreground placeholder:text-primary-foreground/40 focus-visible:ring-secondary"
               />
@@ -105,6 +153,8 @@ const Login = () => {
                 <Input
                   id="password"
                   type={showPassword ? "text" : "password"}
+                  value={formData.password}
+                  onChange={handleInputChange}
                   placeholder="Enter your password"
                   className="border-primary-foreground/20 bg-primary-foreground/5 pr-10 text-primary-foreground placeholder:text-primary-foreground/40 focus-visible:ring-secondary"
                 />
@@ -124,6 +174,8 @@ const Login = () => {
                 <Input
                   id="confirmPassword"
                   type="password"
+                  value={formData.confirmPassword}
+                  onChange={handleInputChange}
                   placeholder="Confirm your password"
                   className="border-primary-foreground/20 bg-primary-foreground/5 text-primary-foreground placeholder:text-primary-foreground/40 focus-visible:ring-secondary"
                 />
@@ -132,9 +184,10 @@ const Login = () => {
 
             <Button
               type="submit"
+              disabled={isLoading}
               className="w-full bg-secondary text-secondary-foreground hover:bg-secondary/90 h-11 text-base font-semibold"
             >
-              {isSignUp ? "Sign Up" : "Login"}
+              {isLoading ? "Please wait..." : (isSignUp ? "Sign Up" : "Login")}
             </Button>
           </form>
 

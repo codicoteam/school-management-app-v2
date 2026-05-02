@@ -1,12 +1,11 @@
 import PlaceholderPage from "@/components/PlaceholderPage";
+import TeachersPage from "./TeachersPage";
 import {
   GraduationCap, Users, BookOpen, ClipboardList, Clock,
   DollarSign, Package, Megaphone, FileText, Settings,
 } from "lucide-react";
 
-export const TeachersPage = () => (
-  <PlaceholderPage title="Teacher Management" description="Add teachers, assign to classes/subjects, manage attendance and performance." icon={Users} />
-);
+export const TeachersPageComponent = () => <TeachersPage />;
 export const AcademicsPage = () => (
   <PlaceholderPage title="Academic Management" description="Create timetables, assign subjects, manage schedules and learning materials." icon={BookOpen} />
 );

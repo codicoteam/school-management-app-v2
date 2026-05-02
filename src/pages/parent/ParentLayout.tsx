@@ -1,7 +1,7 @@
 import { Outlet } from "react-router-dom";
 import DashboardLayout, { NavGroup } from "@/components/DashboardLayout";
 import {
-  LayoutDashboard, User, ClipboardList, Clock, DollarSign, Bell, FileText,
+  LayoutDashboard, User, ClipboardList, Clock, DollarSign, Bell, FileText, MessageSquare,
 } from "lucide-react";
 
 const navGroups: NavGroup[] = [
@@ -23,6 +23,7 @@ const navGroups: NavGroup[] = [
     title: "Finance & Comms",
     items: [
       { label: "Fees & Payments", href: "/parent/fees", icon: DollarSign },
+      { label: "Messages", href: "/parent/messages", icon: MessageSquare },
       { label: "Announcements", href: "/parent/announcements", icon: Bell },
       { label: "Reports & Documents", href: "/parent/documents", icon: FileText },
     ],
