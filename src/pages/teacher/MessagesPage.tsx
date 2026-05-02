@@ -8,7 +8,6 @@ import {
   Clock,
   User,
   Users,
-  MessageSquare,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -127,35 +126,12 @@ const mockMessages: Message[] = [
   },
 ];
 
-interface MessageHistoryItem {
-  id: string;
-  recipient: string;
-  type: string;
-  subject: string;
-  message: string;
-  timestamp: string;
-  status: string;
-}
-
-const mockMessageHistory: MessageHistoryItem[] = [
-  {
-    id: 'h1',
-    recipient: 'Arjun Sharma',
-    type: 'student',
-    subject: 'Assignment Reminder',
-    message: 'Please submit your assignment by tomorrow.',
-    timestamp: '2024-04-19 10:00',
-    status: 'sent',
-  },
-];
-
 export default function MessagesPage() {
   const [selectedConversation, setSelectedConversation] =
     useState<Conversation | null>(mockConversations[0]);
   const [searchTerm, setSearchTerm] = useState('');
   const [newMessage, setNewMessage] = useState('');
   const [isComposeDialogOpen, setIsComposeDialogOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState('conversations');
   const [composeData, setComposeData] = useState({
     recipientType: 'student',
     recipient: '',
@@ -209,15 +185,8 @@ export default function MessagesPage() {
         </Button>
       </div>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="conversations">Conversations</TabsTrigger>
-          <TabsTrigger value="sent-messages">Sent Messages</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="conversations" className="mt-6">
-          {/* Main Layout */}
-          <div className="grid grid-cols-1 gap-6 lg:grid-cols-4">
+      {/* Main Layout */}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         {/* Conversations List */}
         <div className="lg:col-span-1">
           <Card className="h-[600px] flex flex-col">
@@ -241,8 +210,9 @@ export default function MessagesPage() {
                   <div
                     key={conv.id}
                     onClick={() => setSelectedConversation(conv)}
-                    className={`p-3 border-b cursor-pointer hover:bg-gray-50 transition-colors ${selectedConversation?.id === conv.id ? 'bg-blue-50' : ''
-                      }`}
+                    className={`p-3 border-b cursor-pointer hover:bg-gray-50 transition-colors ${
+                      selectedConversation?.id === conv.id ? 'bg-blue-50' : ''
+                    }`}
                   >
                     <div className="flex items-start gap-3">
                       <Avatar className="h-10 w-10 flex-shrink-0">
@@ -299,8 +269,8 @@ export default function MessagesPage() {
                         {selectedConversation.type === 'student'
                           ? 'Student'
                           : selectedConversation.type === 'parent'
-                            ? 'Parent'
-                            : 'Class'}
+                          ? 'Parent'
+                          : 'Class'}
                       </p>
                     </div>
                   </div>
@@ -315,22 +285,25 @@ export default function MessagesPage() {
                 {mockMessages.map((msg) => (
                   <div
                     key={msg.id}
-                    className={`flex ${msg.senderId === 'teacher' ? 'justify-end' : 'justify-start'
-                      }`}
+                    className={`flex ${
+                      msg.senderId === 'teacher' ? 'justify-end' : 'justify-start'
+                    }`}
                   >
                     <div
-                      className={`max-w-xs px-4 py-2 rounded-lg ${msg.senderId === 'teacher'
+                      className={`max-w-xs px-4 py-2 rounded-lg ${
+                        msg.senderId === 'teacher'
                           ? 'bg-blue-500 text-white'
                           : 'bg-gray-200 text-gray-900'
-                        }`}
+                      }`}
                     >
                       <p className="text-sm font-medium mb-1">{msg.subject}</p>
                       <p className="text-sm">{msg.content}</p>
                       <p
-                        className={`text-xs mt-2 ${msg.senderId === 'teacher'
+                        className={`text-xs mt-2 ${
+                          msg.senderId === 'teacher'
                             ? 'text-blue-100'
                             : 'text-gray-600'
-                          }`}
+                        }`}
                       >
                         {msg.timestamp}
                       </p>
@@ -368,45 +341,7 @@ export default function MessagesPage() {
             </Card>
           )}
         </div>
-
-        {/* Quick Actions */}
-        <div className="lg:col-span-1">
-          <Card>
-            <CardHeader>
-              <CardTitle>Quick Actions</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <Button variant="outline" className="w-full justify-start">
-                <Users className="h-4 w-4 mr-2" />
-                Message All Students
-              </Button>
-              <Button variant="outline" className="w-full justify-start">
-                <User className="h-4 w-4 mr-2" />
-                Message All Parents
-              </Button>
-              <Button variant="outline" className="w-full justify-start">
-                <MessageSquare className="h-4 w-4 mr-2" />
-                Send Class Announcement
-              </Button>
-              <Button variant="outline" className="w-full justify-start">
-                <MessageSquare className="h-4 w-4 mr-2" />
-                Send Absence Alert
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
       </div>
-        </TabsContent>
-
-        <TabsContent value="sent-messages" className="mt-6">
-          <Card className="h-[600px] flex items-center justify-center">
-            <CardContent className="text-center">
-              <MessageCircle className="h-12 w-12 text-gray-400 mx-auto mb-3" />
-              <p className="text-gray-600">No sent messages yet</p>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
 
       {/* Compose Message Dialog */}
       <Dialog open={isComposeDialogOpen} onOpenChange={setIsComposeDialogOpen}>
@@ -443,11 +378,9 @@ export default function MessagesPage() {
                   <SelectValue placeholder="Select recipient" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="arjun">Arjun Sharma</SelectItem>
-                  <SelectItem value="priya">Priya Verma</SelectItem>
-                  <SelectItem value="rahul">Rahul Kumar</SelectItem>
-                  <SelectItem value="neha">Neha Singh</SelectItem>
-                  <SelectItem value="class10a">Class 10A</SelectItem>
+                  <SelectItem value="alice">Alice Johnson</SelectItem>
+                  <SelectItem value="bob">Bob Smith</SelectItem>
+                  <SelectItem value="charlie">Charlie Brown</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -486,6 +419,72 @@ export default function MessagesPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+
+
+        {/* Quick Actions */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Quick Actions</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <Button variant="outline" className="w-full justify-start">
+              <Users className="h-4 w-4 mr-2" />
+              Message All Students
+            </Button>
+            <Button variant="outline" className="w-full justify-start">
+              <User className="h-4 w-4 mr-2" />
+              Message All Parents
+            </Button>
+            <Button variant="outline" className="w-full justify-start">
+              <MessageSquare className="h-4 w-4 mr-2" />
+              Send Class Announcement
+            </Button>
+            <Button variant="outline" className="w-full justify-start">
+              <MessageSquare className="h-4 w-4 mr-2" />
+              Send Absence Alert
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Message History */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Message History</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            {messageHistory.map((msg) => (
+              <div key={msg.id} className="flex items-start space-x-4 p-4 border rounded-lg">
+                <Avatar className="h-10 w-10">
+                  <AvatarFallback>
+                    {msg.type === 'class' ? <Users className="h-4 w-4" /> : <User className="h-4 w-4" />}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex-1 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                      <span className="font-medium">{msg.recipient}</span>
+                      <Badge variant="secondary" className="text-xs">
+                        {msg.type}
+                      </Badge>
+                    </div>
+                    <span className="text-xs text-muted-foreground">{msg.timestamp}</span>
+                  </div>
+                  <h4 className="font-medium">{msg.subject}</h4>
+                  <p className="text-sm text-muted-foreground">{msg.message}</p>
+                </div>
+                <Badge variant={msg.status === 'sent' ? 'default' : 'secondary'}>
+                  {msg.status}
+                </Badge>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
-}
+};
+
+export default MessagesPage;
