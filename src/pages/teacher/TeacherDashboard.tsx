@@ -45,9 +45,8 @@ const quickActions = [
   { label: "View Calendar", icon: Calendar, href: "/teacher/calendar" },
 ];
 
-const TeacherDashboard = () => {
-  return (
-    <div className="space-y-6">
+const TeacherDashboard = () => (
+  <div className="space-y-6">
       <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
         <h1 className="font-heading text-2xl font-bold text-foreground">Teacher Dashboard</h1>
         <p className="mt-1 text-sm text-muted-foreground">Welcome back! Here's your teaching overview for today.</p>
@@ -171,6 +170,5 @@ const TeacherDashboard = () => {
       </div>
     </div>
   );
-};
 
 export default TeacherDashboard;

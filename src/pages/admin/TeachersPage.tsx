@@ -25,12 +25,12 @@ interface Teacher {
 }
 
 const initialTeachers: Teacher[] = [
-  { id: "TCH-001", name: "Mr. Tendai Mhlanga", subject: "Mathematics", classes: "Form 4A, 4B", email: "tmhlanga@burney.zw", phone: "+263 77 234 5678", status: "Active", qualification: "BSc Mathematics, UZ" },
-  { id: "TCH-002", name: "Mrs. Rufaro Moyo", subject: "English", classes: "Form 2A, 3B", email: "rmoyo@burney.zw", phone: "+263 71 998 1122", status: "Active", qualification: "BA English, UZ" },
-  { id: "TCH-003", name: "Mr. Tinashe Dube", subject: "Science", classes: "Form 5A, 6A", email: "tdube@burney.zw", phone: "+263 78 445 9090", status: "Active", qualification: "BSc Chemistry, NUST" },
-  { id: "TCH-004", name: "Mrs. Chiedza Banda", subject: "Shona", classes: "Form 1A, 1B, 1C", email: "cbanda@burney.zw", phone: "+263 77 121 3344", status: "On Leave", qualification: "BA Shona, UZ" },
-  { id: "TCH-005", name: "Mr. Farai Sibanda", subject: "History", classes: "Form 3A, 4A", email: "fsibanda@burney.zw", phone: "+263 71 778 2211", status: "Active", qualification: "BA History, UZ" },
-  { id: "TCH-006", name: "Ms. Nyasha Phiri", subject: "Geography", classes: "Form 2B, 5A", email: "nphiri@burney.zw", phone: "+263 78 332 0099", status: "Active", qualification: "BA Geography, UZ" },
+  { id: "TCH-001", name: "Mr. Tendai Mhlanga", subject: "Mathematics", classes: "Form 4A, 4B", email: "tmhlanga@nexushigh.edu", phone: "+263 77 234 5678", status: "Active", qualification: "BSc Mathematics, UZ" },
+  { id: "TCH-002", name: "Mrs. Rufaro Moyo", subject: "English", classes: "Form 2A, 3B", email: "rmoyo@nexushigh.edu", phone: "+263 71 998 1122", status: "Active", qualification: "BA English, UZ" },
+  { id: "TCH-003", name: "Mr. Tinashe Dube", subject: "Science", classes: "Form 5A, 6A", email: "tdube@nexushigh.edu", phone: "+263 78 445 9090", status: "Active", qualification: "BSc Chemistry, NUST" },
+  { id: "TCH-004", name: "Mrs. Chiedza Banda", subject: "Shona", classes: "Form 1A, 1B, 1C", email: "cbanda@nexushigh.edu", phone: "+263 77 121 3344", status: "On Leave", qualification: "BA Shona, UZ" },
+  { id: "TCH-005", name: "Mr. Farai Sibanda", subject: "History", classes: "Form 3A, 4A", email: "fsibanda@nexushigh.edu", phone: "+263 71 778 2211", status: "Active", qualification: "BA History, UZ" },
+  { id: "TCH-006", name: "Ms. Nyasha Phiri", subject: "Geography", classes: "Form 2B, 5A", email: "nphiri@nexushigh.edu", phone: "+263 78 332 0099", status: "Active", qualification: "BA Geography, UZ" },
 ];
 
 const STORAGE_KEY = "school_teachers";

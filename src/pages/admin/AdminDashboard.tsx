@@ -59,7 +59,7 @@ const AdminDashboard = () => {
     <div className="space-y-6">
       <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
         <h1 className="font-heading text-2xl font-bold text-foreground">Admin Dashboard</h1>
-        <p className="mt-1 text-sm text-muted-foreground">Welcome back! Here's what's happening at Burney Place School today.</p>
+        <p className="mt-1 text-sm text-muted-foreground">Welcome back! Here's what's happening at School Management today.</p>
       </motion.div>
 
       {/* Stats */}

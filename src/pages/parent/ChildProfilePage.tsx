@@ -49,7 +49,7 @@ const ChildProfilePage = () => {
               </div>
               <div className="pb-1">
                 <h2 className="font-heading text-2xl font-bold">Tawanda Ndlovu</h2>
-                <p className="text-sm text-muted-foreground">Form 4A · Burney Place School</p>
+                <p className="text-sm text-muted-foreground">Form 4A · School Management</p>
                 <div className="mt-2 flex flex-wrap gap-2">
                   <Badge className="bg-accent/15 text-accent">BPS-2451</Badge>
                   <Badge className="bg-green-500/15 text-green-700">92% Attendance</Badge>
@@ -117,7 +117,7 @@ const ChildProfilePage = () => {
               { icon: Calendar, label: "Date of Birth", value: "12 March 2009" },
               { icon: Heart, label: "Blood Group", value: "O+" },
               { icon: MapPin, label: "Home Address", value: "45 Borrowdale Rd, Harare" },
-              { icon: Mail, label: "School Email", value: "tawanda.ndlovu@burney.zw" },
+              { icon: Mail, label: "School Email", value: "tawanda.ndlovu@School Managementhigh.edu" },
               { icon: Phone, label: "Class Teacher", value: "Mr. Mhlanga · +263 77 234 5678" },
               { icon: Calendar, label: "Admission Date", value: "15 January 2022" },
             ].map(d => (

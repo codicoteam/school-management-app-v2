@@ -17,7 +17,7 @@ const ProfilePage = () => {
     gender: "Male",
     blood: "O+",
     address: "45 Borrowdale Rd, Harare",
-    email: "tawanda.ndlovu@burney.zw",
+    email: "tawanda.ndlovu@School Managementhigh.edu",
     phone: "+263 77 333 4455",
     guardian: "Mrs. Nomsa Ndlovu",
     guardianPhone: "+263 77 555 8888",
@@ -69,7 +69,7 @@ const ProfilePage = () => {
                 </div>
                 <div className="pb-1">
                   <h2 className="font-heading text-2xl font-bold">{profile.name}</h2>
-                  <p className="text-sm text-muted-foreground">Form 4A · Burney Place School</p>
+                  <p className="text-sm text-muted-foreground">Form 4A · School Management</p>
                   <div className="mt-2 flex flex-wrap gap-2">
                     <Badge className="bg-accent/15 text-accent">BPS-2451</Badge>
                     <Badge className="bg-green-500/15 text-green-700">Active</Badge>

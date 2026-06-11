@@ -54,7 +54,7 @@ const StudentDashboard = () => (
           <div className="absolute -right-8 -top-8 h-32 w-32 rounded-full bg-secondary/20 blur-2xl" />
           <div className="relative">
             <h1 className="font-heading text-2xl font-bold">Hi Tawanda 👋</h1>
-            <p className="mt-1 text-sm text-primary-foreground/80">Form 4A · Burney Place School · Today is Tuesday, 15 April</p>
+            <p className="mt-1 text-sm text-primary-foreground/80">Form 4A · School Management · Today is Tuesday, 15 April</p>
           </div>
         </div>
       </Card>

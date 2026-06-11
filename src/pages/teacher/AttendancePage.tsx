@@ -13,8 +13,6 @@ const AttendancePage = () => {
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split("T")[0]);
   const [attendance, setAttendance] = useState<Record<string, boolean>>({});
 
-  const classes = ["Form 3A", "Form 4A", "Form 4B"];
-  
   const students = [
     { id: "1", name: "Alice Johnson", rollNo: "001" },
     { id: "2", name: "Bob Smith", rollNo: "002" },

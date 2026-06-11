@@ -9,6 +9,7 @@ import Index from "./pages/Index.tsx";
 import SelectRole from "./pages/SelectRole.tsx";
 import Login from "./pages/Login.tsx";
 import NotFound from "./pages/NotFound.tsx";
+import { ThemeToggle } from "./components/ThemeToggle.tsx";
 
 // Admin
 import AdminLayout from "./pages/admin/AdminLayout.tsx";
@@ -130,6 +131,7 @@ const App = () => (
 
             <Route path="*" element={<NotFound />} />
           </Routes>
+          <ThemeToggle />
         </BrowserRouter>
       </TooltipProvider>
     </AuthProvider>

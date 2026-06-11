@@ -49,6 +49,6 @@ const TeacherLayout = () => (
   <DashboardLayout role="teacher" roleLabel="Teacher" navGroups={navGroups}>
     <Outlet />
   </DashboardLayout>
-);
+  );
 
 export default TeacherLayout;

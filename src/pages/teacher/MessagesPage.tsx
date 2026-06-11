@@ -8,6 +8,7 @@ import {
   Clock,
   User,
   Users,
+  MessageSquare,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -123,6 +124,36 @@ const mockMessages: Message[] = [
     timestamp: '2024-04-20 14:00',
     isRead: true,
     recipientType: 'Arjun Sharma',
+  },
+];
+
+const messageHistory = [
+  {
+    id: '1',
+    recipient: 'Arjun Sharma',
+    type: 'individual',
+    subject: 'Assignment Help',
+    message: 'Sure Arjun, I can help. Let me schedule a doubt clearing session after school tomorrow.',
+    timestamp: '2024-04-20 14:00',
+    status: 'sent',
+  },
+  {
+    id: '2',
+    recipient: 'Priya Verma (Parent)',
+    type: 'parent',
+    subject: 'Excellent Performance',
+    message: 'Great to hear about her excellent performance in the exam!',
+    timestamp: '2024-04-19 16:30',
+    status: 'sent',
+  },
+  {
+    id: '3',
+    recipient: 'Class 10A',
+    type: 'class',
+    subject: 'Project Deadline',
+    message: 'Tomorrow is the last day to submit your projects.',
+    timestamp: '2024-04-18 09:00',
+    status: 'sent',
   },
 ];
 
@@ -420,33 +451,30 @@ export default function MessagesPage() {
         </DialogContent>
       </Dialog>
 
-
-
-        {/* Quick Actions */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Quick Actions</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <Button variant="outline" className="w-full justify-start">
-              <Users className="h-4 w-4 mr-2" />
-              Message All Students
-            </Button>
-            <Button variant="outline" className="w-full justify-start">
-              <User className="h-4 w-4 mr-2" />
-              Message All Parents
-            </Button>
-            <Button variant="outline" className="w-full justify-start">
-              <MessageSquare className="h-4 w-4 mr-2" />
-              Send Class Announcement
-            </Button>
-            <Button variant="outline" className="w-full justify-start">
-              <MessageSquare className="h-4 w-4 mr-2" />
-              Send Absence Alert
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
+      {/* Quick Actions */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Quick Actions</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <Button variant="outline" className="w-full justify-start">
+            <Users className="h-4 w-4 mr-2" />
+            Message All Students
+          </Button>
+          <Button variant="outline" className="w-full justify-start">
+            <User className="h-4 w-4 mr-2" />
+            Message All Parents
+          </Button>
+          <Button variant="outline" className="w-full justify-start">
+            <MessageSquare className="h-4 w-4 mr-2" />
+            Send Class Announcement
+          </Button>
+          <Button variant="outline" className="w-full justify-start">
+            <MessageSquare className="h-4 w-4 mr-2" />
+            Send Absence Alert
+          </Button>
+        </CardContent>
+      </Card>
 
       {/* Message History */}
       <Card>
@@ -486,5 +514,3 @@ export default function MessagesPage() {
     </div>
   );
 };
-
-export default MessagesPage;

@@ -58,7 +58,7 @@ const DashboardLayout = ({ children, role, roleLabel, navGroups }: DashboardLayo
                 <span className="text-sm font-bold text-secondary-foreground">B</span>
               </div>
               <span className="font-heading text-sm font-bold text-primary-foreground">
-                Burney Place
+                School Management
               </span>
             </div>
           )}

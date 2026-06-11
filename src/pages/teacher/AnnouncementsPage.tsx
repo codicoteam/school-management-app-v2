@@ -12,6 +12,6 @@ const AnnouncementsPage = () => (
       </CardContent>
     </Card>
   </div>
-);
+  );
 
 export default AnnouncementsPage;

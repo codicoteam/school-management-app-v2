@@ -9,10 +9,10 @@ import { Settings as SettingsIcon, Shield, Database, Bell, User } from "lucide-r
 import { motion } from "framer-motion";
 
 const users = [
-  { name: "Mrs. Patience Ncube", email: "principal@burney.zw", role: "Admin" },
-  { name: "Mr. Kudzai Hove", email: "bursar@burney.zw", role: "Finance" },
-  { name: "Mrs. Tariro Banda", email: "registrar@burney.zw", role: "Registrar" },
-  { name: "Mr. Tendai Mhlanga", email: "tmhlanga@burney.zw", role: "Teacher" },
+  { name: "Mrs. Patience Ncube", email: "principal@School Managementhigh.edu", role: "Admin" },
+  { name: "Mr. Kudzai Hove", email: "bursar@School Managementhigh.edu", role: "Finance" },
+  { name: "Mrs. Tariro Banda", email: "registrar@School Managementhigh.edu", role: "Registrar" },
+  { name: "Mr. Tendai Mhlanga", email: "tmhlanga@School Managementhigh.edu", role: "Teacher" },
 ];
 
 const audit = [
@@ -41,11 +41,11 @@ const SettingsPage = () => (
         <Card className="border-none shadow-md">
           <CardHeader><CardTitle className="font-heading text-lg font-semibold">School Profile</CardTitle></CardHeader>
           <CardContent className="grid gap-4 md:grid-cols-2">
-            <div><Label>School Name</Label><Input defaultValue="Burney Place School" /></div>
+            <div><Label>School Name</Label><Input defaultValue="School Management" /></div>
             <div><Label>Motto</Label><Input defaultValue="Knowledge · Discipline · Excellence" /></div>
             <div><Label>Address</Label><Input defaultValue="123 Borrowdale Rd, Harare, Zimbabwe" /></div>
             <div><Label>Phone</Label><Input defaultValue="+263 242 333 100" /></div>
-            <div><Label>Email</Label><Input defaultValue="info@burney.zw" /></div>
+            <div><Label>Email</Label><Input defaultValue="info@School Managementhigh.edu" /></div>
             <div><Label>Currency</Label><Input defaultValue="USD" /></div>
             <div className="md:col-span-2 flex justify-end"><Button className="bg-accent text-accent-foreground hover:bg-accent/90">Save Changes</Button></div>
           </CardContent>

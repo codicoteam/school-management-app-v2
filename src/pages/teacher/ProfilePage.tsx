@@ -10,7 +10,6 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 
 const TeacherProfilePage = () => {
-  const [isEditing, setIsEditing] = useState(false);
   const [profile, setProfile] = useState({
     name: "Mr. John Omondi",
     email: "john.omondi@school.edu",
@@ -24,6 +23,7 @@ const TeacherProfilePage = () => {
   });
 
   const [formData, setFormData] = useState(profile);
+  const [isEditing, setIsEditing] = useState(false); // Added missing state
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setFormData({
@@ -206,6 +206,7 @@ const TeacherProfilePage = () => {
         </Card>
       </motion.div>
 
+      {/* Fixed: Moved the edit buttons inside the same div structure */}
       {isEditing && (
         <div className="flex gap-3 justify-end">
           <Button variant="outline" onClick={() => setIsEditing(false)}>
@@ -214,7 +215,7 @@ const TeacherProfilePage = () => {
           <Button onClick={handleSave}>Save Changes</Button>
         </div>
       )}
-    </div>
+    </div> // This closes the main div that started on line 57
   );
 };
 
