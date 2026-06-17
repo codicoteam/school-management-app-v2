@@ -2,8 +2,9 @@ import { Outlet } from "react-router-dom";
 import DashboardLayout, { NavGroup } from "@/components/DashboardLayout";
 import {
   LayoutDashboard, User, BookOpen, ClipboardList, Clock,
-  DollarSign, Bell, MessageSquare,
+  DollarSign, Bell, MessageSquare, Book
 } from "lucide-react";
+
 
 const navGroups: NavGroup[] = [
   {
@@ -19,6 +20,7 @@ const navGroups: NavGroup[] = [
       { label: "Timetable & Subjects", href: "/student/academics", icon: BookOpen },
       { label: "Exams & Results", href: "/student/exams", icon: ClipboardList },
       { label: "Attendance", href: "/student/attendance", icon: Clock },
+      { label: "Library", href: "/student/library", icon: Book },
     ],
   },
   {

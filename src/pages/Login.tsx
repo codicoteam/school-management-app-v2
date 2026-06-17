@@ -48,7 +48,7 @@ const Login = () => {
     try {
       // MOCK LOGIN FOR TESTING - Bypassing real logic and checks
       const mockUser = {
-        id: `mock-${role}-1`,
+        id: `${role}-1`,
         email: formData.email || `test@${role}.com`,
         name: formData.name || `Test ${config.label}`,
         role: role

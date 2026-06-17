@@ -4,68 +4,48 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { MessageSquare, Send, Search, Plus, MoreVertical, ShieldCheck, Users, MessageCircle } from "lucide-react";
+import { MessageSquare, MessageCircle, Send, Search, Plus, MoreVertical, ShieldCheck, Users } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/contexts/AuthContext";
 import { useChat, Message } from "@/hooks/useChat";
-import { formatDistanceToNow, format } from "date-fns";
+import { format } from "date-fns";
 import { openWhatsApp } from "@/lib/utils";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
+import { contacts } from "@/lib/contacts";
 
-import { contacts, getContactsByType } from "@/lib/contacts";
+const allContacts = contacts;
 
-const allTeacherContacts = contacts;
-const studentContacts = getContactsByType("Student");
-const parentContacts = getContactsByType("Parent");
-
-const TeacherMessagesPage = () => {
+const AdminMessagesPage = () => {
   const { user } = useAuth();
   const { messages, loading, sendMessage } = useChat(user?.id);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedContactId, setSelectedContactId] = useState<string | null>(null);
   const [newMessage, setNewMessage] = useState("");
-  const [isComposeDialogOpen, setIsComposeDialogOpen] = useState(false);
-  const [composeData, setComposeData] = useState({
-    recipientType: 'student',
-    recipientId: '',
-    subject: '',
-    message: '',
-  });
 
   const conversations = useMemo(() => {
     const groups: Record<string, { contactId: string, contactName: string, lastMessage: any, unreadCount: number, type: string }> = {};
     
+    // Ensure static contacts are visible
+    allContacts.forEach(c => {
+      groups[c.id] = {
+        contactId: c.id,
+        contactName: c.name,
+        lastMessage: { text: "No previous logs", createdAt: null },
+        unreadCount: 0,
+        type: c.type
+      };
+    });
+
     messages.forEach(m => {
       const otherId = m.senderId === user?.id ? m.receiverId : m.senderId;
       const otherName = m.senderId === user?.id ? m.receiverName : m.senderName;
-      const contact = allTeacherContacts.find(c => c.id === otherId);
       
-      if (!groups[otherId] || (m.createdAt?.seconds || 0) > (groups[otherId].lastMessage.createdAt?.seconds || 0)) {
-        groups[otherId] = {
-          contactId: otherId,
-          contactName: otherName,
-          lastMessage: m,
-          unreadCount: (groups[otherId]?.unreadCount || 0) + (m.isNew && m.receiverId === user?.id ? 1 : 0),
-          type: contact?.type || "Contact"
-        };
-      } else if (m.isNew && m.receiverId === user?.id) {
-        groups[otherId].unreadCount++;
-      }
-    });
-
-    // Ensure all static contacts are visible even without messages
-    allTeacherContacts.forEach(c => {
-      if (!groups[c.id]) {
-        groups[c.id] = {
-          contactId: c.id,
-          contactName: c.name,
-          lastMessage: { text: "Tap to start chatting", createdAt: null },
-          unreadCount: 0,
-          type: c.type
-        };
+      if (groups[otherId]) {
+        if (!groups[otherId].lastMessage.createdAt || (m.createdAt?.seconds || 0) > (groups[otherId].lastMessage.createdAt?.seconds || 0)) {
+          groups[otherId].lastMessage = m;
+        }
+        if (m.isNew && m.receiverId === user?.id) {
+          groups[otherId].unreadCount++;
+        }
       }
     });
 
@@ -85,12 +65,12 @@ const TeacherMessagesPage = () => {
     ).sort((a, b) => (a.createdAt?.seconds || 0) - (b.createdAt?.seconds || 0));
   }, [messages, selectedContactId]);
 
-  const selectedContactInfo = allTeacherContacts.find(c => c.id === selectedContactId);
+  const selectedContactInfo = allContacts.find(c => c.id === selectedContactId);
 
   const handleSend = async () => {
     if (!selectedContactId || !newMessage.trim() || !user) return;
     
-    const contact = allTeacherContacts.find(c => c.id === selectedContactId);
+    const contact = allContacts.find(c => c.id === selectedContactId);
     if (!contact) return;
 
     try {
@@ -99,34 +79,12 @@ const TeacherMessagesPage = () => {
         senderName: user.name,
         receiverId: contact.id,
         receiverName: contact.name,
-        subject: "Teacher Communication",
+        subject: "Admin Communication",
         text: newMessage,
       });
       setNewMessage("");
     } catch (error) {
       alert("Failed to send message");
-    }
-  };
-
-  const handleCompose = async () => {
-    if (composeData.recipientId && composeData.message && user) {
-       const recipient = allTeacherContacts.find(r => r.id === composeData.recipientId);
-       if (!recipient) return;
-       try {
-         await sendMessage({
-           senderId: user.id,
-           senderName: user.name,
-           receiverId: recipient.id,
-           receiverName: recipient.name,
-           subject: composeData.subject || "Teacher Note",
-           text: composeData.message,
-         });
-         setIsComposeDialogOpen(false);
-         setComposeData({ recipientType: 'student', recipientId: '', subject: '', message: '' });
-         setSelectedContactId(recipient.id);
-       } catch (error) {
-         alert("Failed to send");
-       }
     }
   };
 
@@ -147,23 +105,19 @@ const TeacherMessagesPage = () => {
     <div className="h-[calc(100vh-140px)] flex bg-background border rounded-2xl overflow-hidden shadow-2xl">
       {/* Sidebar */}
       <div className="w-[380px] border-r flex flex-col bg-card shrink-0">
-        <header className="p-4 bg-[#00a884] text-white flex items-center justify-between">
+        <header className="p-4 bg-primary text-primary-foreground flex items-center justify-between">
             <div className="flex items-center gap-3">
                <Avatar className="h-10 w-10 border-2 border-white/20">
-                  <AvatarFallback className="bg-white/20 text-white font-bold">T</AvatarFallback>
+                  <AvatarFallback className="bg-white/20 text-white font-bold">AD</AvatarFallback>
                </Avatar>
                <div>
-                  <h1 className="font-bold text-sm">Classroom Chat</h1>
-                  <p className="text-[10px] opacity-80">Teacher Portal</p>
+                  <h1 className="font-bold text-sm">Control Center</h1>
+                  <p className="text-[10px] opacity-80">School Administration</p>
                </div>
             </div>
             <div className="flex gap-1">
-               <Button variant="ghost" size="icon" onClick={() => setIsComposeDialogOpen(true)} className="rounded-full hover:bg-white/10 text-white">
-                 <Plus className="h-5 w-5" />
-               </Button>
-               <Button variant="ghost" size="icon" className="rounded-full hover:bg-white/10 text-white">
-                 <MoreVertical className="h-5 w-5" />
-               </Button>
+               <Button variant="ghost" size="icon" className="rounded-full hover:bg-white/10 text-white"><ShieldCheck className="h-5 w-5" /></Button>
+               <Button variant="ghost" size="icon" className="rounded-full hover:bg-white/10 text-white"><MoreVertical className="h-5 w-5" /></Button>
             </div>
         </header>
 
@@ -171,7 +125,7 @@ const TeacherMessagesPage = () => {
            <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input 
-                 placeholder="Search student or parent..." 
+                 placeholder="Search staff, parents, or students..." 
                  className="pl-10 h-11 bg-background shadow-sm border-none rounded-xl"
                  value={searchTerm}
                  onChange={e => setSearchTerm(e.target.value)}
@@ -185,15 +139,15 @@ const TeacherMessagesPage = () => {
                key={conv.contactId}
                onClick={() => setSelectedContactId(conv.contactId)}
                className={`group flex items-center gap-3 p-4 border-b cursor-pointer transition-all hover:bg-muted/30 ${
-                  selectedContactId === conv.contactId ? 'bg-muted/50 border-l-4 border-l-[#00a884]' : ''
+                  selectedContactId === conv.contactId ? 'bg-muted/50 border-l-4 border-l-primary' : ''
                }`}
              >
                 <div className="relative">
                   <Avatar className="h-12 w-12 shrink-0 shadow-sm transition-transform group-hover:scale-105">
-                    <AvatarFallback className={`${
+                  <AvatarFallback className={`${
+                      conv.type === 'Teacher' ? 'bg-blue-100 text-blue-600' : 
                       conv.type === 'Parent' ? 'bg-orange-100 text-orange-600' : 
                       conv.type === 'Admin' ? 'bg-purple-100 text-purple-600' :
-                      conv.type === 'Teacher' ? 'bg-blue-100 text-blue-600' :
                       'bg-green-100 text-green-600'
                     } font-bold`}>
                       {conv.contactName.substring(0, 2).toUpperCase()}
@@ -216,7 +170,7 @@ const TeacherMessagesPage = () => {
                         <span className="text-[9px] uppercase font-bold opacity-70">[{conv.type}]</span> {conv.lastMessage.text}
                       </p>
                       {conv.unreadCount > 0 && (
-                        <Badge className="bg-[#00a884] rounded-full h-5 w-5 flex items-center justify-center p-0 text-[10px] ml-1 scale-in-center">
+                        <Badge className="bg-primary rounded-full h-5 w-5 flex items-center justify-center p-0 text-[10px] ml-1 scale-in-center">
                           {conv.unreadCount}
                         </Badge>
                       )}
@@ -234,18 +188,18 @@ const TeacherMessagesPage = () => {
              {/* Header */}
              <header className="px-6 py-3 border-b bg-muted/40 backdrop-blur-md flex items-center justify-between z-30 shadow-sm">
                 <div className="flex items-center gap-4">
-                   <Avatar className="h-12 w-12 ring-2 ring-[#00a884]/10">
-                      <AvatarFallback className="bg-[#00a884]/5 text-[#00a884] font-bold">
+                   <Avatar className="h-12 w-12 ring-2 ring-primary/10">
+                      <AvatarFallback className="bg-primary/5 text-primary font-bold">
                         {selectedContactInfo?.name.substring(0, 2).toUpperCase()}
                       </AvatarFallback>
                    </Avatar>
                    <div>
-                      <h3 className="font-extrabold text-lg flex items-center gap-2 text-foreground">
+                      <h3 className="font-extrabold text-lg flex items-center gap-2">
                         {selectedContactInfo?.name}
                         <Badge variant="outline" className="text-[9px] h-4 uppercase">{selectedContactInfo?.type}</Badge>
                       </h3>
                       <p className="text-xs text-emerald-500 font-bold flex items-center gap-1">
-                        <span className="h-1.5 w-1.5 bg-emerald-500 rounded-full animate-pulse" /> End-to-end encrypted
+                        <span className="h-1.5 w-1.5 bg-emerald-500 rounded-full animate-pulse" /> Direct Admin Channel
                       </p>
                    </div>
                 </div>
@@ -292,6 +246,9 @@ const TeacherMessagesPage = () => {
                                </svg>
                              )}
                           </div>
+                          <span className={`absolute -top-6 left-0 text-[10px] font-bold text-muted-foreground/60 transition-opacity opacity-0 group-hover:opacity-100`}>
+                             {m.senderName}
+                          </span>
                        </div>
                     </motion.div>
                   ))}
@@ -300,20 +257,23 @@ const TeacherMessagesPage = () => {
 
              {/* Footer */}
              <footer className="px-6 py-4 bg-muted/30 backdrop-blur-md flex items-center gap-4">
-                <Button variant="ghost" size="icon" className="shrink-0 text-muted-foreground hover:text-[#00a884] rounded-full hover:bg-muted"><Plus className="h-6 w-6" /></Button>
+                <Button variant="ghost" size="icon" className="shrink-0 text-muted-foreground hover:text-primary rounded-full hover:bg-muted"><Plus className="h-6 w-6" /></Button>
                 <div className="flex-1 relative">
                    <Input 
                       placeholder="Message contact..."
-                      className="w-full bg-background border-none rounded-2xl h-12 shadow-inner px-5 pr-12 focus-visible:ring-1 focus-visible:ring-[#00a884]/20"
+                      className="w-full bg-background border-none rounded-2xl h-12 shadow-inner px-5 pr-12 focus-visible:ring-1 focus-visible:ring-primary/20"
                       value={newMessage}
                       onChange={e => setNewMessage(e.target.value)}
                       onKeyDown={e => e.key === 'Enter' && !e.shiftKey && handleSend()}
                    />
+                   <div className="absolute right-3 top-1/2 -translate-y-1/2 flex gap-2">
+                      {/* Add emoji or attach options here */}
+                   </div>
                 </div>
                 <Button 
                    onClick={handleSend}
                    disabled={!newMessage.trim()}
-                   className="bg-[#00a884] hover:bg-[#00a884]/90 h-12 w-12 rounded-full p-0 shadow-lg shrink-0 transition-all active:scale-95"
+                   className="bg-primary hover:bg-primary/90 h-12 w-12 rounded-full p-0 shadow-lg shrink-0 transition-all active:scale-95"
                 >
                    <Send className="h-6 w-6 fill-current text-white" />
                 </Button>
@@ -322,70 +282,28 @@ const TeacherMessagesPage = () => {
          ) : (
            <div className="flex-1 flex flex-col items-center justify-center text-center p-12 space-y-6">
               <div className="relative">
-                 <div className="h-24 w-24 bg-[#00a884]/10 rounded-full flex items-center justify-center text-[#00a884] animate-bounce-slow">
+                 <div className="h-24 w-24 bg-primary/10 rounded-full flex items-center justify-center text-primary animate-bounce-slow">
                     <MessageCircle className="h-12 w-12" />
+                 </div>
+                 <div className="absolute -top-2 -right-2 h-8 w-8 bg-emerald-500 rounded-full border-4 border-background flex items-center justify-center">
+                    <ShieldCheck className="h-4 w-4 text-white" />
                  </div>
               </div>
               <div>
-                <h2 className="text-3xl font-extrabold text-foreground">Teacher-Parent Bridge</h2>
+                <h2 className="text-3xl font-extrabold text-foreground">Secure Admin Dispatch</h2>
                 <p className="mt-2 text-muted-foreground max-w-sm mx-auto leading-relaxed">
-                  Start a private conversation with your students or their guardians. All messages are private and secure.
+                  Monitor and manage communications between staff and guardians. Select a contact to intervene or initiate a message.
                 </p>
+              </div>
+              <div className="flex gap-4">
+                 <Button variant="outline" className="rounded-full gap-2 px-6"><Users className="h-5 w-5" /> All Staff</Button>
+                 <Button variant="outline" className="rounded-full gap-2 px-6"><MessageSquare className="h-5 w-5" /> Guardian Center</Button>
               </div>
            </div>
          )}
       </div>
-
-      {/* Compose Message Dialog */}
-      <Dialog open={isComposeDialogOpen} onOpenChange={setIsComposeDialogOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader><DialogTitle>New Chat</DialogTitle></DialogHeader>
-          <div className="space-y-4 pt-4">
-            <div className="space-y-2">
-              <Label>Who are you messaging?</Label>
-              <Select 
-                value={composeData.recipientType} 
-                onValueChange={(v) => setComposeData({...composeData, recipientType: v, recipientId: ''})}
-              >
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="student">Student</SelectItem>
-                  <SelectItem value="parent">Parent</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>Select Recipient</Label>
-              <Select 
-                value={composeData.recipientId} 
-                onValueChange={(v) => setComposeData({...composeData, recipientId: v})}
-              >
-                <SelectTrigger><SelectValue placeholder="Chose contact..." /></SelectTrigger>
-                <SelectContent>
-                  {(composeData.recipientType === 'student' ? studentContacts : parentContacts).map(r => (
-                    <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-               <Label>Message</Label>
-               <Textarea 
-                 className="min-h-[100px]" 
-                 placeholder="Type your first message..."
-                 value={composeData.message}
-                 onChange={e => setComposeData({...composeData, message: e.target.value})}
-               />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsComposeDialogOpen(false)}>Cancel</Button>
-            <Button onClick={handleCompose} className="bg-[#00a884] hover:bg-[#00a884]/90">Start Chat</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 };
 
-export default TeacherMessagesPage;
+export default AdminMessagesPage;

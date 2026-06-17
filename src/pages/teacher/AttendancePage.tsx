@@ -13,6 +13,8 @@ const AttendancePage = () => {
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split("T")[0]);
   const [attendance, setAttendance] = useState<Record<string, boolean>>({});
 
+  const classes = ["Form 3A", "Form 4A", "Form 4B"];
+  
   const students = [
     { id: "1", name: "Alice Johnson", rollNo: "001" },
     { id: "2", name: "Bob Smith", rollNo: "002" },
@@ -114,75 +116,10 @@ const AttendancePage = () => {
                   </div>
                 ))}
               </div>
-              <div className="mt-4 flex gap-3">
-                <Button className="flex-1" onClick={() => setAttendance(Object.fromEntries(students.map(s => [s.id, true])))}>
-                  Mark All Present
-                </Button>
-                <Button variant="outline" className="flex-1" onClick={() => setAttendance({})}>
-                  Clear
-                </Button>
-              </div>
             </CardContent>
           </Card>
         </motion.div>
-
-        {/* Summary */}
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.2 }}>
-          <div className="space-y-4">
-            <Card className="border-none shadow-md bg-gradient-to-br from-green-500/10 to-green-500/5">
-              <CardContent className="pt-6">
-                <div className="flex items-center gap-3">
-                  <CheckCircle2 className="h-8 w-8 text-green-500" />
-                  <div>
-                    <p className="text-xs text-muted-foreground">Present</p>
-                    <p className="text-2xl font-bold text-green-600">{presentCount}</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-            <Card className="border-none shadow-md bg-gradient-to-br from-red-500/10 to-red-500/5">
-              <CardContent className="pt-6">
-                <div className="flex items-center gap-3">
-                  <XCircle className="h-8 w-8 text-red-500" />
-                  <div>
-                    <p className="text-xs text-muted-foreground">Absent</p>
-                    <p className="text-2xl font-bold text-red-600">{absentCount}</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-            <Button className="w-full" size="lg">Save Attendance</Button>
-          </div>
-        </motion.div>
       </div>
-
-      {/* Attendance Trends */}
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.25 }}>
-        <Card className="border-none shadow-md">
-          <CardHeader>
-            <CardTitle>Weekly Attendance Trend</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={attendanceStats}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                <XAxis dataKey="date" stroke="hsl(var(--muted-foreground))" />
-                <YAxis stroke="hsl(var(--muted-foreground))" />
-                <Tooltip 
-                  contentStyle={{
-                    backgroundColor: "hsl(var(--card))",
-                    border: "1px solid hsl(var(--border))",
-                    borderRadius: "8px"
-                  }}
-                />
-                <Legend />
-                <Bar dataKey="present" fill="hsl(var(--chart-1))" name="Present" />
-                <Bar dataKey="absent" fill="hsl(var(--destructive))" name="Absent" />
-              </BarChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-      </motion.div>
     </div>
   );
 };

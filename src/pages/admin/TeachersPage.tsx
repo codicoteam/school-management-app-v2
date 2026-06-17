@@ -39,7 +39,10 @@ const loadTeachers = (): Teacher[] => {
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
     if (stored) return JSON.parse(stored);
-  } catch {}
+  } catch (err) {
+    // Fallback to initial teachers if storage access fails
+    console.warn("Could not load teachers from localStorage:", err);
+  }
   return initialTeachers;
 };
 
@@ -71,7 +74,7 @@ const TeachersPage = () => {
       const t = teachers.find(x => x.id === editId);
       if (t) { setEditVal("name", t.name); setEditVal("subject", t.subject); setEditVal("classes", t.classes); setEditVal("email", t.email); setEditVal("phone", t.phone); setEditVal("status", t.status); setEditVal("qualification", t.qualification || ""); }
     }
-  }, [editOpen, editId, teachers]);
+  }, [editOpen, editId, teachers, setEditVal]);
 
   const onAdd = (data: Teacher) => { setTeachers([...teachers, { ...data, id: `TCH-${String(teachers.length + 1).padStart(3, "0")}` }]); setAddOpen(false); reset(); };
   const onEdit = (data: Teacher) => { setTeachers(teachers.map(t => t.id === editId ? { ...data, id: editId! } : t)); setEditOpen(false); editReset(); };

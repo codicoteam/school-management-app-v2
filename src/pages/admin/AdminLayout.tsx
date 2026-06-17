@@ -2,7 +2,7 @@ import { Outlet } from "react-router-dom";
 import DashboardLayout, { NavGroup } from "@/components/DashboardLayout";
 import {
   LayoutDashboard, Users, GraduationCap, BookOpen, ClipboardList,
-  Clock, DollarSign, Package, Megaphone, FileText, Settings,
+  Clock, DollarSign, Package, Megaphone, FileText, Settings, MessageSquare,
 } from "lucide-react";
 
 const navGroups: NavGroup[] = [
@@ -17,6 +17,7 @@ const navGroups: NavGroup[] = [
     items: [
       { label: "Students", href: "/admin/students", icon: GraduationCap },
       { label: "Teachers", href: "/admin/teachers", icon: Users },
+      { label: "Admissions", href: "/admin/admissions", icon: ClipboardList },
     ],
   },
   {
@@ -38,6 +39,7 @@ const navGroups: NavGroup[] = [
     title: "Communication",
     items: [
       { label: "Announcements", href: "/admin/announcements", icon: Megaphone },
+      { label: "Messages", href: "/admin/messages", icon: MessageSquare },
       { label: "Certificates", href: "/admin/certificates", icon: FileText },
     ],
   },

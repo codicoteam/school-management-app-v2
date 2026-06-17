@@ -131,4 +131,27 @@
       transform: translateY(0px) rotate(0deg);
     }
   }
+
+  /* WhatsApp Bubble Tails */
+  .wa-bubble-sent::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: -8px;
+    width: 20px;
+    height: 15px;
+    background: inherit;
+    clip-path: polygon(0 0, 0% 100%, 100% 0);
+  }
+
+  .wa-bubble-received::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -8px;
+    width: 20px;
+    height: 15px;
+    background: inherit;
+    clip-path: polygon(100% 0, 100% 100%, 0 0);
+  }
 }

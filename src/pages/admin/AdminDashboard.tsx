@@ -53,13 +53,25 @@ const quickActions = [
   { label: "Send Announcement", icon: Megaphone, href: "/admin/announcements" },
 ];
 
+import { useAdminDashboardData } from "@/hooks/useAdminDashboardData";
+
 const AdminDashboard = () => {
   const navigate = useNavigate();
+  const { data: fbData, loading } = useAdminDashboardData();
+
+  const stats = [
+    { label: "Total Students", value: fbData.totalStudents.toLocaleString(), change: "+12%", icon: GraduationCap, gradient: "from-accent to-accent/70" },
+    { label: "Total Teachers", value: fbData.totalTeachers.toLocaleString(), change: "+3%", icon: Users, gradient: "from-secondary to-secondary/70" },
+    { label: "Total Classes", value: fbData.totalClasses.toLocaleString(), change: "+5%", icon: BookOpen, gradient: "from-primary to-primary/70" },
+    { label: "Total Revenue", value: `$${fbData.totalRevenue.toLocaleString()}`, change: "+18%", icon: DollarSign, gradient: "from-green-500 to-green-400" },
+  ];
+
   return (
     <div className="space-y-6">
       <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
         <h1 className="font-heading text-2xl font-bold text-foreground">Admin Dashboard</h1>
         <p className="mt-1 text-sm text-muted-foreground">Welcome back! Here's what's happening at School Management today.</p>
+        {loading && <p className="text-[10px] text-accent animate-pulse mt-2">Syncing with Cloud Database...</p>}
       </motion.div>
 
       {/* Stats */}
@@ -115,7 +127,7 @@ const AdminDashboard = () => {
             </CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={250}>
-                <BarChart data={enrollmentData}>
+                <BarChart data={fbData.enrollmentTrend}>
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
                   <XAxis dataKey="month" stroke="hsl(var(--muted-foreground))" fontSize={12} />
                   <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} />
@@ -135,7 +147,7 @@ const AdminDashboard = () => {
             </CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={250}>
-                <LineChart data={feeData}>
+                <LineChart data={fbData.feeCollectionTrend}>
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
                   <XAxis dataKey="month" stroke="hsl(var(--muted-foreground))" fontSize={12} />
                   <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} />
@@ -159,8 +171,8 @@ const AdminDashboard = () => {
             </button>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              {recentActivity.map((item, i) => (
+             <div className="space-y-4">
+              {fbData.recentActivity.map((item, i) => (
                 <div key={i} className="flex items-start gap-3">
                   <div className={`mt-1.5 h-2 w-2 rounded-full ${item.dot} shrink-0`} />
                   <div className="flex-1 min-w-0">

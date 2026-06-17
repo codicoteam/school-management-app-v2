@@ -175,9 +175,12 @@ export default function ClassesPage() {
     rollNumber: '',
     email: '',
   });
-  const [uploadFile, setUploadFile] = useState({
+  const [uploadFile, setUploadFile] = useState<{
+    name: string;
+    type: 'lesson-plan' | 'assignment' | 'resource' | 'worksheet';
+  }>({
     name: '',
-    type: 'lesson-plan' as const,
+    type: 'lesson-plan',
   });
 
   const filteredStudents = selectedClass.students.filter((student) =>
@@ -551,7 +554,7 @@ export default function ClassesPage() {
                 onChange={(e) =>
                   setUploadFile({
                     ...uploadFile,
-                    type: e.target.value as any,
+                    type: e.target.value as 'lesson-plan' | 'assignment' | 'worksheet' | 'resource',
                   })
                 }
                 className="w-full rounded-md border border-gray-300 px-3 py-2"

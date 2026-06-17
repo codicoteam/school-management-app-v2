@@ -8,6 +8,7 @@ import ProtectedRoute from "@/components/ProtectedRoute";
 import Index from "./pages/Index.tsx";
 import SelectRole from "./pages/SelectRole.tsx";
 import Login from "./pages/Login.tsx";
+import EnrollmentPage from "./pages/EnrollmentPage.tsx";
 import NotFound from "./pages/NotFound.tsx";
 import { ThemeToggle } from "./components/ThemeToggle.tsx";
 
@@ -23,6 +24,8 @@ import AdminFeesPage from "./pages/admin/FeesPage.tsx";
 import InventoryPage from "./pages/admin/InventoryPage.tsx";
 import AdminAnnouncementsPage from "./pages/admin/AnnouncementsPage.tsx";
 import CertificatesPage from "./pages/admin/CertificatesPage.tsx";
+import AdmissionsPage from "./pages/admin/AdmissionsPage.tsx";
+import AdminMessagesPage from "./pages/admin/MessagesPage.tsx";
 import SettingsPage from "./pages/admin/SettingsPage.tsx";
 
 // Student
@@ -35,6 +38,8 @@ import StudentAttendancePage from "./pages/student/AttendancePage.tsx";
 import StudentFeesPage from "./pages/student/FeesPage.tsx";
 import StudentAnnouncementsPage from "./pages/student/AnnouncementsPage.tsx";
 import StudentMessagesPage from "./pages/student/MessagesPage.tsx";
+import StudentLibraryPage from "./pages/student/LibraryPage.tsx";
+
 
 // Parent
 import ParentLayout from "./pages/parent/ParentLayout.tsx";
@@ -74,6 +79,7 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/select-role" element={<SelectRole />} />
             <Route path="/login" element={<Login />} />
+            <Route path="/enrollment" element={<EnrollmentPage />} />
 
             {/* Admin */}
             <Route path="/admin" element={<ProtectedRoute allowedRoles={['admin']}><AdminLayout /></ProtectedRoute>}>
@@ -87,6 +93,8 @@ const App = () => (
               <Route path="inventory" element={<InventoryPage />} />
               <Route path="announcements" element={<AdminAnnouncementsPage />} />
               <Route path="certificates" element={<CertificatesPage />} />
+              <Route path="admissions" element={<AdmissionsPage />} />
+              <Route path="messages" element={<AdminMessagesPage />} />
               <Route path="settings" element={<SettingsPage />} />
             </Route>
 
@@ -100,6 +108,7 @@ const App = () => (
               <Route path="fees" element={<StudentFeesPage />} />
               <Route path="messages" element={<StudentMessagesPage />} />
               <Route path="announcements" element={<StudentAnnouncementsPage />} />
+              <Route path="library" element={<StudentLibraryPage />} />
             </Route>
 
             {/* Parent */}

@@ -46,6 +46,7 @@ let classes = [
 let attendance = [];
 let assignments = [];
 let exams = [];
+let resources = [];
 
 // Middleware to verify JWT token
 const authenticateToken = (req, res, next) => {
@@ -239,6 +240,50 @@ app.post('/api/exams', authenticateToken, (req, res) => {
 
   exams.push(newExam);
   res.status(201).json(newExam);
+});
+
+// Resources routes
+app.get('/api/resources', authenticateToken, (req, res) => {
+  // Filter resources based on user role and permissions
+  if (req.user.role === 'teacher') {
+    // Teachers can see all resources
+    res.json(resources);
+  } else {
+    // Students can see resources for their classes
+    // For simplicity, we'll show all resources (in a real app, you'd filter by class)
+    res.json(resources);
+  }
+});
+
+app.post('/api/resources', authenticateToken, (req, res) => {
+  if (req.user.role !== 'teacher') {
+    return res.status(403).json({ message: 'Only teachers can upload resources' });
+  }
+
+  const newResource = {
+    id: uuidv4(),
+    ...req.body,
+    uploadedBy: req.user.id,
+    uploadedAt: new Date().toISOString(),
+    downloads: 0
+  };
+
+  resources.push(newResource);
+  res.status(201).json(newResource);
+});
+
+app.delete('/api/resources/:id', authenticateToken, (req, res) => {
+  if (req.user.role !== 'teacher') {
+    return res.status(403).json({ message: 'Only teachers can delete resources' });
+  }
+
+  const resourceIndex = resources.findIndex(r => r.id === req.params.id);
+  if (resourceIndex === -1) {
+    return res.status(404).json({ message: 'Resource not found' });
+  }
+
+  resources.splice(resourceIndex, 1);
+  res.status(200).json({ message: 'Resource deleted successfully' });
 });
 
 app.listen(PORT, () => {

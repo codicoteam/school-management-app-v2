@@ -112,6 +112,7 @@ const Welcome = () => {
               <Button
                 size="lg"
                 className="group h-14 gap-3 rounded-xl bg-secondary px-10 text-lg font-semibold text-secondary-foreground hover:bg-secondary/90 hover:text-primary transition-all"
+                onClick={() => navigate("/select-role")}
               >
                 Get Started
                 <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1" />
@@ -420,9 +421,13 @@ const Welcome = () => {
               Have questions or need assistance? Reach out to our dedicated support team to learn more about our portal.
             </p>
             <div className="flex flex-col sm:flex-row justify-center items-center gap-4">
-              <Button size="lg" className="bg-primary hover:bg-primary/90 text-primary-foreground gap-2">
+              <Button size="lg" className="bg-primary hover:bg-primary/90 text-primary-foreground gap-2" onClick={() => navigate("/select-role")}>
                 <MessageSquare className="h-5 w-5" />
                 Contact Support
+              </Button>
+              <Button size="lg" variant="default" className="bg-secondary text-secondary-foreground hover:bg-secondary/90 gap-2" onClick={() => navigate("/enrollment")}>
+                <GraduationCap className="h-5 w-5" />
+                Enroll Now
               </Button>
               <Button size="lg" variant="outline" className="gap-2 border-primary/20 text-foreground hover:bg-primary/5">
                 info@schoolmanagement.edu
