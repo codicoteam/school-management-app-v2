@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { GraduationCap, ShieldCheck, Users, UserCog, ArrowLeft } from "lucide-react";
+import { GraduationCap, Users, UserCog, ArrowLeft, ShieldCheck } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import heroBg from "@/assets/hero-bg.jpg";
 
@@ -25,7 +25,7 @@ const roles = [
   {
     id: "admin",
     label: "Admin",
-    description: "Manage courses, students and platform settings",
+    description: "Manage school operations, users, and settings",
     icon: ShieldCheck,
   },
 ];

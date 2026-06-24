@@ -1,27 +1,27 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import {
+  onAuthStateChanged,
+  signOut,
+  User as FirebaseUser,
+} from 'firebase/auth';
+import { doc, getDoc } from 'firebase/firestore';
+import { auth, db } from '@/lib/firebase';
 
-interface User {
+export type UserRole = 'student' | 'parent' | 'teacher' | 'admin';
+
+export interface AppUser {
   id: string;
+  uid: string;
   name: string;
   email: string;
-  role: string;
+  role: UserRole;
 }
 
-interface AuthContextType {
-  user: User | null;
-  login: (email: string, password: string, role: string) => Promise<void>;
-  register: (data: RegisterData) => Promise<void>;
-  logout: () => void;
-  isLoading: boolean;
-}
-
-interface RegisterData {
-  email: string;
-  password: string;
-  name: string;
-  role: string;
-  subject?: string;
-  grade?: string;
+export interface AuthContextType {
+  user: AppUser | null;
+  loading: boolean;
+  error: Error | null;
+  logout: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -36,84 +36,105 @@ export const useAuth = () => {
 
 interface AuthProviderProps {
   children: ReactNode;
-}
+};
 
 export const AuthProvider = ({ children }: AuthProviderProps) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [user, setUser] = useState<AppUser | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
 
   useEffect(() => {
-    // Check if user is logged in on app start
-    const token = localStorage.getItem('token');
-    const userData = localStorage.getItem('user');
+    let unsubscribed = false;
+    try {
+      const unsubscribe = onAuthStateChanged(auth, async (firebaseUser: FirebaseUser | null) => {
+        if (unsubscribed) return;
+        try {
+          if (firebaseUser) {
+            try {
+              // Load user profile from Firestore
+              const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
 
-    if (token && userData) {
-      setUser(JSON.parse(userData));
+              if (userDoc.exists()) {
+                const data = userDoc.data();
+                setUser({
+                  id: firebaseUser.uid,
+                  uid: firebaseUser.uid,
+                  name: data.name || '',
+                  email: data.email || firebaseUser.email || '',
+                  role: data.role as UserRole,
+                });
+              } else {
+                // User exists in Firebase Auth but not in Firestore
+                // This shouldn't normally happen; sign them out
+                console.warn('User document not found in Firestore for uid:', firebaseUser.uid);
+                await signOut(auth);
+                setUser(null);
+              }
+            } catch (error) {
+              console.error('Error loading user profile:', error);
+              setUser(null);
+            }
+          } else {
+            setUser(null);
+          }
+        } catch (error) {
+          console.error('Error in auth state change:', error);
+          setUser(null);
+        } finally {
+          if (!unsubscribed) {
+            setLoading(false);
+          }
+        }
+      });
+
+      return () => {
+        unsubscribed = true;
+        unsubscribe();
+      };
+    } catch (error) {
+      console.error('Failed to set up auth listener:', error);
+      setUser(null);
+      setLoading(false);
+      setError(error as Error);
     }
-    setIsLoading(false);
   }, []);
 
-  const login = async (email: string, password: string, role: string) => {
+  const logout = async () => {
     try {
-      const response = await fetch('http://localhost:3001/api/auth/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email, password, role }),
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Login failed');
-      }
-
-      const data = await response.json();
-      localStorage.setItem('token', data.token);
-      localStorage.setItem('user', JSON.stringify(data.user));
-      setUser(data.user);
+      await signOut(auth);
+      setUser(null);
     } catch (error) {
-      throw error;
+      console.error('Error signing out:', error);
     }
   };
 
-  const register = async (data: RegisterData) => {
-    try {
-      const response = await fetch('http://localhost:3001/api/auth/register', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(data),
-      });
+  // If there's an error, show an error message
+  if (error) {
+    return (
+      <div className="fixed inset-0 flex flex-col items-center justify-center bg-background/50 backdrop-blur-sm z-50 p-6">
+        <div className="bg-card rounded-xl p-6 w-full max-w-md shadow-lg text-center">
+          <h2 className="text-2xl font-bold text-destructive mb-4">Authentication Error</h2>
+          <p className="mb-4">{error.message}</p>
+          <button 
+            onClick={() => {
+              setError(null);
+              setLoading(true);
+              // Trigger a retry by unmounting and remounting the effect? 
+              // We'll just reload the page for simplicity.
+              window.location.reload();
+            }}
+            className="btn btn-primary w-full"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
 
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Registration failed');
-      }
-
-      const result = await response.json();
-      localStorage.setItem('token', result.token);
-      localStorage.setItem('user', JSON.stringify(result.user));
-      setUser(result.user);
-    } catch (error) {
-      throw error;
-    }
-  };
-
-  const logout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    setUser(null);
-  };
-
-  const value = {
-    user,
-    login,
-    register,
-    logout,
-    isLoading,
-  };
-
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider value={{ user, loading, error, logout }}>
+      {children}
+    </AuthContext.Provider>
+  );
 };

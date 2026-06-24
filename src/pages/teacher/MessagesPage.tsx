@@ -1,5 +1,4 @@
-import { useState, useMemo } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -7,23 +6,21 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { MessageSquare, Send, Search, Plus, MoreVertical, ShieldCheck, Users, MessageCircle } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/contexts/AuthContext";
-import { useChat, Message } from "@/hooks/useChat";
-import { formatDistanceToNow, format } from "date-fns";
-import { openWhatsApp } from "@/lib/utils";
+import { useChat } from "@/hooks/useChat";
+import { format } from "date-fns";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-
-import { contacts, getContactsByType } from "@/lib/contacts";
-
-const allTeacherContacts = contacts;
-const studentContacts = getContactsByType("Student");
-const parentContacts = getContactsByType("Parent");
+import { useContacts } from "@/hooks/useContacts";
+import MessageTick from "@/components/MessageTick";
 
 const TeacherMessagesPage = () => {
   const { user } = useAuth();
-  const { messages, loading, sendMessage } = useChat(user?.id);
+  const { messages, loading: messagesLoading, sendMessage, markMessagesRead } = useChat(user?.id);
+  const { contacts: allTeacherContacts, getContactsByType, getContactById } = useContacts();
+  const studentContacts = useMemo(() => getContactsByType("Student"), [getContactsByType]);
+  const parentContacts = useMemo(() => getContactsByType("Parent"), [getContactsByType]);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedContactId, setSelectedContactId] = useState<string | null>(null);
   const [newMessage, setNewMessage] = useState("");
@@ -34,6 +31,14 @@ const TeacherMessagesPage = () => {
     subject: '',
     message: '',
   });
+  const chatEndRef = useRef<HTMLDivElement>(null);
+
+  // Mark messages read when conversation opened
+  useEffect(() => {
+    if (selectedContactId) {
+      markMessagesRead(selectedContactId);
+    }
+  }, [selectedContactId, markMessagesRead]);
 
   const conversations = useMemo(() => {
     const groups: Record<string, { contactId: string, contactName: string, lastMessage: any, unreadCount: number, type: string }> = {};
@@ -42,11 +47,12 @@ const TeacherMessagesPage = () => {
       const otherId = m.senderId === user?.id ? m.receiverId : m.senderId;
       const otherName = m.senderId === user?.id ? m.receiverName : m.senderName;
       const contact = allTeacherContacts.find(c => c.id === otherId);
+      const defaultName = contact?.name || otherName || "Unknown Contact";
       
       if (!groups[otherId] || (m.createdAt?.seconds || 0) > (groups[otherId].lastMessage.createdAt?.seconds || 0)) {
         groups[otherId] = {
           contactId: otherId,
-          contactName: otherName,
+          contactName: defaultName,
           lastMessage: m,
           unreadCount: (groups[otherId]?.unreadCount || 0) + (m.isNew && m.receiverId === user?.id ? 1 : 0),
           type: contact?.type || "Contact"
@@ -56,23 +62,10 @@ const TeacherMessagesPage = () => {
       }
     });
 
-    // Ensure all static contacts are visible even without messages
-    allTeacherContacts.forEach(c => {
-      if (!groups[c.id]) {
-        groups[c.id] = {
-          contactId: c.id,
-          contactName: c.name,
-          lastMessage: { text: "Tap to start chatting", createdAt: null },
-          unreadCount: 0,
-          type: c.type
-        };
-      }
-    });
-
     return Object.values(groups).sort((a, b) => 
       (b.lastMessage.createdAt?.seconds || 0) - (a.lastMessage.createdAt?.seconds || 0)
     );
-  }, [messages, user?.id]);
+  }, [messages, user?.id, allTeacherContacts]);
 
   const filteredConversations = conversations.filter(c => 
     c.contactName.toLowerCase().includes(searchTerm.toLowerCase())
@@ -85,12 +78,23 @@ const TeacherMessagesPage = () => {
     ).sort((a, b) => (a.createdAt?.seconds || 0) - (b.createdAt?.seconds || 0));
   }, [messages, selectedContactId]);
 
-  const selectedContactInfo = allTeacherContacts.find(c => c.id === selectedContactId);
+  // Auto-scroll to bottom on new messages
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [selectedMessages]);
+
+  const selectedContactInfo = getContactById(selectedContactId || '') || conversations.find(c => c.contactId === selectedContactId) && { id: selectedContactId!, name: conversations.find(c => c.contactId === selectedContactId)?.contactName || "Contact", type: "Contact" };
 
   const handleSend = async () => {
     if (!selectedContactId || !newMessage.trim() || !user) return;
     
-    const contact = allTeacherContacts.find(c => c.id === selectedContactId);
+    let contact = allTeacherContacts.find(c => c.id === selectedContactId);
+    if (!contact) {
+      const recent = conversations.find(c => c.contactId === selectedContactId);
+      if (recent) {
+        contact = { id: recent.contactId, name: recent.contactName, type: "Student" } as any;
+      }
+    }
     if (!contact) return;
 
     try {
@@ -254,15 +258,15 @@ const TeacherMessagesPage = () => {
                 </div>
              </header>
 
-             {/* Messages */}
-             <div 
-               className="flex-1 overflow-y-auto p-6 space-y-4"
-               style={{
-                 backgroundImage: 'url("https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png")',
-                 backgroundBlendMode: 'overlay',
-                 backgroundSize: '400px'
-               }}
-             >
+{/* Messages */}
+              <div 
+                className="flex-1 overflow-y-auto p-6 space-y-4"
+                style={{
+                  backgroundImage: 'url("https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png")',
+                  backgroundBlendMode: 'overlay',
+                  backgroundSize: '400px'
+                }}
+              >
                 <div className="flex justify-center mb-6">
                    <Badge className="bg-muted-foreground/10 text-muted-foreground border-none text-[10px] rounded-sm px-3 uppercase tracking-widest font-bold">
                      Today
@@ -286,16 +290,15 @@ const TeacherMessagesPage = () => {
                              m.senderId === user?.id ? "text-gray-500/80" : "text-gray-400"
                           }`}>
                              {formatDate(m.createdAt)}
-                             {m.senderId === user?.id && (
-                               <svg viewBox="0 0 16 11" width="16" height="11" fill="currentColor" className="text-blue-500">
-                                  <path d="M11.133 1.341l-6.195 6.471-2.909-2.946-1.029 1.042 3.938 3.985 7.225-7.549-1.03-1.003zm3.837 0l-7.224 7.548-1.029-1.042 7.224-7.548 1.029 1.042z" />
-                               </svg>
-                             )}
+{m.senderId === user?.id && (
+                                 <MessageTick status={m.status} isSender={m.senderId === user?.id} className="h-4 w-4" />
+                               )}
                           </div>
                        </div>
                     </motion.div>
                   ))}
                 </AnimatePresence>
+                <div ref={chatEndRef} />
              </div>
 
              {/* Footer */}

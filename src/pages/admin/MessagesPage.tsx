@@ -1,45 +1,57 @@
-import { useState, useMemo } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { MessageSquare, MessageCircle, Send, Search, Plus, MoreVertical, ShieldCheck, Users } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/contexts/AuthContext";
-import { useChat, Message } from "@/hooks/useChat";
+import { useChat } from "@/hooks/useChat";
 import { format } from "date-fns";
-import { openWhatsApp } from "@/lib/utils";
-import { contacts } from "@/lib/contacts";
-
-const allContacts = contacts;
+import { useContacts } from "@/hooks/useContacts";
+import MessageTick from "@/components/MessageTick";
 
 const AdminMessagesPage = () => {
   const { user } = useAuth();
-  const { messages, loading, sendMessage } = useChat(user?.id);
+  const { messages, loading: messagesLoading, sendMessage, markMessagesRead } = useChat(user?.id);
+  const { contacts: allContacts, getContactById } = useContacts();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedContactId, setSelectedContactId] = useState<string | null>(null);
   const [newMessage, setNewMessage] = useState("");
+  const [isComposeDialogOpen, setIsComposeDialogOpen] = useState(false);
+  const [composeData, setComposeData] = useState({ recipientId: '', message: '' });
+  const chatEndRef = useRef<HTMLDivElement>(null);
+
+  // Mark messages read when conversation opened
+  useEffect(() => {
+    if (selectedContactId) {
+      markMessagesRead(selectedContactId);
+    }
+  }, [selectedContactId, markMessagesRead]);
 
   const conversations = useMemo(() => {
     const groups: Record<string, { contactId: string, contactName: string, lastMessage: any, unreadCount: number, type: string }> = {};
-    
-    // Ensure static contacts are visible
-    allContacts.forEach(c => {
-      groups[c.id] = {
-        contactId: c.id,
-        contactName: c.name,
-        lastMessage: { text: "No previous logs", createdAt: null },
-        unreadCount: 0,
-        type: c.type
-      };
-    });
 
     messages.forEach(m => {
       const otherId = m.senderId === user?.id ? m.receiverId : m.senderId;
       const otherName = m.senderId === user?.id ? m.receiverName : m.senderName;
+      const contact = allContacts.find(c => c.id === otherId);
       
-      if (groups[otherId]) {
+      const defaultName = contact?.name || otherName || "Unknown Contact";
+
+      if (!groups[otherId]) {
+        groups[otherId] = {
+          contactId: otherId,
+          contactName: defaultName,
+          lastMessage: m,
+          unreadCount: m.isNew && m.receiverId === user?.id ? 1 : 0,
+          type: contact?.type || "Contact"
+        };
+      } else {
         if (!groups[otherId].lastMessage.createdAt || (m.createdAt?.seconds || 0) > (groups[otherId].lastMessage.createdAt?.seconds || 0)) {
           groups[otherId].lastMessage = m;
         }
@@ -52,7 +64,7 @@ const AdminMessagesPage = () => {
     return Object.values(groups).sort((a, b) => 
       (b.lastMessage.createdAt?.seconds || 0) - (a.lastMessage.createdAt?.seconds || 0)
     );
-  }, [messages, user?.id]);
+  }, [messages, user?.id, allContacts]);
 
   const filteredConversations = conversations.filter(c => 
     c.contactName.toLowerCase().includes(searchTerm.toLowerCase())
@@ -65,13 +77,17 @@ const AdminMessagesPage = () => {
     ).sort((a, b) => (a.createdAt?.seconds || 0) - (b.createdAt?.seconds || 0));
   }, [messages, selectedContactId]);
 
-  const selectedContactInfo = allContacts.find(c => c.id === selectedContactId);
+  // Auto-scroll to bottom on new messages
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [selectedMessages]);
+
+  const selectedContactInfo = getContactById(selectedContactId || '') || conversations.find(c => c.contactId === selectedContactId) && { id: selectedContactId!, name: conversations.find(c => c.contactId === selectedContactId)?.contactName || "Contact", type: "Contact" };
 
   const handleSend = async () => {
     if (!selectedContactId || !newMessage.trim() || !user) return;
     
-    const contact = allContacts.find(c => c.id === selectedContactId);
-    if (!contact) return;
+    const contact = getContactById(selectedContactId) || { id: selectedContactId!, name: conversations.find(c => c.contactId === selectedContactId)?.contactName || "Contact" };
 
     try {
       await sendMessage({
@@ -85,6 +101,28 @@ const AdminMessagesPage = () => {
       setNewMessage("");
     } catch (error) {
       alert("Failed to send message");
+    }
+  };
+
+  const handleCompose = async () => {
+    if (composeData.recipientId && composeData.message && user) {
+       const recipient = allContacts.find(r => r.id === composeData.recipientId);
+       if (!recipient) return;
+       try {
+         await sendMessage({
+           senderId: user.id,
+           senderName: user.name,
+           receiverId: recipient.id,
+           receiverName: recipient.name,
+           subject: "Admin Note",
+           text: composeData.message,
+         });
+         setIsComposeDialogOpen(false);
+         setComposeData({ recipientId: '', message: '' });
+         setSelectedContactId(recipient.id);
+       } catch (error) {
+         alert("Failed to send");
+       }
     }
   };
 
@@ -116,7 +154,7 @@ const AdminMessagesPage = () => {
                </div>
             </div>
             <div className="flex gap-1">
-               <Button variant="ghost" size="icon" className="rounded-full hover:bg-white/10 text-white"><ShieldCheck className="h-5 w-5" /></Button>
+               <Button variant="ghost" size="icon" onClick={() => setIsComposeDialogOpen(true)} className="rounded-full hover:bg-white/10 text-white"><Plus className="h-5 w-5" /></Button>
                <Button variant="ghost" size="icon" className="rounded-full hover:bg-white/10 text-white"><MoreVertical className="h-5 w-5" /></Button>
             </div>
         </header>
@@ -208,15 +246,15 @@ const AdminMessagesPage = () => {
                 </div>
              </header>
 
-             {/* Messages */}
-             <div 
-               className="flex-1 overflow-y-auto p-6 space-y-4"
-               style={{
-                 backgroundImage: 'url("https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png")',
-                 backgroundBlendMode: 'overlay',
-                 backgroundSize: '400px'
-               }}
-             >
+{/* Messages */}
+              <div 
+                className="flex-1 overflow-y-auto p-6 space-y-4"
+                style={{
+                  backgroundImage: 'url("https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png")',
+                  backgroundBlendMode: 'overlay',
+                  backgroundSize: '400px'
+                }}
+              >
                 <div className="flex justify-center mb-6">
                    <Badge className="bg-muted-foreground/10 text-muted-foreground border-none text-[10px] rounded-sm px-3 uppercase tracking-widest font-bold">
                      Today
@@ -240,11 +278,9 @@ const AdminMessagesPage = () => {
                              m.senderId === user?.id ? "text-gray-500/80" : "text-gray-400"
                           }`}>
                              {formatDate(m.createdAt)}
-                             {m.senderId === user?.id && (
-                               <svg viewBox="0 0 16 11" width="16" height="11" fill="currentColor" className="text-blue-500">
-                                  <path d="M11.133 1.341l-6.195 6.471-2.909-2.946-1.029 1.042 3.938 3.985 7.225-7.549-1.03-1.003zm3.837 0l-7.224 7.548-1.029-1.042 7.224-7.548 1.029 1.042z" />
-                               </svg>
-                             )}
+{m.senderId === user?.id && (
+                                 <MessageTick status={m.status} isSender={m.senderId === user?.id} className="h-4 w-4" />
+                               )}
                           </div>
                           <span className={`absolute -top-6 left-0 text-[10px] font-bold text-muted-foreground/60 transition-opacity opacity-0 group-hover:opacity-100`}>
                              {m.senderName}
@@ -253,6 +289,7 @@ const AdminMessagesPage = () => {
                     </motion.div>
                   ))}
                 </AnimatePresence>
+                <div ref={chatEndRef} />
              </div>
 
              {/* Footer */}
@@ -302,6 +339,42 @@ const AdminMessagesPage = () => {
            </div>
          )}
       </div>
+
+      {/* Compose Message Dialog */}
+      <Dialog open={isComposeDialogOpen} onOpenChange={setIsComposeDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader><DialogTitle>New Dispatch Chat</DialogTitle></DialogHeader>
+          <div className="space-y-4 pt-4">
+            <div className="space-y-2">
+              <Label>Select Contact</Label>
+              <Select 
+                value={composeData.recipientId} 
+                onValueChange={(v) => setComposeData({...composeData, recipientId: v})}
+              >
+                <SelectTrigger><SelectValue placeholder="Search all contacts..." /></SelectTrigger>
+                <SelectContent>
+                  {allContacts.map(r => (
+                    <SelectItem key={r.id} value={r.id}>{r.name} ({r.role || r.type})</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+               <Label>Message</Label>
+               <Textarea 
+                 className="min-h-[100px]" 
+                 placeholder="Type your first message..."
+                 value={composeData.message}
+                 onChange={e => setComposeData({...composeData, message: e.target.value})}
+               />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsComposeDialogOpen(false)}>Cancel</Button>
+            <Button onClick={handleCompose} className="bg-primary hover:bg-primary/90 text-white">Start Chat</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
