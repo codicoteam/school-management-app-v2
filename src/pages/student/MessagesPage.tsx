@@ -194,7 +194,7 @@ const StudentMessagesPage = () => {
                     {conv.lastMessage.text}
                   </p>
                   {conv.unreadCount > 0 && (
-                    <Badge className="bg-emerald-500 hover:bg-emerald-500 rounded-full h-5 w-5 flex items-center justify-center p-0 text-[10px] border-none ml-1">
+                    <Badge className="bg-primary rounded-full h-5 w-5 flex items-center justify-center p-0 text-[10px] border-none ml-1">
                       {conv.unreadCount}
                     </Badge>
                   )}
@@ -292,9 +292,9 @@ const StudentMessagesPage = () => {
               <Button 
                 onClick={handleSend}
                 disabled={!newMessage.trim()}
-                className="bg-emerald-500 hover:bg-emerald-600 h-11 w-11 rounded-full p-0 shadow-lg shrink-0"
+                className="bg-primary hover:bg-primary/90 h-11 w-11 rounded-full p-0 shadow-lg shrink-0"
               >
-                <Send className="h-5 w-5 fill-current" />
+                <Send className="h-5 w-5 fill-current text-white" />
               </Button>
             </footer>
           </>
@@ -348,7 +348,7 @@ const StudentMessagesPage = () => {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsComposeDialogOpen(false)}>Cancel</Button>
-            <Button onClick={handleCompose} className="bg-emerald-500 hover:bg-emerald-600">Start Chat</Button>
+            <Button onClick={handleCompose} className="bg-primary hover:bg-primary/90">Start Chat</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

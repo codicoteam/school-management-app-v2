@@ -80,7 +80,7 @@ const InventoryPage = () => {
       </motion.div>
 
       <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
-        {[{ label: "Total Items", value: total, icon: Boxes, color: "from-accent to-accent/70" }, { label: "Categories", value: new Set(items.map(i => i.category)).size, icon: Package, color: "from-secondary to-secondary/70" }, { label: "Low Stock", value: lowStock, icon: AlertTriangle, color: "from-orange-500 to-orange-400" }, { label: "Available", value: available, icon: CheckCircle2, color: "from-green-500 to-green-400" }].map(s => (
+        {[{ label: "Total Items", value: total, icon: Boxes, color: "from-primary to-primary/70" }, { label: "Categories", value: new Set(items.map(i => i.category)).size, icon: Package, color: "from-secondary to-secondary/70" }, { label: "Low Stock", value: lowStock, icon: AlertTriangle, color: "from-accent to-accent/70" }, { label: "Available", value: available, icon: CheckCircle2, color: "from-secondary to-secondary/70" }].map(s => (
           <Card key={s.label} className="relative overflow-hidden border-none shadow-md">
             <div className={`absolute inset-0 bg-gradient-to-br ${s.color} opacity-[0.08]`} />
             <CardContent className="relative flex items-center gap-3 p-4"><div className={`flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br ${s.color}`}><s.icon className="h-5 w-5 text-white" /></div><div><p className="text-xs text-muted-foreground">{s.label}</p><p className="text-xl font-bold">{s.value}</p></div></CardContent>
@@ -99,7 +99,7 @@ const InventoryPage = () => {
                   <TableRow key={i.id}>
                     <TableCell><p className="font-medium">{i.name}</p><p className="font-mono text-xs text-muted-foreground">{i.id}</p></TableCell>
                     <TableCell>{i.category}</TableCell><TableCell>{i.qty}</TableCell><TableCell>{i.assigned}</TableCell><TableCell className="font-semibold">{i.qty - i.assigned}</TableCell>
-                    <TableCell><Badge className={i.status === "In Stock" ? "bg-green-500/15 text-green-700" : i.status === "Low Stock" ? "bg-orange-500/15 text-orange-700" : "bg-red-500/15 text-red-700"}>{i.status}</Badge></TableCell>
+                    <TableCell><Badge className={i.status === "In Stock" ? "bg-primary/15 text-primary" : i.status === "Low Stock" ? "bg-secondary/15 text-secondary" : "bg-accent/15 text-accent"}>{i.status}</Badge></TableCell>
                     <TableCell><Button size="icon" variant="ghost" className="text-destructive" onClick={() => deleteItem(i.id)}><Trash2 className="h-4 w-4" /></Button></TableCell>
                   </TableRow>
                 ))}

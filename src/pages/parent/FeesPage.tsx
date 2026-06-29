@@ -63,7 +63,7 @@ const ParentFeesPage = () => {
       </motion.div>
 
       <Dialog open={payOpen} onOpenChange={setPayOpen}>
-        <DialogTrigger asChild><Button className="w-full bg-orange-500 text-white hover:bg-orange-600"><CreditCard className="h-4 w-4" /> Pay ${balance} Now</Button></DialogTrigger>
+        <DialogTrigger asChild><Button className="w-full bg-primary text-white hover:bg-primary/90"><CreditCard className="h-4 w-4" /> Pay ${balance} Now</Button></DialogTrigger>
         <DialogContent>
           <DialogHeader><DialogTitle>Make Payment</DialogTitle><DialogDescription>Payment for Tawanda - Term 2 2025</DialogDescription></DialogHeader>
           <div className="grid gap-4 py-4">
@@ -87,7 +87,7 @@ const ParentFeesPage = () => {
 
       <div className="grid gap-4 lg:grid-cols-3">
         <Card className="relative overflow-hidden border-none shadow-md lg:col-span-2">
-          <div className="absolute inset-0 bg-gradient-to-br from-orange-500 to-orange-400 opacity-[0.08]" />
+          <div className="absolute inset-0 bg-gradient-to-br from-primary to-primary/60 opacity-[0.08]" />
           <CardContent className="relative p-6">
             <div className="flex items-center justify-between">
               <div>
@@ -95,7 +95,7 @@ const ParentFeesPage = () => {
                 <p className="mt-1 text-4xl font-bold">${balance}<span className="text-sm font-normal text-muted-foreground">.00</span></p>
                 <p className="text-xs text-muted-foreground">Due 30 April 2025</p>
               </div>
-              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-orange-500 to-orange-400"><DollarSign className="h-7 w-7 text-white" /></div>
+              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-primary/70 shadow-md"><DollarSign className="h-7 w-7 text-white" /></div>
             </div>
             <div className="mt-4"><div className="mb-1 flex justify-between text-xs text-muted-foreground"><span>Paid: ${paid}</span><span>Total: ${total}</span></div><Progress value={(paid / total) * 100} className="h-2" /></div>
           </CardContent>
@@ -104,9 +104,9 @@ const ParentFeesPage = () => {
         <Card className="border-none shadow-md">
           <CardHeader><CardTitle>Payment Methods</CardTitle></CardHeader>
           <CardContent className="space-y-3">
-            <div className="flex items-center gap-3"><CheckCircle2 className="h-5 w-5 text-green-500" /><span className="text-sm">EcoCash</span></div>
-            <div className="flex items-center gap-3"><CheckCircle2 className="h-5 w-5 text-green-500" /><span className="text-sm">Bank Transfer</span></div>
-            <div className="flex items-center gap-3"><CheckCircle2 className="h-5 w-5 text-green-500" /><span className="text-sm">Cash</span></div>
+            <div className="flex items-center gap-3"><CheckCircle2 className="h-5 w-5 text-primary" /><span className="text-sm">EcoCash</span></div>
+            <div className="flex items-center gap-3"><CheckCircle2 className="h-5 w-5 text-primary" /><span className="text-sm">Bank Transfer</span></div>
+            <div className="flex items-center gap-3"><CheckCircle2 className="h-5 w-5 text-primary" /><span className="text-sm">Cash</span></div>
           </CardContent>
         </Card>
       </div>
@@ -128,7 +128,7 @@ const ParentFeesPage = () => {
               {history.map(h => (
                 <TableRow key={h.id}>
                   <TableCell className="font-mono text-xs">{h.id}</TableCell><TableCell>{h.date}</TableCell><TableCell>{h.item}</TableCell><TableCell className="font-semibold">${h.amount}</TableCell><TableCell>{h.method}</TableCell>
-                  <TableCell><Badge className="bg-green-500/15 text-green-700">{h.status}</Badge></TableCell>
+                  <TableCell><Badge className="bg-primary/15 text-primary">{h.status}</Badge></TableCell>
                   <TableCell><Button size="icon" variant="ghost" onClick={() => downloadReceipt(h)}><Download className="h-4 w-4" /></Button></TableCell>
                 </TableRow>
               ))}

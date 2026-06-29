@@ -63,8 +63,8 @@ Class Position: 5th`;
         {[
           { label: "Overall Avg", value: `${overall}%`, icon: TrendingUp, color: "from-accent to-accent/70" },
           { label: "Class Position", value: "5th", icon: Trophy, color: "from-secondary to-secondary/70" },
-          { label: "Best Subject", value: "Shona (92%)", icon: Award, color: "from-green-500 to-green-400" },
-          { label: "Improvement", value: "+11pts", icon: TrendingUp, color: "from-purple-500 to-purple-400" },
+          { label: "Best Subject", value: "Shona (92%)", icon: Award, color: "from-primary to-primary/70" },
+          { label: "Improvement", value: "+11pts", icon: TrendingUp, color: "from-primary/80 to-primary/60" },
         ].map(s => (
           <Card key={s.label} className="relative overflow-hidden border-none shadow-md">
             <div className={`absolute inset-0 bg-gradient-to-br ${s.color} opacity-[0.08]`} />

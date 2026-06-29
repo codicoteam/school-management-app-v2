@@ -8,14 +8,14 @@ import { motion } from "framer-motion";
 import { api } from "@/lib/api";
 
 const subjects = [
-  { name: "Mathematics", teacher: "Mr. Mhlanga", code: "MATH401", color: "bg-accent" },
+  { name: "Mathematics", teacher: "Mr. Mhlanga", code: "MATH401", color: "bg-primary" },
   { name: "English", teacher: "Mrs. Moyo", code: "ENG401", color: "bg-secondary" },
-  { name: "Combined Science", teacher: "Mr. Dube", code: "SCI401", color: "bg-green-500" },
-  { name: "Shona", teacher: "Mrs. Banda", code: "SHO401", color: "bg-purple-500" },
-  { name: "History", teacher: "Mr. Sibanda", code: "HIS401", color: "bg-orange-500" },
-  { name: "Geography", teacher: "Ms. Phiri", code: "GEO401", color: "bg-pink-500" },
-  { name: "Religious Studies", teacher: "Mrs. Ncube", code: "REL401", color: "bg-indigo-500" },
-  { name: "Physical Education", teacher: "Mr. Hove", code: "PE401", color: "bg-cyan-500" },
+  { name: "Combined Science", teacher: "Mr. Dube", code: "SCI401", color: "bg-accent" },
+  { name: "Shona", teacher: "Mrs. Banda", code: "SHO401", color: "bg-primary/80" },
+  { name: "History", teacher: "Mr. Sibanda", code: "HIS401", color: "bg-secondary/80" },
+  { name: "Geography", teacher: "Ms. Phiri", code: "GEO401", color: "bg-accent/80" },
+  { name: "Religious Studies", teacher: "Mrs. Ncube", code: "REL401", color: "bg-primary/60" },
+  { name: "Physical Education", teacher: "Mr. Hove", code: "PE401", color: "bg-secondary/60" },
 ];
 
 const periods = [

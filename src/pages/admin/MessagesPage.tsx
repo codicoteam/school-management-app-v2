@@ -183,19 +183,19 @@ const AdminMessagesPage = () => {
                 <div className="relative">
                   <Avatar className="h-12 w-12 shrink-0 shadow-sm transition-transform group-hover:scale-105">
                   <AvatarFallback className={`${
-                      conv.type === 'Teacher' ? 'bg-blue-100 text-blue-600' : 
-                      conv.type === 'Parent' ? 'bg-orange-100 text-orange-600' : 
-                      conv.type === 'Admin' ? 'bg-purple-100 text-purple-600' :
-                      'bg-green-100 text-green-600'
+                      conv.type === 'Teacher' ? 'bg-accent/10 text-accent' : 
+                      conv.type === 'Parent' ? 'bg-primary/10 text-primary' : 
+                      conv.type === 'Admin' ? 'bg-secondary/10 text-secondary' :
+                      'bg-primary/5 text-primary'
                     } font-bold`}>
                       {conv.contactName.substring(0, 2).toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
                   <span className={`absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-background ${
-                    conv.type === 'Teacher' ? 'bg-blue-500' : 
-                    conv.type === 'Parent' ? 'bg-orange-500' : 
-                    conv.type === 'Admin' ? 'bg-purple-500' :
-                    'bg-green-500'
+                    conv.type === 'Teacher' ? 'bg-accent' : 
+                    conv.type === 'Parent' ? 'bg-primary' : 
+                    conv.type === 'Admin' ? 'bg-secondary' :
+                    'bg-primary/60'
                   }`} />
                 </div>
                 <div className="flex-1 min-w-0">

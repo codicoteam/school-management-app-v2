@@ -44,7 +44,7 @@ const SelectRole = () => {
           width={1920}
           height={1080}
         />
-        <div className="absolute inset-0 bg-black/60" />
+        <div className="absolute inset-0 bg-emerald-600/60 backdrop-blur-[2px]" />
       </div>
 
       {/* Back button */}
@@ -85,16 +85,16 @@ const SelectRole = () => {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.3 + i * 0.12 }}
               onClick={() => navigate(`/login?role=${role.id}`)}
-              className="group flex flex-col items-center gap-4 rounded-2xl border border-white/10 bg-white/10 px-6 py-8 backdrop-blur-md transition-colors hover:bg-secondary hover:border-secondary"
+              className="group flex flex-col items-center gap-4 rounded-2xl border border-white/10 bg-white/10 px-6 py-8 backdrop-blur-md transition-colors hover:bg-orange-500 hover:border-orange-500"
             >
-              <div className="flex h-16 w-16 items-center justify-center rounded-xl bg-white/15 transition-colors group-hover:bg-primary/90">
-                <role.icon className="h-8 w-8 text-white transition-colors group-hover:text-secondary" />
+              <div className="flex h-16 w-16 items-center justify-center rounded-xl bg-white/15 transition-colors group-hover:bg-emerald-600/90">
+                <role.icon className="h-8 w-8 text-white transition-colors group-hover:text-white" />
               </div>
               <div className="text-center">
-                <h3 className="text-lg font-semibold text-white transition-colors group-hover:text-primary">
+                <h3 className="text-lg font-semibold text-white transition-colors group-hover:text-white">
                   {role.label}
                 </h3>
-                <p className="mt-1 text-sm text-white/60 transition-colors group-hover:text-primary/70">
+                <p className="mt-1 text-sm text-white/60 transition-colors group-hover:text-white/70">
                   {role.description}
                 </p>
               </div>

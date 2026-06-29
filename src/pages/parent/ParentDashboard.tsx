@@ -61,7 +61,7 @@ const ParentDashboard = () => {
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.1 }} className="lg:col-span-2">
           <Card className="border-none shadow-md h-full">
             <CardContent className="flex items-center gap-4 p-5">
-              <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-accent to-accent/70 text-xl font-bold text-white shadow-sm">
+              <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-primary/70 text-xl font-bold text-white shadow-sm">
                 TN
               </div>
               <div className="flex-1 min-w-0">
@@ -69,11 +69,11 @@ const ParentDashboard = () => {
                 <h3 className="font-heading text-lg font-bold text-foreground">Tawanda Ndlovu</h3>
                 <p className="text-sm text-muted-foreground">Form 4A · Student ID: BPS-2451</p>
                 <div className="mt-2 flex flex-wrap gap-2">
-                  <Badge className="bg-accent/15 text-accent"><GraduationCap className="h-3 w-3" /> Top 10%</Badge>
-                  <Badge className="bg-green-500/15 text-green-700"><Clock className="h-3 w-3" /> 92% attendance</Badge>
+                  <Badge className="bg-primary/15 text-primary"><GraduationCap className="h-3 w-3" /> Top 10%</Badge>
+                  <Badge className="bg-secondary/15 text-secondary"><Clock className="h-3 w-3" /> 92% attendance</Badge>
                 </div>
               </div>
-              <Button variant="ghost" size="sm" className="text-accent hover:text-accent/80" onClick={() => navigate("/parent/child")}>
+              <Button variant="ghost" size="sm" className="text-primary hover:text-primary/80" onClick={() => navigate("/parent/child")}>
                 View profile <ArrowRight className="h-4 w-4" />
               </Button>
             </CardContent>
@@ -82,17 +82,17 @@ const ParentDashboard = () => {
 
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.15 }}>
           <Card className="relative overflow-hidden border-none shadow-md h-full">
-            <div className="absolute inset-0 bg-gradient-to-br from-orange-500 to-orange-400 opacity-[0.08]" />
+            <div className="absolute inset-0 bg-gradient-to-br from-primary to-primary/60 opacity-[0.08]" />
             <CardContent className="relative p-5">
               <div className="flex items-center justify-between">
                 <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Outstanding Fees</p>
-                <DollarSign className="h-5 w-5 text-orange-500" />
+                <DollarSign className="h-5 w-5 text-primary" />
               </div>
               <p className="mt-2 text-3xl font-bold text-foreground">$120<span className="text-sm font-normal text-muted-foreground">.00</span></p>
               <p className="text-xs text-muted-foreground">Due 30 April 2025</p>
               <Dialog open={payOpen} onOpenChange={setPayOpen}>
                 <DialogTrigger asChild>
-                  <Button className="mt-3 w-full bg-orange-500 text-white hover:bg-orange-600">
+                  <Button className="mt-3 w-full bg-primary text-white hover:bg-primary/90">
                     <CreditCard className="h-4 w-4" /> Pay Now
                   </Button>
                 </DialogTrigger>
@@ -147,7 +147,7 @@ const ParentDashboard = () => {
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.35 }}>
           <Card className="border-none shadow-md h-full">
             <CardHeader className="flex flex-row items-center gap-2">
-              <Clock className="h-5 w-5 text-green-600" />
+              <Clock className="h-5 w-5 text-primary" />
               <CardTitle className="font-heading text-lg font-semibold">Attendance Overview</CardTitle>
             </CardHeader>
             <CardContent>

@@ -217,7 +217,7 @@ const role = allowedRoles.includes(rawRole) ? rawRole : 'student';
       {/* Background */}
       <div className="absolute inset-0">
         <img src={heroBg} alt="" className="h-full w-full object-cover" />
-        <div className="absolute inset-0 bg-black/60" />
+        <div className="absolute inset-0 bg-primary/60 backdrop-blur-[2px]" />
       </div>
 
       {/* Back button */}

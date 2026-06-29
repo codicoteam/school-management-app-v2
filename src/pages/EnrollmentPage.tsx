@@ -57,7 +57,7 @@ const EnrollmentPage = () => {
           className="max-w-md w-full text-center space-y-6"
         >
           <div className="flex justify-center">
-            <div className="h-20 w-20 bg-emerald-500/10 rounded-full flex items-center justify-center text-emerald-500">
+            <div className="h-20 w-20 bg-primary/10 rounded-full flex items-center justify-center text-primary">
               <CheckCircle2 className="h-10 w-10" />
             </div>
           </div>

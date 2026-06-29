@@ -151,7 +151,7 @@ const TeacherMessagesPage = () => {
     <div className="h-[calc(100vh-140px)] flex bg-background border rounded-2xl overflow-hidden shadow-2xl">
       {/* Sidebar */}
       <div className="w-[380px] border-r flex flex-col bg-card shrink-0">
-        <header className="p-4 bg-[#00a884] text-white flex items-center justify-between">
+        <header className="p-4 bg-primary text-white flex items-center justify-between">
             <div className="flex items-center gap-3">
                <Avatar className="h-10 w-10 border-2 border-white/20">
                   <AvatarFallback className="bg-white/20 text-white font-bold">T</AvatarFallback>
@@ -189,25 +189,25 @@ const TeacherMessagesPage = () => {
                key={conv.contactId}
                onClick={() => setSelectedContactId(conv.contactId)}
                className={`group flex items-center gap-3 p-4 border-b cursor-pointer transition-all hover:bg-muted/30 ${
-                  selectedContactId === conv.contactId ? 'bg-muted/50 border-l-4 border-l-[#00a884]' : ''
+                  selectedContactId === conv.contactId ? 'bg-muted/50 border-l-4 border-l-primary' : ''
                }`}
              >
                 <div className="relative">
                   <Avatar className="h-12 w-12 shrink-0 shadow-sm transition-transform group-hover:scale-105">
                     <AvatarFallback className={`${
-                      conv.type === 'Parent' ? 'bg-orange-100 text-orange-600' : 
-                      conv.type === 'Admin' ? 'bg-purple-100 text-purple-600' :
-                      conv.type === 'Teacher' ? 'bg-blue-100 text-blue-600' :
-                      'bg-green-100 text-green-600'
+                      conv.type === 'Parent' ? 'bg-primary/10 text-primary' : 
+                      conv.type === 'Admin' ? 'bg-secondary/10 text-secondary' :
+                      conv.type === 'Teacher' ? 'bg-accent/10 text-accent' :
+                      'bg-primary/5 text-primary'
                     } font-bold`}>
                       {conv.contactName.substring(0, 2).toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
                   <span className={`absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-background ${
-                    conv.type === 'Teacher' ? 'bg-blue-500' : 
-                    conv.type === 'Parent' ? 'bg-orange-500' : 
-                    conv.type === 'Admin' ? 'bg-purple-500' :
-                    'bg-green-500'
+                    conv.type === 'Teacher' ? 'bg-accent' : 
+                    conv.type === 'Parent' ? 'bg-primary' : 
+                    conv.type === 'Admin' ? 'bg-secondary' :
+                    'bg-primary/60'
                   }`} />
                 </div>
                 <div className="flex-1 min-w-0">
@@ -220,7 +220,7 @@ const TeacherMessagesPage = () => {
                         <span className="text-[9px] uppercase font-bold opacity-70">[{conv.type}]</span> {conv.lastMessage.text}
                       </p>
                       {conv.unreadCount > 0 && (
-                        <Badge className="bg-[#00a884] rounded-full h-5 w-5 flex items-center justify-center p-0 text-[10px] ml-1 scale-in-center">
+                        <Badge className="bg-primary rounded-full h-5 w-5 flex items-center justify-center p-0 text-[10px] ml-1 scale-in-center">
                           {conv.unreadCount}
                         </Badge>
                       )}
@@ -238,8 +238,8 @@ const TeacherMessagesPage = () => {
              {/* Header */}
              <header className="px-6 py-3 border-b bg-muted/40 backdrop-blur-md flex items-center justify-between z-30 shadow-sm">
                 <div className="flex items-center gap-4">
-                   <Avatar className="h-12 w-12 ring-2 ring-[#00a884]/10">
-                      <AvatarFallback className="bg-[#00a884]/5 text-[#00a884] font-bold">
+                   <Avatar className="h-12 w-12 ring-2 ring-primary/10">
+                      <AvatarFallback className="bg-primary/5 text-primary font-bold">
                         {selectedContactInfo?.name.substring(0, 2).toUpperCase()}
                       </AvatarFallback>
                    </Avatar>
@@ -248,8 +248,8 @@ const TeacherMessagesPage = () => {
                         {selectedContactInfo?.name}
                         <Badge variant="outline" className="text-[9px] h-4 uppercase">{selectedContactInfo?.type}</Badge>
                       </h3>
-                      <p className="text-xs text-emerald-500 font-bold flex items-center gap-1">
-                        <span className="h-1.5 w-1.5 bg-emerald-500 rounded-full animate-pulse" /> End-to-end encrypted
+                      <p className="text-xs text-primary font-bold flex items-center gap-1">
+                        <span className="h-1.5 w-1.5 bg-primary rounded-full animate-pulse" /> End-to-end encrypted
                       </p>
                    </div>
                 </div>
@@ -303,11 +303,11 @@ const TeacherMessagesPage = () => {
 
              {/* Footer */}
              <footer className="px-6 py-4 bg-muted/30 backdrop-blur-md flex items-center gap-4">
-                <Button variant="ghost" size="icon" className="shrink-0 text-muted-foreground hover:text-[#00a884] rounded-full hover:bg-muted"><Plus className="h-6 w-6" /></Button>
+                <Button variant="ghost" size="icon" className="shrink-0 text-muted-foreground hover:text-primary rounded-full hover:bg-muted"><Plus className="h-6 w-6" /></Button>
                 <div className="flex-1 relative">
                    <Input 
                       placeholder="Message contact..."
-                      className="w-full bg-background border-none rounded-2xl h-12 shadow-inner px-5 pr-12 focus-visible:ring-1 focus-visible:ring-[#00a884]/20"
+                      className="w-full bg-background border-none rounded-2xl h-12 shadow-inner px-5 pr-12 focus-visible:ring-1 focus-visible:ring-primary/20"
                       value={newMessage}
                       onChange={e => setNewMessage(e.target.value)}
                       onKeyDown={e => e.key === 'Enter' && !e.shiftKey && handleSend()}
@@ -316,7 +316,7 @@ const TeacherMessagesPage = () => {
                 <Button 
                    onClick={handleSend}
                    disabled={!newMessage.trim()}
-                   className="bg-[#00a884] hover:bg-[#00a884]/90 h-12 w-12 rounded-full p-0 shadow-lg shrink-0 transition-all active:scale-95"
+                   className="bg-primary hover:bg-primary/90 h-12 w-12 rounded-full p-0 shadow-lg shrink-0 transition-all active:scale-95"
                 >
                    <Send className="h-6 w-6 fill-current text-white" />
                 </Button>
@@ -325,7 +325,7 @@ const TeacherMessagesPage = () => {
          ) : (
            <div className="flex-1 flex flex-col items-center justify-center text-center p-12 space-y-6">
               <div className="relative">
-                 <div className="h-24 w-24 bg-[#00a884]/10 rounded-full flex items-center justify-center text-[#00a884] animate-bounce-slow">
+                 <div className="h-24 w-24 bg-primary/10 rounded-full flex items-center justify-center text-primary animate-bounce-slow">
                     <MessageCircle className="h-12 w-12" />
                  </div>
               </div>
@@ -383,7 +383,7 @@ const TeacherMessagesPage = () => {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsComposeDialogOpen(false)}>Cancel</Button>
-            <Button onClick={handleCompose} className="bg-[#00a884] hover:bg-[#00a884]/90">Start Chat</Button>
+            <Button onClick={handleCompose} className="bg-primary hover:bg-primary/90">Start Chat</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

@@ -133,10 +133,10 @@ const FeesPage = () => {
 
       <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
         {[
-          { label: "Collected (Apr)", value: `$${collected.toLocaleString()}`, icon: DollarSign, color: "from-green-500 to-green-400" },
-          { label: "Outstanding", value: `$${outstanding.toLocaleString()}`, icon: AlertCircle, color: "from-orange-500 to-orange-400" },
+          { label: "Collected (Apr)", value: `$${collected.toLocaleString()}`, icon: DollarSign, color: "from-primary to-primary/70" },
+          { label: "Outstanding", value: `$${outstanding.toLocaleString()}`, icon: AlertCircle, color: "from-secondary to-secondary/70" },
           { label: "Paid in Full", value: paidCount.toString(), icon: CheckCircle2, color: "from-accent to-accent/70" },
-          { label: "Growth", value: "+18%", icon: TrendingUp, color: "from-secondary to-secondary/70" },
+          { label: "Growth", value: "+18%", icon: TrendingUp, color: "from-primary/90 to-primary/60" },
         ].map((s) => (
           <Card key={s.label} className="relative overflow-hidden border-none shadow-md">
             <div className={`absolute inset-0 bg-gradient-to-br ${s.color} opacity-[0.08]`} />
@@ -179,7 +179,7 @@ const FeesPage = () => {
                         <TableCell className="font-medium">{p.student}</TableCell><TableCell>{p.class}</TableCell>
                         <TableCell className="font-semibold">${p.amount}</TableCell><TableCell>{p.method}</TableCell>
                         <TableCell className="text-muted-foreground">{p.date}</TableCell>
-                        <TableCell><Badge className={p.status === "Paid" ? "bg-green-500/15 text-green-700" : p.status === "Partial" ? "bg-orange-500/15 text-orange-700" : "bg-red-500/15 text-red-700"}>{p.status}</Badge></TableCell>
+                        <TableCell><Badge className={p.status === "Paid" ? "bg-primary/15 text-primary" : p.status === "Partial" ? "bg-secondary/15 text-secondary" : "bg-accent/15 text-accent"}>{p.status}</Badge></TableCell>
                       </TableRow>
                     ))}
                   </TableBody>

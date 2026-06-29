@@ -39,9 +39,9 @@ const ParentAnnouncementsPage = () => {
         {filtered.map((a, i) => {
           const color =
             a.category === "Event" ? "from-accent to-accent/70" :
-            a.category === "Finance" ? "from-orange-500 to-orange-400" :
-            a.category === "Policy" ? "from-purple-500 to-purple-400" :
-            "from-secondary to-secondary/70";
+            a.category === "Finance" ? "from-primary to-primary/70" :
+            a.category === "Policy" ? "from-secondary to-secondary/70" :
+            "from-primary/80 to-primary/60";
           return (
             <motion.div key={a.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, delay: i * 0.05 }}>
               <Card className="border-none shadow-md hover:shadow-lg transition">
@@ -54,7 +54,7 @@ const ParentAnnouncementsPage = () => {
                       <div className="flex flex-wrap items-start justify-between gap-2">
                         <h3 className="font-semibold">{a.title}</h3>
                         <div className="flex items-center gap-2">
-                          {a.isNew && <Badge className="bg-red-500/15 text-red-700 hover:bg-red-500/20">New</Badge>}
+                          {a.isNew && <Badge className="bg-accent text-white">New</Badge>}
                           <Badge variant="outline" className="text-xs">{a.category}</Badge>
                         </div>
                       </div>

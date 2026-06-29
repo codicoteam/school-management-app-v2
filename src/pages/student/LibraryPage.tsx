@@ -192,7 +192,7 @@ const LibraryPage = () => {
               <div className="mt-4 pt-4 border-t flex items-center justify-between">
                 <div className="flex gap-2">
                   {book.isDigital ? (
-                    <Button size="sm" className="h-8 text-xs font-semibold bg-green-600 hover:bg-green-700">
+                    <Button size="sm" className="h-8 text-xs font-semibold bg-primary hover:bg-primary/90">
                       <BookOpen className="h-3.5 w-3.5 mr-1.5" /> Read Online
                     </Button>
                   ) : book.status === "Available" ? (

@@ -18,10 +18,10 @@ const AdminDashboard = () => {
   const { data: fbData, loading, error } = useAdminDashboardData();
 
   const stats = [
-    { label: "Total Students", value: fbData.totalStudents.toLocaleString(), change: "+12%", icon: GraduationCap, gradient: "from-accent to-accent/70" },
+    { label: "Total Students", value: fbData.totalStudents.toLocaleString(), change: "+12%", icon: GraduationCap, gradient: "from-primary to-primary/70" },
     { label: "Total Teachers", value: fbData.totalTeachers.toLocaleString(), change: "+3%", icon: Users, gradient: "from-secondary to-secondary/70" },
-    { label: "Total Classes", value: fbData.totalClasses.toLocaleString(), change: "+5%", icon: BookOpen, gradient: "from-primary to-primary/70" },
-    { label: "Total Revenue", value: `$${fbData.totalRevenue.toLocaleString()}`, change: "+18%", icon: DollarSign, gradient: "from-green-500 to-green-400" },
+    { label: "Total Classes", value: fbData.totalClasses.toLocaleString(), change: "+5%", icon: BookOpen, gradient: "from-accent to-accent/70" },
+    { label: "Total Revenue", value: `$${fbData.totalRevenue.toLocaleString()}`, change: "+18%", icon: DollarSign, gradient: "from-primary/90 to-primary/60" },
   ];
 
   if (error) {
@@ -60,7 +60,7 @@ const AdminDashboard = () => {
               </CardHeader>
               <CardContent>
                 <p className="text-2xl font-bold text-foreground">{stat.value}</p>
-                <div className="mt-1 flex items-center gap-1 text-xs font-medium text-green-600">
+                <div className="mt-1 flex items-center gap-1 text-xs font-medium text-primary">
                   <TrendingUp className="h-3 w-3" />
                   {stat.change} from last month
                 </div>

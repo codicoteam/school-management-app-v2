@@ -226,10 +226,10 @@ export default function ClassesPage() {
   };
 
   const getAttendanceColor = (attendance: number) => {
-    if (attendance >= 95) return 'bg-green-100 text-green-800';
-    if (attendance >= 85) return 'bg-blue-100 text-blue-800';
-    if (attendance >= 75) return 'bg-yellow-100 text-yellow-800';
-    return 'bg-red-100 text-red-800';
+    if (attendance >= 95) return 'bg-primary/20 text-primary';
+    if (attendance >= 85) return 'bg-secondary/20 text-secondary';
+    if (attendance >= 75) return 'bg-accent/20 text-accent';
+    return 'bg-muted text-muted-foreground';
   };
 
   return (
@@ -288,7 +288,7 @@ export default function ClassesPage() {
                   {selectedClass.totalStudents}
                 </p>
               </div>
-              <Users className="h-8 w-8 text-blue-500" />
+              <Users className="h-8 w-8 text-primary" />
             </div>
           </CardContent>
         </Card>
@@ -297,14 +297,14 @@ export default function ClassesPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">Active Students</p>
-                <p className="text-2xl font-bold text-green-600">
+                <p className="text-2xl font-bold text-secondary">
                   {
                     selectedClass.students.filter((s) => s.status === 'active')
                       .length
                   }
                 </p>
               </div>
-              <GraduationCap className="h-8 w-8 text-green-500" />
+              <GraduationCap className="h-8 w-8 text-secondary" />
             </div>
           </CardContent>
         </Card>
@@ -315,11 +315,11 @@ export default function ClassesPage() {
                 <p className="text-sm font-medium text-gray-600">
                   Materials Uploaded
                 </p>
-                <p className="text-2xl font-bold text-purple-600">
+                <p className="text-2xl font-bold text-accent">
                   {mockMaterials.length}
                 </p>
               </div>
-              <FileText className="h-8 w-8 text-purple-500" />
+              <FileText className="h-8 w-8 text-accent" />
             </div>
           </CardContent>
         </Card>
@@ -439,7 +439,7 @@ export default function ClassesPage() {
                     className="flex items-center justify-between rounded-lg border p-4 hover:bg-gray-50 transition-colors"
                   >
                     <div className="flex items-center gap-3 flex-1">
-                      <div className="text-blue-500">
+                      <div className="text-primary">
                         {getMaterialIcon(material.type)}
                       </div>
                       <div className="flex-1">

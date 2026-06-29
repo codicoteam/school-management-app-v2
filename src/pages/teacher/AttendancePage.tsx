@@ -109,7 +109,7 @@ const AttendancePage = () => {
                       </div>
                     </label>
                     {attendance[student.id] ? (
-                      <CheckCircle2 className="h-5 w-5 text-green-500" />
+                      <CheckCircle2 className="h-5 w-5 text-primary" />
                     ) : (
                       <XCircle className="h-5 w-5 text-muted-foreground" />
                     )}

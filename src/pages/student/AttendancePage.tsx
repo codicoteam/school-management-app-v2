@@ -66,9 +66,9 @@ ${recent.map(r => `${r.date}: ${r.status}${r.note ? " (" + r.note + ")" : ""}`).
 
       <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
         {[
-          { label: "Present", value: present, icon: CheckCircle2, color: "from-green-500 to-green-400" },
-          { label: "Absent", value: absent, icon: XCircle, color: "from-red-500 to-red-400" },
-          { label: "Late", value: late, icon: AlertCircle, color: "from-orange-500 to-orange-400" },
+          { label: "Present", value: present, icon: CheckCircle2, color: "from-primary to-primary/70" },
+          { label: "Absent", value: absent, icon: XCircle, color: "from-accent to-accent/70" },
+          { label: "Late", value: late, icon: AlertCircle, color: "from-secondary to-secondary/70" },
           { label: "Rate", value: `${rate}%`, icon: Clock, color: "from-accent to-accent/70" },
         ].map(s => (
           <Card key={s.label} className="relative overflow-hidden border-none shadow-md">
@@ -116,9 +116,9 @@ ${recent.map(r => `${r.date}: ${r.status}${r.note ? " (" + r.note + ")" : ""}`).
               <div key={i} className="flex items-center justify-between">
                 <span className="text-sm">{r.date}</span>
                 <Badge className={
-                  r.status === "Present" ? "bg-green-500/15 text-green-700" :
-                  r.status === "Late" ? "bg-orange-500/15 text-orange-700" :
-                  "bg-red-500/15 text-red-700"
+                  r.status === "Present" ? "bg-primary/15 text-primary" :
+                  r.status === "Late" ? "bg-secondary/15 text-secondary" :
+                  "bg-accent/15 text-accent"
                 }>{r.status}</Badge>
               </div>
             ))}
