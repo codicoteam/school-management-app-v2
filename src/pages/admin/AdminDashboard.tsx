@@ -13,6 +13,13 @@ import { useNavigate } from "react-router-dom";
 
 import { useAdminDashboardData } from "@/hooks/useAdminDashboardData";
 
+const quickActions = [
+  { label: "Add Student", icon: UserPlus, href: "/admin/students" },
+  { label: "Add Teacher", icon: UserCog, href: "/admin/teachers" },
+  { label: "Create Exam", icon: FileText, href: "/admin/exams" },
+  { label: "Send Announcement", icon: Megaphone, href: "/admin/announcements" },
+];
+
 const AdminDashboard = () => {
   const navigate = useNavigate();
   const { data: fbData, loading, error } = useAdminDashboardData();

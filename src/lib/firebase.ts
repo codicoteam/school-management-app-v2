@@ -14,7 +14,7 @@ import { getMessaging } from "firebase/messaging"; // Added getMessaging
  */
 
 // TODO: Replace with your actual Firebase project configuration
-const firebaseConfig = {
+export const firebaseConfig = {
   apiKey: "AIzaSyACq7Je_KnUh56rJ3AH0vi4RraPnCjx1ZU",
   authDomain: "school-management-6fb05.firebaseapp.com",
   projectId: "school-management-6fb05",

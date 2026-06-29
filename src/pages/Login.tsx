@@ -82,12 +82,7 @@ const role = allowedRoles.includes(rawRole) ? rawRole : 'student';
           setIsLoading(false);
           return;
         }
-        // Prevent sign up as admin
-        if (role === 'admin') {
-          toast.error("You cannot sign up as an admin. Please contact an administrator to create an admin account.");
-          setIsLoading(false);
-          return;
-        }
+
 
         // Prevent use of disposable/fake email addresses
         const emailDomain = formData.email.split('@')[1]?.toLowerCase();
