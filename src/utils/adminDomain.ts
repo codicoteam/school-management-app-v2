@@ -5,26 +5,50 @@
  */
 export const isAdminDomain = (): boolean => {
   const hostname = window.location.hostname.toLowerCase();
-  
-  // 1. Check query parameter (ideal for simple local testing without subdomain setup)
+  const pathname = window.location.pathname.toLowerCase();
   const searchParams = new URLSearchParams(window.location.search);
+
+  // 1. Check query parameter (takes absolute precedence)
   if (searchParams.get("adminMode") === "true") {
+    localStorage.setItem("admin_portal_mode", "true");
     return true;
   }
-
-  // 2. Check stored admin flag (to persist admin mode if set via query param)
+  
   if (searchParams.get("adminMode") === "false") {
     localStorage.removeItem("admin_portal_mode");
-  } else if (searchParams.get("adminMode") === "true") {
-    localStorage.setItem("admin_portal_mode", "true");
+    return false;
+  }
+
+  // 2. If a specific non-admin role is requested in query params, disable admin mode
+  const roleParam = searchParams.get("role");
+  if (roleParam && roleParam !== "admin") {
+    localStorage.removeItem("admin_portal_mode");
+    return false;
+  }
+
+  const isActualAdminSubdomain = hostname.startsWith("admin.") || hostname === "admin";
+
+  // 3. Clear admin mode if on main portal routes (student, parent, teacher, or root/welcome page)
+  // and we are NOT on the actual admin subdomain.
+  if (
+    !isActualAdminSubdomain &&
+    (pathname === "/" ||
+     pathname === "/index.html" ||
+     pathname.startsWith("/student") || 
+     pathname.startsWith("/parent") || 
+     pathname.startsWith("/teacher"))
+  ) {
+    localStorage.removeItem("admin_portal_mode");
+    return false;
   }
   
+  // 4. Check stored admin flag
   if (localStorage.getItem("admin_portal_mode") === "true") {
     return true;
   }
 
-  // 3. Subdomain checking
-  return hostname.startsWith("admin.") || hostname === "admin";
+  // 5. Subdomain checking
+  return isActualAdminSubdomain;
 };
 
 /**
