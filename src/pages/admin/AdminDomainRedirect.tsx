@@ -33,7 +33,8 @@ const AdminDomainRedirect = () => {
   };
 
   const handleRedirect = () => {
-    navigate("/admin");
+    localStorage.setItem("admin_portal_mode", "true");
+    window.location.href = "/admin";
   };
 
   return (
