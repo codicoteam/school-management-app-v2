@@ -1,12 +1,15 @@
 import { motion } from "framer-motion";
 import { ShieldAlert, ArrowRight, Copy, Check, Globe } from "lucide-react";
-import { useState, useEffect, useNavigate } from "react";
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { Button } from "@/components/ui/button";
 import { getAdminPortalUrl } from "@/utils/adminDomain";
 import heroBg from "@/assets/hero-bg.jpg";
 import { toast } from "sonner";
 
 const AdminDomainRedirect = () => {
   const [copied, setCopied] = useState(false);
+  const navigate = useNavigate();
   const adminUrl = getAdminPortalUrl();
 
   useEffect(() => {
