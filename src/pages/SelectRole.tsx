@@ -35,13 +35,8 @@ const SelectRole = () => {
   const navigate = useNavigate();
   const isDevAdmin = isAdminDomain() || window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
   
-  // Filter out admin role if we're on the public/main domain
-  const displayRoles = roles.filter(role => {
-    if (role.id === "admin") {
-      return isDevAdmin;
-    }
-    return true;
-  });
+// Include all roles (admin included)
+   const displayRoles = roles;
 
   return (
     <div className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden">
