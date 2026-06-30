@@ -1,7 +1,6 @@
 import { motion } from "framer-motion";
 import { ShieldAlert, ArrowRight, Copy, Check, Globe } from "lucide-react";
-import { useState, useEffect } from "react";
-import { Button } from "@/components/ui/button";
+import { useState, useEffect, useNavigate } from "react";
 import { getAdminPortalUrl } from "@/utils/adminDomain";
 import heroBg from "@/assets/hero-bg.jpg";
 import { toast } from "sonner";
@@ -31,7 +30,7 @@ const AdminDomainRedirect = () => {
   };
 
   const handleRedirect = () => {
-    window.location.href = adminUrl;
+    navigate("/admin");
   };
 
   return (
