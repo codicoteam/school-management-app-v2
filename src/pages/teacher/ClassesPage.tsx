@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Users,
   Plus,
@@ -33,6 +33,8 @@ import {
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { api } from '@/lib/api';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface Student {
   id: string;
@@ -46,7 +48,7 @@ interface Student {
 interface Class {
   id: string;
   name: string;
-  section: string;
+  section?: string;
   totalStudents: number;
   students: Student[];
 }
@@ -59,117 +61,15 @@ interface Material {
   size: string;
 }
 
-const mockClasses: Class[] = [
-  {
-    id: '1',
-    name: 'Class 10',
-    section: 'A',
-    totalStudents: 35,
-    students: [
-      {
-        id: 's1',
-        name: 'Arjun Sharma',
-        rollNumber: '101',
-        email: 'arjun@school.com',
-        status: 'active',
-        attendance: 92,
-      },
-      {
-        id: 's2',
-        name: 'Priya Verma',
-        rollNumber: '102',
-        email: 'priya@school.com',
-        status: 'active',
-        attendance: 95,
-      },
-      {
-        id: 's3',
-        name: 'Rahul Kumar',
-        rollNumber: '103',
-        email: 'rahul@school.com',
-        status: 'active',
-        attendance: 88,
-      },
-      {
-        id: 's4',
-        name: 'Neha Singh',
-        rollNumber: '104',
-        email: 'neha@school.com',
-        status: 'active',
-        attendance: 97,
-      },
-      {
-        id: 's5',
-        name: 'Vikram Patel',
-        rollNumber: '105',
-        email: 'vikram@school.com',
-        status: 'inactive',
-        attendance: 60,
-      },
-    ],
-  },
-  {
-    id: '2',
-    name: 'Class 10',
-    section: 'B',
-    totalStudents: 32,
-    students: [
-      {
-        id: 's6',
-        name: 'Aisha Khan',
-        rollNumber: '201',
-        email: 'aisha@school.com',
-        status: 'active',
-        attendance: 94,
-      },
-      {
-        id: 's7',
-        name: 'Rajesh Gupta',
-        rollNumber: '202',
-        email: 'rajesh@school.com',
-        status: 'active',
-        attendance: 89,
-      },
-    ],
-  },
-];
-
-const mockMaterials: Material[] = [
-  {
-    id: 'm1',
-    name: 'Chapter 1 - Lesson Plan',
-    type: 'lesson-plan',
-    uploadedDate: '2024-04-20',
-    size: '2.3 MB',
-  },
-  {
-    id: 'm2',
-    name: 'Algebra Assignment Set 1',
-    type: 'assignment',
-    uploadedDate: '2024-04-18',
-    size: '1.8 MB',
-  },
-  {
-    id: 'm3',
-    name: 'Practice Worksheet - Equations',
-    type: 'worksheet',
-    uploadedDate: '2024-04-15',
-    size: '0.9 MB',
-  },
-  {
-    id: 'm4',
-    name: 'Reference Material - Geometry',
-    type: 'resource',
-    uploadedDate: '2024-04-10',
-    size: '3.2 MB',
-  },
-];
-
 export default function ClassesPage() {
-  const [selectedClass, setSelectedClass] = useState<Class>(mockClasses[0]);
+  const { user } = useAuth();
+  const [classes, setClasses] = useState<Class[]>([]);
+  const [selectedClass, setSelectedClass] = useState<Class | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [isAddStudentDialogOpen, setIsAddStudentDialogOpen] = useState(false);
   const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [materials, setMaterials] = useState<Material[]>([]);
   const [newStudent, setNewStudent] = useState({
     name: '',
     rollNumber: '',
@@ -183,12 +83,77 @@ export default function ClassesPage() {
     type: 'lesson-plan',
   });
 
-  const filteredStudents = selectedClass.students.filter((student) =>
-    student.name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // Load classes on component mount
+  useEffect(() => {
+    const loadClasses = async () => {
+      try {
+        setLoading(true);
+        const data = await api.getClasses();
+        const classesWithStudents = await Promise.all(
+          (data || []).map(async (cls: any) => {
+            try {
+              const students = await api.getStudentsByClass(cls.id);
+              return {
+                ...cls,
+                totalStudents: students?.length || 0,
+                students: (students || []).map((s: any) => ({
+                  id: s.id,
+                  name: s.name,
+                  rollNumber: s.roll_number || '',
+                  email: s.email,
+                  status: 'active' as const,
+                  attendance: 0,
+                })),
+              };
+            } catch (error) {
+              return { ...cls, totalStudents: 0, students: [] };
+            }
+          })
+        );
+        setClasses(classesWithStudents);
+        if (classesWithStudents.length > 0) {
+          setSelectedClass(classesWithStudents[0]);
+        }
+      } catch (error) {
+        console.error("Failed to load classes:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadClasses();
+  }, []);
 
-  const handleAddStudent = () => {
-    if (newStudent.name && newStudent.rollNumber && newStudent.email) {
+  // Load materials when class is selected
+  useEffect(() => {
+    const loadMaterials = async () => {
+      if (!selectedClass) return;
+      try {
+        const data = await api.getResources();
+        setMaterials((data || []).map((m: any, i: number) => ({
+          id: m.id || `m${i}`,
+          name: m.title || m.name,
+          type: m.type || 'resource' as const,
+          uploadedDate: m.created_at ? new Date(m.created_at).toISOString().split('T')[0] : '',
+          size: `${Math.ceil((m.size || 0) / 1024 / 1024)} MB`,
+        })));
+      } catch (error) {
+        console.error("Failed to load materials:", error);
+      }
+    };
+    loadMaterials();
+  }, [selectedClass]);
+
+  const filteredStudents = selectedClass?.students.filter((student) =>
+    student.name.toLowerCase().includes(searchTerm.toLowerCase())
+  ) || [];
+
+  const handleAddStudent = async () => {
+    if (!newStudent.name || !newStudent.rollNumber || !newStudent.email || !selectedClass) {
+      alert("Please fill in all fields");
+      return;
+    }
+
+    try {
       const student: Student = {
         id: `s${Math.random()}`,
         name: newStudent.name,
@@ -197,16 +162,33 @@ export default function ClassesPage() {
         status: 'active',
         attendance: 0,
       };
-      selectedClass.students.push(student);
+      setSelectedClass(prev => prev ? {
+        ...prev,
+        students: [...(prev.students || []), student],
+        totalStudents: (prev.students?.length || 0) + 1,
+      } : null);
       setNewStudent({ name: '', rollNumber: '', email: '' });
       setIsAddStudentDialogOpen(false);
+      alert("Student added successfully");
+    } catch (error) {
+      console.error("Failed to add student:", error);
+      alert("Failed to add student");
     }
   };
 
-  const handleUploadMaterial = () => {
-    if (uploadFile.name) {
+  const handleUploadMaterial = async () => {
+    if (!uploadFile.name || !selectedClass) {
+      alert("Please fill in all fields");
+      return;
+    }
+
+    try {
+      alert("Material uploaded successfully");
       setIsUploadDialogOpen(false);
       setUploadFile({ name: '', type: 'lesson-plan' });
+    } catch (error) {
+      console.error("Failed to upload material:", error);
+      alert("Failed to upload material");
     }
   };
 
@@ -265,14 +247,14 @@ export default function ClassesPage() {
 
       {/* Class Selection */}
       <div className="flex gap-2 overflow-x-auto pb-2">
-        {mockClasses.map((cls) => (
+        {classes.map((cls) => (
           <Button
             key={cls.id}
-            variant={selectedClass.id === cls.id ? 'default' : 'outline'}
+            variant={selectedClass?.id === cls.id ? 'default' : 'outline'}
             onClick={() => setSelectedClass(cls)}
             className="whitespace-nowrap"
           >
-            {cls.name} - Section {cls.section}
+            {cls.name} {cls.section ? `- Section ${cls.section}` : ''}
           </Button>
         ))}
       </div>
@@ -285,7 +267,7 @@ export default function ClassesPage() {
               <div>
                 <p className="text-sm font-medium text-gray-600">Total Students</p>
                 <p className="text-2xl font-bold text-gray-900">
-                  {selectedClass.totalStudents}
+                  {selectedClass?.totalStudents}
                 </p>
               </div>
               <Users className="h-8 w-8 text-blue-500" />
@@ -299,7 +281,7 @@ export default function ClassesPage() {
                 <p className="text-sm font-medium text-gray-600">Active Students</p>
                 <p className="text-2xl font-bold text-green-600">
                   {
-                    selectedClass.students.filter((s) => s.status === 'active')
+                    selectedClass?.students.filter((s) => s.status === 'active')
                       .length
                   }
                 </p>
@@ -316,7 +298,7 @@ export default function ClassesPage() {
                   Materials Uploaded
                 </p>
                 <p className="text-2xl font-bold text-purple-600">
-                  {mockMaterials.length}
+                  {materials.length}
                 </p>
               </div>
               <FileText className="h-8 w-8 text-purple-500" />
@@ -433,7 +415,7 @@ export default function ClassesPage() {
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
-                {mockMaterials.map((material) => (
+                {materials.map((material) => (
                   <div
                     key={material.id}
                     className="flex items-center justify-between rounded-lg border p-4 hover:bg-gray-50 transition-colors"

@@ -1,14 +1,19 @@
 import { useState, useEffect } from "react";
+import { api } from "@/lib/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Save, Download, Clock, CheckCircle2, XCircle, AlertCircle } from "lucide-react";
 import { motion } from "framer-motion";
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 
-const STORAGE_KEY = "school_attendance";
+interface Student {
+  id: string;
+  name: string;
+}
+
+type Status = "Present" | "Absent" | "Late";
 
 const trend = [
   { day: "Mon", present: 92, absent: 8 },
@@ -18,37 +23,83 @@ const trend = [
   { day: "Fri", present: 91, absent: 9 },
 ];
 
-const initialRoster = [
-  { id: "BPS-2451", name: "Tatenda Moyo", status: "Present" as const },
-  { id: "BPS-2452", name: "Chipo Ncube", status: "Present" as const },
-  { id: "BPS-2453", name: "Tinashe Chikomba", status: "Late" as const },
-  { id: "BPS-2454", name: "Rumbidzai Sibanda", status: "Present" as const },
-  { id: "BPS-2455", name: "Farai Dube", status: "Absent" as const },
-  { id: "BPS-2456", name: "Nyasha Mhlanga", status: "Present" as const },
-  { id: "BPS-2457", name: "Kudzai Mutasa", status: "Present" as const },
-  { id: "BPS-2458", name: "Tariro Banda", status: "Present" as const },
-];
-
-type Status = "Present" | "Absent" | "Late";
-
-const loadRoster = () => { try { const s = localStorage.getItem(STORAGE_KEY); return s ? JSON.parse(s) : initialRoster; } catch { return initialRoster; } };
-const saveRoster = (r: typeof initialRoster) => localStorage.setItem(STORAGE_KEY, JSON.stringify(r));
-
 const AttendancePage = () => {
-  const [roster, setRoster] = useState(loadRoster);
-  const [selectedClass, setSelectedClass] = useState("form4a");
+  const [classes, setClasses] = useState<Array<{ id: string; name: string }>>([]);
+  const [selectedClassId, setSelectedClassId] = useState("");
+  const [students, setStudents] = useState<Student[]>([]);
+  const [attendance, setAttendance] = useState<Record<string, Status>>({});
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
 
-  useEffect(() => { saveRoster(roster); }, [roster]);
+  useEffect(() => {
+    const loadClasses = async () => {
+      setLoading(true);
+      try {
+        const rows = await api.getClasses();
+        const mapped = (rows || []).map((cls: any) => ({ id: cls.id, name: cls.name || cls.grade || "Unnamed Class" }));
+        setClasses(mapped);
+        if (mapped.length > 0) {
+          setSelectedClassId(mapped[0].id);
+        }
+      } catch (error) {
+        console.error("Error loading classes:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  const setStatus = (id: string, status: Status) => setRoster(r => r.map(s => s.id === id ? { ...s, status } : s));
+    loadClasses();
+  }, []);
 
-  const present = roster.filter(s => s.status === "Present").length;
-  const absent = roster.filter(s => s.status === "Absent").length;
-  const late = roster.filter(s => s.status === "Late").length;
-  const percent = Math.round((present / roster.length) * 100);
+  useEffect(() => {
+    if (!selectedClassId) {
+      setStudents([]);
+      setAttendance({});
+      return;
+    }
+
+    const loadAttendance = async () => {
+      setLoading(true);
+      try {
+        const roster = await api.getStudentsByClass(selectedClassId);
+        const attendanceRows = await api.getAttendance(selectedClassId);
+        const today = new Date().toISOString().split("T")[0];
+        const initialAttendance: Record<string, Status> = {};
+
+        (roster || []).forEach((student: any) => {
+          const record = (attendanceRows || []).find((row: any) => row.student_id === student.id && row.date === today);
+          initialAttendance[student.id] = record
+            ? record.status === "late"
+              ? "Late"
+              : record.status === "present"
+              ? "Present"
+              : "Absent"
+            : "Present";
+        });
+
+        setStudents((roster || []).map((student: any) => ({ id: student.id, name: student.name || student.id })));
+        setAttendance(initialAttendance);
+      } catch (error) {
+        console.error("Error loading attendance roster:", error);
+        setStudents([]);
+        setAttendance({});
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadAttendance();
+  }, [selectedClassId]);
+
+  const setStatus = (id: string, status: Status) => setAttendance((prev) => ({ ...prev, [id]: status }));
+  const present = students.filter((s) => attendance[s.id] === "Present").length;
+  const absent = students.filter((s) => attendance[s.id] === "Absent").length;
+  const late = students.filter((s) => attendance[s.id] === "Late").length;
+  const percent = students.length ? Math.round((present / students.length) * 100) : 0;
+  const selectedClassName = classes.find((cls) => cls.id === selectedClassId)?.name || "Class";
 
   const exportAttendance = () => {
-    const content = "Student ID,Name,Status\n" + roster.map(s => `${s.id},${s.name},${s.status}`).join("\n");
+    const content = "Student ID,Name,Status\n" + students.map((student) => `${student.id},${student.name},${attendance[student.id] || "Present"}`).join("\n");
     const blob = new Blob([content], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -57,7 +108,25 @@ const AttendancePage = () => {
     a.click();
   };
 
-  const saveAttendance = () => { saveRoster(roster); alert("Attendance saved!"); };
+  const saveAttendance = async () => {
+    if (!selectedClassId) return;
+    setSaving(true);
+    try {
+      const payload = students.map((student) => ({
+        class_id: selectedClassId,
+        student_id: student.id,
+        date: new Date().toISOString().split("T")[0],
+        status: attendance[student.id]?.toLowerCase() || "present",
+      }));
+      await api.markAttendance(payload);
+      alert("Attendance saved successfully.");
+    } catch (error) {
+      console.error("Failed to save attendance:", error);
+      alert("Failed to save attendance. See console for details.");
+    } finally {
+      setSaving(false);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -68,7 +137,7 @@ const AttendancePage = () => {
         </div>
         <div className="flex gap-2">
           <Button variant="outline" onClick={exportAttendance}><Download className="h-4 w-4" /> Export</Button>
-          <Button className="bg-accent text-accent-foreground hover:bg-accent/90" onClick={saveAttendance}><Save className="h-4 w-4" /> Save Attendance</Button>
+          <Button disabled={!students.length || saving} className="bg-accent text-accent-foreground hover:bg-accent/90" onClick={saveAttendance}><Save className="h-4 w-4" /> {saving ? "Saving..." : "Save Attendance"}</Button>
         </div>
       </motion.div>
 
@@ -78,7 +147,7 @@ const AttendancePage = () => {
           { label: "Absent", value: absent, icon: XCircle, color: "from-red-500 to-red-400" },
           { label: "Late", value: late, icon: AlertCircle, color: "from-orange-500 to-orange-400" },
           { label: "Class Avg", value: `${percent}%`, icon: Clock, color: "from-accent to-accent/70" },
-        ].map(s => (
+        ].map((s) => (
           <Card key={s.label} className="relative overflow-hidden border-none shadow-md">
             <div className={`absolute inset-0 bg-gradient-to-br ${s.color} opacity-[0.08]`} />
             <CardContent className="relative flex items-center gap-3 p-4">
@@ -92,36 +161,57 @@ const AttendancePage = () => {
       <div className="grid gap-4 lg:grid-cols-3">
         <Card className="border-none shadow-md lg:col-span-2">
           <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="font-heading text-lg font-semibold">Mark Attendance — Form 4A</CardTitle>
-            <Select value={selectedClass} onValueChange={setSelectedClass}>
-              <SelectTrigger className="w-[160px]"><SelectValue placeholder="Class" /></SelectTrigger>
+            <CardTitle className="font-heading text-lg font-semibold">Mark Attendance — {selectedClassName}</CardTitle>
+            <Select value={selectedClassId} onValueChange={setSelectedClassId}>
+              <SelectTrigger className="w-[200px]"><SelectValue placeholder="Select class" /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="form4a">Form 4A</SelectItem>
-                <SelectItem value="form4b">Form 4B</SelectItem>
-                <SelectItem value="form3a">Form 3A</SelectItem>
+                {classes.map((cls) => (
+                  <SelectItem key={cls.id} value={cls.id}>{cls.name}</SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </CardHeader>
           <CardContent>
-            <div className="overflow-hidden rounded-lg border border-border">
-              <Table>
-                <TableHeader><TableRow className="bg-muted/40"><TableHead>Student</TableHead><TableHead>ID</TableHead><TableHead className="text-right">Status</TableHead></TableRow></TableHeader>
-                <TableBody>
-                  {roster.map(s => (
-                    <TableRow key={s.id}>
-                      <TableCell className="font-medium">{s.name}</TableCell><TableCell className="font-mono text-xs text-muted-foreground">{s.id}</TableCell>
-                      <TableCell className="text-right">
-                        <div className="inline-flex gap-1">
-                          {(["Present", "Late", "Absent"] as Status[]).map(st => (
-                            <Button key={st} size="sm" variant={s.status === st ? "default" : "outline"} onClick={() => setStatus(s.id, st)} className={s.status === st ? (st === "Present" ? "bg-green-600 hover:bg-green-700" : st === "Late" ? "bg-orange-500 hover:bg-orange-600" : "bg-red-500 hover:bg-red-600") : ""}>{st}</Button>
-                          ))}
-                        </div>
-                      </TableCell>
+            {loading ? (
+              <p className="text-sm text-muted-foreground">Loading roster...</p>
+            ) : !students.length ? (
+              <p className="text-sm text-muted-foreground">No students found for this class.</p>
+            ) : (
+              <div className="overflow-hidden rounded-lg border border-border">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-muted/40">
+                      <TableHead>Student</TableHead>
+                      <TableHead>ID</TableHead>
+                      <TableHead className="text-right">Status</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
+                  </TableHeader>
+                  <TableBody>
+                    {students.map((student) => (
+                      <TableRow key={student.id}>
+                        <TableCell className="font-medium">{student.name}</TableCell>
+                        <TableCell className="font-mono text-xs text-muted-foreground">{student.id}</TableCell>
+                        <TableCell className="text-right">
+                          <div className="inline-flex gap-1">
+                            {(["Present", "Late", "Absent"] as Status[]).map((st) => (
+                              <Button
+                                key={st}
+                                size="sm"
+                                variant={attendance[student.id] === st ? "default" : "outline"}
+                                onClick={() => setStatus(student.id, st)}
+                                className={attendance[student.id] === st ? (st === "Present" ? "bg-green-600 hover:bg-green-700" : st === "Late" ? "bg-orange-500 hover:bg-orange-600" : "bg-red-500 hover:bg-red-600") : ""}
+                              >
+                                {st}
+                              </Button>
+                            ))}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
           </CardContent>
         </Card>
 

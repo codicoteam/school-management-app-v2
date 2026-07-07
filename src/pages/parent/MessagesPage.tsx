@@ -90,15 +90,22 @@ const ParentMessagesPage = () => {
 
   const formatDate = (timestamp: any) => {
     if (!timestamp) return "";
-    try {
-      const date = timestamp.toDate();
-      if (format(new Date(), 'yyyyMMdd') === format(date, 'yyyyMMdd')) {
-         return format(date, 'HH:mm');
-      }
-      return format(date, 'MMM d');
-    } catch (e) {
-      return "";
+    let date: Date;
+    if (typeof timestamp === 'string') {
+      date = new Date(timestamp);
+    } else if (timestamp instanceof Date) {
+      date = timestamp;
+    } else if (typeof timestamp.toDate === 'function') {
+      date = timestamp.toDate();
+    } else if (timestamp.seconds) {
+      date = new Date(timestamp.seconds * 1000);
+    } else {
+      date = new Date(timestamp);
     }
+    if (format(new Date(), 'yyyyMMdd') === format(date, 'yyyyMMdd')) {
+       return format(date, 'HH:mm');
+    }
+    return format(date, 'MMM d');
   };
 
   return (

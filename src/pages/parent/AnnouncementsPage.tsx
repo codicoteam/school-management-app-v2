@@ -1,20 +1,28 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Bell, Search, Megaphone, AlertCircle, Calendar, Trophy } from "lucide-react";
 import { motion } from "framer-motion";
-
-const announcements = [
-  { id: 1, title: "Parent-teacher meeting on 20 April at 14:00", body: "All parents are invited to discuss progress with class teachers in the school hall.", category: "Event", icon: Calendar, time: "1 hour ago", isNew: true },
-  { id: 2, title: "Term 2 fees due by 30 April", body: "Please clear all outstanding balances. EcoCash code: *151*2*2*12345#.", category: "Finance", icon: AlertCircle, time: "2 days ago", isNew: true },
-  { id: 3, title: "Sports Day on Friday — parents welcome", body: "Cheer on Tawanda from 09:00. Refreshments will be served.", category: "Event", icon: Trophy, time: "3 days ago", isNew: false },
-  { id: 4, title: "New uniform policy effective May 1", body: "Approved blazer suppliers are listed on the school website.", category: "Policy", icon: Megaphone, time: "5 days ago", isNew: false },
-  { id: 5, title: "Mid-term break: 5–9 May", body: "School will be closed during the break. Boarders may collect items on Saturday 4 May.", category: "Event", icon: Calendar, time: "1 week ago", isNew: false },
-];
+import { api } from "@/lib/api";
 
 const ParentAnnouncementsPage = () => {
+  const [announcements, setAnnouncements] = useState<Array<any>>([]);
   const [search, setSearch] = useState("");
+
+  useEffect(() => {
+    const loadAnnouncements = async () => {
+      try {
+        const rows = await api.getAnnouncements();
+        setAnnouncements(rows);
+      } catch (error) {
+        console.error(error);
+      }
+    };
+
+    loadAnnouncements();
+  }, []);
+
   const filtered = announcements.filter((a) =>
     a.title.toLowerCase().includes(search.toLowerCase()) || a.body.toLowerCase().includes(search.toLowerCase())
   );

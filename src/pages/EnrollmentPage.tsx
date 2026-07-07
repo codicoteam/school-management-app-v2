@@ -9,8 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { toast } from "sonner";
-import { db } from "@/lib/firebase";
-import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+import { api } from "@/lib/api";
 
 const EnrollmentPage = () => {
   const navigate = useNavigate();
@@ -31,20 +30,18 @@ const EnrollmentPage = () => {
     setLoading(true);
 
     try {
-      await addDoc(collection(db, "applications"), {
+      await api.submitApplication({
         ...formData,
         desiredLevel,
-        status: "pending",
-        submittedAt: serverTimestamp(),
+        status: 'pending',
       });
-      
       setLoading(false);
       setIsSubmitted(true);
-      toast.success("Application submitted successfully!");
+      toast.success('Application submitted successfully!');
     } catch (error) {
-      console.error("Error submitting application:", error);
+      console.error('Error submitting application:', error);
       setLoading(false);
-      toast.error("Failed to submit application. Please try again.");
+      toast.error('Failed to submit application. Please try again.');
     }
   };
 

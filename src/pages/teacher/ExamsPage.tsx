@@ -10,49 +10,22 @@ import { Plus, Download, TrendingUp, BarChart3, Trash2 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, BarChart, Bar } from "recharts";
-import { useForm } from "react-hook-form";
-
-const STORAGE_KEY = "teacher_exams_data";
-
-const initialExamsData = [
-  { id: 1, name: "Midterm Exams 2026", class: "Form 3A", date: "2026-04-15", subject: "Physics", totalMarks: 100 },
-  { id: 2, name: "Mathematics Paper 1", class: "Form 3A", date: "2026-04-16", subject: "Mathematics", totalMarks: 100 },
-  { id: 3, name: "Chemistry Practical", class: "Form 4A", date: "2026-04-20", subject: "Chemistry", totalMarks: 50 },
-];
+import { api } from "@/lib/api";
+import { useAuth } from "@/contexts/AuthContext";
 
 const ExamsPage = () => {
-  const [selectedClass, setSelectedClass] = useState("Form 3A");
-  const [selectedExam, setSelectedExam] = useState("Midterm");
+  const { user } = useAuth();
+  const [selectedClass, setSelectedClass] = useState<string | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [examsData, setExamsData] = useState(() => {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    return saved ? JSON.parse(saved) : initialExamsData;
+  const [classes, setClasses] = useState<any[]>([]);
+  const [examsData, setExamsData] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [formData, setFormData] = useState({
+    name: "",
+    subject: "Mathematics",
+    date: new Date().toISOString().split('T')[0],
+    totalMarks: "100"
   });
-
-  const { register, handleSubmit, reset, setValue } = useForm({
-    defaultValues: {
-      name: "",
-      subject: "Mathematics",
-      class: "Form 3A",
-      date: new Date().toISOString().split('T')[0],
-      totalMarks: 100
-    }
-  });
-
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(examsData));
-  }, [examsData]);
-
-  const classes = ["Form 3A", "Form 4A", "Form 4B"];
-  const exams = ["Midterm", "Final", "Mock", "Continuous"];
-
-  const studentMarks = [
-    { id: 1, name: "Alice Johnson", marks: 85, percentage: 85, grade: "A" },
-    { id: 2, name: "Bob Smith", marks: 72, percentage: 72, grade: "B" },
-    { id: 3, name: "Charlie Brown", marks: 68, percentage: 68, grade: "C" },
-    { id: 4, name: "Diana Wilson", marks: 92, percentage: 92, grade: "A+" },
-    { id: 5, name: "Edward Davis", marks: 78, percentage: 78, grade: "B" },
-  ];
 
   const performanceData = [
     { subject: "Physics", average: 78, previous: 75 },
@@ -68,15 +41,69 @@ const ExamsPage = () => {
     { exam: "Exam 4", average: 85 },
   ];
 
-  const onSubmit = (data: any) => {
-    const newExam = {
-      id: Date.now(),
-      ...data,
-      totalMarks: Number(data.totalMarks)
+  useEffect(() => {
+    const loadClasses = async () => {
+      try {
+        setLoading(true);
+        const data = await api.getClasses();
+        setClasses(data || []);
+        if (data && data.length > 0) {
+          setSelectedClass(data[0].id);
+        }
+      } catch (error) {
+        console.error("Failed to load classes:", error);
+      } finally {
+        setLoading(false);
+      }
     };
-    setExamsData([newExam, ...examsData]);
-    setIsDialogOpen(false);
-    reset();
+    loadClasses();
+  }, []);
+
+  useEffect(() => {
+    const loadExams = async () => {
+      if (!selectedClass) return;
+      try {
+        const data = await api.getExams(selectedClass);
+        setExamsData(data || []);
+      } catch (error) {
+        console.error("Failed to load exams:", error);
+      }
+    };
+    loadExams();
+  }, [selectedClass]);
+
+  const handleInputChange = (field: string, value: string) => {
+    setFormData(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  const handleCreateExam = async () => {
+    if (!formData.name || !formData.subject || !formData.date || !selectedClass) {
+      alert("Please fill in all fields");
+      return;
+    }
+
+    try {
+      await api.createExam({
+        class_id: selectedClass,
+        teacher_id: user?.id,
+        name: formData.name,
+        subject: formData.subject,
+        date: formData.date,
+        total_marks: Number(formData.totalMarks),
+      });
+      alert("Exam created successfully");
+      setFormData({ name: "", subject: "Mathematics", date: new Date().toISOString().split('T')[0], totalMarks: "100" });
+      setIsDialogOpen(false);
+      // Reload exams
+      const data = await api.getExams(selectedClass);
+      setExamsData(data || []);
+    } catch (error) {
+      console.error("Failed to create exam:", error);
+      alert("Failed to create exam");
+    }
   };
 
   const deleteExam = (id: number) => {
@@ -108,15 +135,20 @@ const ExamsPage = () => {
                   Enter the details for the new examination.
                 </DialogDescription>
               </DialogHeader>
-              <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 py-4">
+              <form onSubmit={(e) => { e.preventDefault(); handleCreateExam(); }} className="space-y-4 py-4">
                 <div className="grid gap-2">
                   <Label htmlFor="name">Exam Name</Label>
-                  <Input id="name" {...register("name", { required: true })} placeholder="e.g. Midterm 2026" />
+                  <Input 
+                    id="name" 
+                    placeholder="e.g. Midterm 2026"
+                    value={formData.name}
+                    onChange={(e) => handleInputChange('name', e.target.value)}
+                  />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="grid gap-2">
                     <Label>Subject</Label>
-                    <Select onValueChange={(v) => setValue("subject", v)} defaultValue="Mathematics">
+                    <Select value={formData.subject} onValueChange={(v) => handleInputChange('subject', v)}>
                       <SelectTrigger>
                         <SelectValue placeholder="Select Subject" />
                       </SelectTrigger>
@@ -131,12 +163,12 @@ const ExamsPage = () => {
                   </div>
                   <div className="grid gap-2">
                     <Label>Class</Label>
-                    <Select onValueChange={(v) => setValue("class", v)} defaultValue="Form 3A">
+                    <Select value={selectedClass || ""} onValueChange={(v) => setSelectedClass(v)}>
                       <SelectTrigger>
                         <SelectValue placeholder="Select Class" />
                       </SelectTrigger>
                       <SelectContent>
-                        {classes.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                        {classes.map((c: any) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
                       </SelectContent>
                     </Select>
                   </div>
@@ -144,11 +176,21 @@ const ExamsPage = () => {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="grid gap-2">
                     <Label htmlFor="date">Exam Date</Label>
-                    <Input id="date" type="date" {...register("date", { required: true })} />
+                    <Input 
+                      id="date" 
+                      type="date"
+                      value={formData.date}
+                      onChange={(e) => handleInputChange('date', e.target.value)}
+                    />
                   </div>
                   <div className="grid gap-2">
                     <Label htmlFor="marks">Total Marks</Label>
-                    <Input id="marks" type="number" {...register("totalMarks", { required: true })} />
+                    <Input 
+                      id="marks" 
+                      type="number"
+                      value={formData.totalMarks}
+                      onChange={(e) => handleInputChange('totalMarks', e.target.value)}
+                    />
                   </div>
                 </div>
                 <DialogFooter className="pt-4">
@@ -168,26 +210,13 @@ const ExamsPage = () => {
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
                 <label className="text-sm font-medium">Select Class</label>
-                <Select value={selectedClass} onValueChange={setSelectedClass}>
+                <Select value={selectedClass || ""} onValueChange={setSelectedClass}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {classes.map(cls => (
-                      <SelectItem key={cls} value={cls}>{cls}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Select Exam</label>
-                <Select value={selectedExam} onValueChange={setSelectedExam}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {exams.map(exam => (
-                      <SelectItem key={exam} value={exam}>{exam}</SelectItem>
+                    {classes.map((cls: any) => (
+                      <SelectItem key={cls.id} value={cls.id}>{cls.name}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>

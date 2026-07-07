@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { api } from "@/lib/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,7 +11,7 @@ import { motion } from "framer-motion";
 import { useForm } from "react-hook-form";
 
 interface Announcement {
-  id: number;
+  id: string;
   title: string;
   body: string;
   audience: string;
@@ -18,42 +19,62 @@ interface Announcement {
   reach: number;
 }
 
-const STORAGE_KEY = "school_announcements";
-
-const initialAnnouncements: Announcement[] = [
-  { id: 1, title: "Sports Day next Friday", body: "All learners must wear house colours. Parents are welcome from 09:00.", audience: "All", date: "2 hours ago", reach: 1240 },
-  { id: 2, title: "Term 2 fees reminder", body: "Outstanding balances are due by 30 April. Please use EcoCash code 12345.", audience: "Parents", date: "1 day ago", reach: 892 },
-  { id: 3, title: "Staff briefing — Monday 07:30", body: "All teachers are required to attend in the staff room.", audience: "Teachers", date: "2 days ago", reach: 45 },
-  { id: 4, title: "New uniform policy effective May 1", body: "Refer to the school website for full details and supplier list.", audience: "All", date: "3 days ago", reach: 1240 },
-];
-
-const loadAnnouncements = (): Announcement[] => {
-  try { const s = localStorage.getItem(STORAGE_KEY); return s ? JSON.parse(s) : initialAnnouncements; } catch { return initialAnnouncements; }
+const getAudienceLabel = (type: string) => {
+  if (type === 'parents') return 'Parents';
+  if (type === 'students') return 'Students';
+  if (type === 'teachers') return 'Teachers';
+  return 'All';
 };
-const saveAnnouncements = (a: Announcement[]) => localStorage.setItem(STORAGE_KEY, JSON.stringify(a));
+
+const mapAnnouncement = (row: any): Announcement => ({
+  id: row.id,
+  title: row.title,
+  body: row.body || row.message,
+  audience: getAudienceLabel(row.type || 'general'),
+  date: row.created_at ? new Date(row.created_at).toLocaleString() : 'Just now',
+  reach: row.type === 'teachers' ? 45 : row.type === 'parents' ? 892 : 1240,
+});
 
 const AnnouncementsPage = () => {
-  const [announcements, setAnnouncements] = useState<Announcement[]>(loadAnnouncements);
-  const [audience, setAudience] = useState("All");
+  const [announcements, setAnnouncements] = useState<Announcement[]>([]);
+  const [audience, setAudience] = useState('All');
+  const [loading, setLoading] = useState(true);
   const { register, handleSubmit, reset } = useForm<{ title: string; body: string }>();
 
-  useEffect(() => { saveAnnouncements(announcements); }, [announcements]);
-
-  const onSend = (data: { title: string; body: string }) => {
-    const newAnnouncement: Announcement = {
-      id: Date.now(),
-      title: data.title,
-      body: data.body,
-      audience,
-      date: "Just now",
-      reach: audience === "All" ? 1240 : audience === "Parents" ? 892 : audience === "Teachers" ? 45 : 358,
+  useEffect(() => {
+    const loadAnnouncements = async () => {
+      setLoading(true);
+      try {
+        const rows = await api.getAnnouncements();
+        setAnnouncements((rows || []).map(mapAnnouncement));
+      } catch (error) {
+        console.error('Error loading announcements:', error);
+      } finally {
+        setLoading(false);
+      }
     };
-    setAnnouncements([newAnnouncement, ...announcements]);
-    reset();
+    loadAnnouncements();
+  }, []);
+
+  const onSend = async (data: { title: string; body: string }) => {
+    try {
+      await api.createAnnouncement({ title: data.title, body: data.body, audience });
+      const rows = await api.getAnnouncements();
+      setAnnouncements((rows || []).map(mapAnnouncement));
+      reset();
+      setAudience('All');
+    } catch (error) {
+      console.error('Error creating announcement:', error);
+    }
   };
 
-  const deleteAnnouncement = (id: number) => {
-    setAnnouncements(announcements.filter(a => a.id !== id));
+  const deleteAnnouncement = async (id: string) => {
+    try {
+      await api.deleteAnnouncement(id);
+      setAnnouncements(prev => prev.filter(a => a.id !== id));
+    } catch (error) {
+      console.error('Error deleting announcement:', error);
+    }
   };
 
   const getAudienceIcon = (aud: string) => {
@@ -78,8 +99,8 @@ const AnnouncementsPage = () => {
           </CardHeader>
           <CardContent className="space-y-3">
             <form onSubmit={handleSubmit(onSend)} className="space-y-3">
-              <Input placeholder="Title" {...register("title", { required: true })} />
-              <Textarea placeholder="Write your announcement..." rows={5} {...register("body", { required: true })} />
+              <Input placeholder="Title" {...register('title', { required: true })} />
+              <Textarea placeholder="Write your announcement..." rows={5} {...register('body', { required: true })} />
               <Select value={audience} onValueChange={setAudience}>
                 <SelectTrigger><SelectValue placeholder="Audience" /></SelectTrigger>
                 <SelectContent>
@@ -97,7 +118,11 @@ const AnnouncementsPage = () => {
         <Card className="border-none shadow-md lg:col-span-2">
           <CardHeader><CardTitle className="font-heading text-lg font-semibold">Sent Announcements</CardTitle></CardHeader>
           <CardContent className="space-y-3">
-            {announcements.map((a) => (
+            {loading ? (
+              <p className="text-sm text-muted-foreground">Loading announcements...</p>
+            ) : announcements.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No announcements yet.</p>
+            ) : announcements.map((a) => (
               <div key={a.id} className="rounded-lg border border-border bg-card p-4 hover:border-accent/40 hover:shadow transition">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0 flex-1">

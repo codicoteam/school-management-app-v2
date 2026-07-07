@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -13,6 +13,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useAuth } from "@/contexts/AuthContext";
+import { api } from "@/lib/api";
+import { useAuth } from "@/contexts/AuthContext";
+import { api } from "@/lib/api";
 
 const recentResults = [
   { subject: "Mathematics", score: 78 },
@@ -34,7 +38,13 @@ const quickActions = [
 ];
 
 const ParentDashboard = () => {
+  const { user } = useAuth();
   const navigate = useNavigate();
+  const [child, setChild] = useState<any>(null);
+  const [attendanceSummary, setAttendanceSummary] = useState<{ present: number; absent: number; late: number; rate: number } | null>(null);
+  const [recentResults, setRecentResults] = useState<Array<{ subject: string; score: number }>>([]);
+  const [averageScore, setAverageScore] = useState<number | null>(null);
+  const [loading, setLoading] = useState(true);
   const [payOpen, setPayOpen] = useState(false);
   const [amount, setAmount] = useState(120);
 
@@ -43,6 +53,41 @@ const ParentDashboard = () => {
     alert(`Payment of $${amount} successful!`);
   };
 
+  useEffect(() => {
+    const loadChildData = async () => {
+      if (!user || user.role !== 'parent') return;
+      try {
+        const children = await api.getParentChildren(user.id);
+        const firstChild = children?.[0] ?? null;
+        setChild(firstChild);
+
+        if (firstChild?.id) {
+          const report = await api.getStudentReport(firstChild.id);
+          setAverageScore(report.averageScore ?? null);
+          setRecentResults((report.grades || []).slice(0, 4).map((grade: any) => ({ subject: grade.subject, score: grade.score || 0 })));
+
+          const attendance = await api.getStudentAttendanceSummary(firstChild.id);
+          setAttendanceSummary(attendance);
+        }
+      } catch (error) {
+        console.error(error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadChildData();
+  }, [user]);
+
+  const summaryResults = recentResults.length > 0 ? recentResults : [
+    { subject: 'Mathematics', score: 78 },
+    { subject: 'English', score: 85 },
+    { subject: 'Science', score: 89 },
+    { subject: 'Shona', score: 92 },
+  ];
+
+  const attendanceData = attendanceSummary ?? { present: 46, absent: 3, late: 1, rate: 92 };
+
   return (
     <div className="space-y-6">
       <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}>
@@ -50,8 +95,10 @@ const ParentDashboard = () => {
           <div className="relative bg-gradient-to-br from-primary to-primary/80 p-6 text-primary-foreground">
             <div className="absolute -right-8 -top-8 h-32 w-32 rounded-full bg-secondary/20 blur-2xl" />
             <div className="relative">
-              <h1 className="font-heading text-2xl font-bold">Good afternoon, Mrs. Ndlovu 👋</h1>
-              <p className="mt-1 text-sm text-primary-foreground/80">Here's an update on Tawanda's progress today.</p>
+              <h1 className="font-heading text-2xl font-bold">Good afternoon, {user?.name ?? 'Parent'} 👋</h1>
+              <p className="mt-1 text-sm text-primary-foreground/80">
+                Here's an update on {child?.name ?? 'your child'}{child?.name ? "'s" : "'s"} progress today.
+              </p>
             </div>
           </div>
         </Card>
@@ -66,11 +113,11 @@ const ParentDashboard = () => {
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Your child</p>
-                <h3 className="font-heading text-lg font-bold text-foreground">Tawanda Ndlovu</h3>
-                <p className="text-sm text-muted-foreground">Form 4A · Student ID: BPS-2451</p>
+                <h3 className="font-heading text-lg font-bold text-foreground">{child?.name ?? 'Tawanda Ndlovu'}</h3>
+                <p className="text-sm text-muted-foreground">{child?.class ?? 'Form 4A'} · Student ID: {child?.id ?? 'BPS-2451'}</p>
                 <div className="mt-2 flex flex-wrap gap-2">
                   <Badge className="bg-accent/15 text-accent"><GraduationCap className="h-3 w-3" /> Top 10%</Badge>
-                  <Badge className="bg-green-500/15 text-green-700"><Clock className="h-3 w-3" /> 92% attendance</Badge>
+                  <Badge className="bg-green-500/15 text-green-700"><Clock className="h-3 w-3" /> {attendanceData.rate}% attendance</Badge>
                 </div>
               </div>
               <Button variant="ghost" size="sm" className="text-accent hover:text-accent/80" onClick={() => navigate("/parent/child")}>
@@ -88,8 +135,8 @@ const ParentDashboard = () => {
                 <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Outstanding Fees</p>
                 <DollarSign className="h-5 w-5 text-orange-500" />
               </div>
-              <p className="mt-2 text-3xl font-bold text-foreground">$120<span className="text-sm font-normal text-muted-foreground">.00</span></p>
-              <p className="text-xs text-muted-foreground">Due 30 April 2025</p>
+              <p className="mt-2 text-3xl font-bold text-foreground">${child ? (averageScore ? averageScore.toFixed(0) : 120) : 120}<span className="text-sm font-normal text-muted-foreground">.00</span></p>
+              <p className="text-xs text-muted-foreground">{child ? 'Outstanding fees and performance summary' : 'Due 30 April 2025'}</p>
               <Dialog open={payOpen} onOpenChange={setPayOpen}>
                 <DialogTrigger asChild>
                   <Button className="mt-3 w-full bg-orange-500 text-white hover:bg-orange-600">
@@ -131,7 +178,7 @@ const ParentDashboard = () => {
               <CardTitle className="font-heading text-lg font-semibold">Recent Results</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              {recentResults.map((r, i) => (
+              {summaryResults.map((r, i) => (
                 <div key={i}>
                   <div className="mb-1.5 flex items-center justify-between">
                     <span className="text-sm font-medium text-foreground">{r.subject}</span>

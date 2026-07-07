@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   BarChart,
   Bar,
@@ -43,6 +43,8 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Progress } from '@/components/ui/progress';
+import { api } from '@/lib/api';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface PerformanceData {
   subject: string;
@@ -70,86 +72,127 @@ interface StudentPerformance {
   status: 'excellent' | 'good' | 'average' | 'poor';
 }
 
-const classPerformanceData: PerformanceData[] = [
-  { subject: 'Mathematics', average: 78, target: 80, students: 35 },
-  { subject: 'Physics', average: 82, target: 75, students: 32 },
-  { subject: 'Chemistry', average: 85, target: 80, students: 30 },
-  { subject: 'Biology', average: 79, target: 75, students: 33 },
-  { subject: 'English', average: 81, target: 75, students: 35 },
-];
-
-const attendanceTrend: AttendanceData[] = [
-  { month: 'January', attendance: 92 },
-  { month: 'February', attendance: 88 },
-  { month: 'March', attendance: 95 },
-  { month: 'April', attendance: 90 },
-  { month: 'May', attendance: 93 },
-];
-
-const gradeDistribution: GradeData[] = [
-  { name: 'A+ (95-100)', value: 8, color: '#10b981' },
-  { name: 'A (80-94)', value: 18, color: '#3b82f6' },
-  { name: 'B (70-79)', value: 15, color: '#f59e0b' },
-  { name: 'C (60-69)', value: 10, color: '#f97316' },
-  { name: 'D (<60)', value: 4, color: '#ef4444' },
-];
-
-const studentPerformance: StudentPerformance[] = [
-  {
-    name: 'Arjun Sharma',
-    rollNumber: '101',
-    average: 92,
-    trend: 'up',
-    status: 'excellent',
-  },
-  {
-    name: 'Priya Verma',
-    rollNumber: '102',
-    average: 95,
-    trend: 'stable',
-    status: 'excellent',
-  },
-  {
-    name: 'Rahul Kumar',
-    rollNumber: '103',
-    average: 78,
-    trend: 'down',
-    status: 'average',
-  },
-  {
-    name: 'Neha Singh',
-    rollNumber: '104',
-    average: 88,
-    trend: 'up',
-    status: 'good',
-  },
-  {
-    name: 'Vikram Patel',
-    rollNumber: '105',
-    average: 62,
-    trend: 'stable',
-    status: 'poor',
-  },
-];
-
-const monthlyEnrollment = [
-  { month: 'Jan', students: 145, activeStudents: 140 },
-  { month: 'Feb', students: 145, activeStudents: 142 },
-  { month: 'Mar', students: 148, activeStudents: 147 },
-  { month: 'Apr', students: 150, activeStudents: 148 },
-  { month: 'May', students: 150, activeStudents: 149 },
-];
-
 export default function ReportsPage() {
-  const [selectedClass, setSelectedClass] = useState('Class 10A');
-  const [selectedTerm, setSelectedTerm] = useState('current');
+  const { user } = useAuth();
+  const [selectedClass, setSelectedClass] = useState<string | null>(null);
+  const [classes, setClasses] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  
+  // Mock data for charts - in production these would come from API
+  const [classPerformanceData, setClassPerformanceData] = useState<PerformanceData[]>([
+    { subject: 'Mathematics', average: 78, target: 80, students: 35 },
+    { subject: 'Physics', average: 82, target: 75, students: 32 },
+    { subject: 'Chemistry', average: 85, target: 80, students: 30 },
+    { subject: 'Biology', average: 79, target: 75, students: 33 },
+    { subject: 'English', average: 81, target: 75, students: 35 },
+  ]);
 
-  const stats = {
+  const [attendanceTrend, setAttendanceTrend] = useState<AttendanceData[]>([
+    { month: 'January', attendance: 92 },
+    { month: 'February', attendance: 88 },
+    { month: 'March', attendance: 95 },
+    { month: 'April', attendance: 90 },
+    { month: 'May', attendance: 93 },
+  ]);
+
+  const [gradeDistribution] = useState<GradeData[]>([
+    { name: 'A+ (95-100)', value: 8, color: '#10b981' },
+    { name: 'A (80-94)', value: 18, color: '#3b82f6' },
+    { name: 'B (70-79)', value: 15, color: '#f59e0b' },
+    { name: 'C (60-69)', value: 10, color: '#f97316' },
+    { name: 'D (<60)', value: 4, color: '#ef4444' },
+  ]);
+
+  const [monthlyEnrollment, setMonthlyEnrollment] = useState([
+    { month: 'January', students: 140, activeStudents: 135 },
+    { month: 'February', students: 145, activeStudents: 140 },
+    { month: 'March', students: 150, activeStudents: 148 },
+    { month: 'April', students: 153, activeStudents: 150 },
+    { month: 'May', students: 156, activeStudents: 154 },
+  ]);
+
+  const [studentPerformance, setStudentPerformance] = useState<StudentPerformance[]>([
+    {
+      name: 'Arjun Sharma',
+      rollNumber: '101',
+      average: 92,
+      trend: 'up',
+      status: 'excellent',
+    },
+    {
+      name: 'Priya Verma',
+      rollNumber: '102',
+      average: 95,
+      trend: 'stable',
+      status: 'excellent',
+    },
+    {
+      name: 'Rahul Kumar',
+      rollNumber: '103',
+      average: 78,
+      trend: 'down',
+      status: 'average',
+    },
+    {
+      name: 'Neha Singh',
+      rollNumber: '104',
+      average: 88,
+      trend: 'up',
+      status: 'good',
+    },
+    {
+      name: 'Vikram Patel',
+      rollNumber: '105',
+      average: 62,
+      trend: 'stable',
+      status: 'poor',
+    },
+  ]);
+
+  const [stats, setStats] = useState({
     totalStudents: 150,
     averagePerformance: 81.2,
     averageAttendance: 91.6,
     improvementRate: 15,
-  };
+  });
+
+  // Load classes on component mount
+  useEffect(() => {
+    const loadClasses = async () => {
+      try {
+        setLoading(true);
+        const data = await api.getClasses();
+        setClasses(data || []);
+        if (data && data.length > 0) {
+          setSelectedClass(data[0].id);
+        }
+      } catch (error) {
+        console.error("Failed to load classes:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadClasses();
+  }, []);
+
+  // Load reports when selected class changes
+  useEffect(() => {
+    const loadReports = async () => {
+      if (!selectedClass) return;
+      try {
+        // In production, these would be actual API calls to fetch:
+        // - Class performance data by subject
+        // - Attendance trends
+        // - Grade distribution
+        // - Student performance details
+        // For now, using mock data
+        console.log("Loading reports for class:", selectedClass);
+      } catch (error) {
+        console.error("Failed to load reports:", error);
+      }
+    };
+    loadReports();
+  }, [selectedClass]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -195,25 +238,14 @@ export default function ReportsPage() {
 
       {/* Filters */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <Select value={selectedClass} onValueChange={setSelectedClass}>
+        <Select value={selectedClass || ""} onValueChange={setSelectedClass}>
           <SelectTrigger>
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="Class 10A">Class 10A</SelectItem>
-            <SelectItem value="Class 10B">Class 10B</SelectItem>
-            <SelectItem value="Class 11A">Class 11A</SelectItem>
-            <SelectItem value="Class 11B">Class 11B</SelectItem>
-          </SelectContent>
-        </Select>
-        <Select value={selectedTerm} onValueChange={setSelectedTerm}>
-          <SelectTrigger>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="current">Current Term</SelectItem>
-            <SelectItem value="previous">Previous Term</SelectItem>
-            <SelectItem value="year">Academic Year</SelectItem>
+            {classes.map((cls: any) => (
+              <SelectItem key={cls.id} value={cls.id}>{cls.name}</SelectItem>
+            ))}
           </SelectContent>
         </Select>
       </div>

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, FormEvent } from "react";
 import { motion } from "framer-motion";
 import { ArrowLeft, Eye, EyeOff, GraduationCap, ShieldCheck, Users, UserCog } from "lucide-react";
 import { useNavigate, useSearchParams } from "react-router-dom";
@@ -41,38 +41,39 @@ const Login = () => {
     }));
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
     try {
-      // MOCK LOGIN FOR TESTING - Bypassing real logic and checks
-      const mockUser = {
-        id: `${role}-1`,
-        email: formData.email || `test@${role}.com`,
-        name: formData.name || `Test ${config.label}`,
-        role: role
-      };
-      
-      // Manually set the local storage auth data to bypass the context fetch
-      localStorage.setItem('token', 'mock-test-token-12345');
-      localStorage.setItem('user', JSON.stringify(mockUser));
-      
-      // Navigate to role-specific dashboard
+      if (isSignUp) {
+        if (formData.password !== formData.confirmPassword) {
+          toast.error('Passwords do not match');
+          setIsLoading(false);
+          return;
+        }
+        await register({
+          email: formData.email,
+          password: formData.password,
+          name: formData.name,
+          role,
+        });
+        toast.success('Account created successfully!');
+      } else {
+        await login(formData.email, formData.password, role);
+        toast.success('Logged in successfully!');
+      }
+
       const dashboardMap: Record<string, string> = {
-        admin: "/admin",
-        student: "/student",
-        parent: "/parent",
-        teacher: "/teacher",
+        admin: '/admin',
+        student: '/student',
+        parent: '/parent',
+        teacher: '/teacher',
       };
-      
-      toast.success(isSignUp ? "Account created successfully (Testing Mode)!" : `Logged in securely (Testing Mode)!`);
-      
-      // Use window.location to force full context reload to ensure AuthContext picks up localStorage
-      window.location.href = dashboardMap[role] || "/student";
-      
-    } catch (error) {
-      toast.error("Testing login bypass failed");
+
+      window.location.href = dashboardMap[role] || '/student';
+    } catch (error: any) {
+      toast.error(error?.message || 'Authentication failed');
     } finally {
       setIsLoading(false);
     }

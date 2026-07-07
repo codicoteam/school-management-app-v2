@@ -1,4 +1,5 @@
 import { useMemo, useState, useEffect } from "react";
+import { api } from "@/lib/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -33,23 +34,9 @@ const initialTeachers: Teacher[] = [
   { id: "TCH-006", name: "Ms. Nyasha Phiri", subject: "Geography", classes: "Form 2B, 5A", email: "nphiri@nexushigh.edu", phone: "+263 78 332 0099", status: "Active", qualification: "BA Geography, UZ" },
 ];
 
-const STORAGE_KEY = "school_teachers";
-
-const loadTeachers = (): Teacher[] => {
-  try {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) return JSON.parse(stored);
-  } catch (err) {
-    // Fallback to initial teachers if storage access fails
-    console.warn("Could not load teachers from localStorage:", err);
-  }
-  return initialTeachers;
-};
-
-const saveTeachers = (teachers: Teacher[]) => localStorage.setItem(STORAGE_KEY, JSON.stringify(teachers));
-
 const TeachersPage = () => {
-  const [teachers, setTeachers] = useState<Teacher[]>(loadTeachers);
+  const [teachers, setTeachers] = useState<Teacher[]>([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [subjectFilter, setSubjectFilter] = useState("all");
   const [selected, setSelected] = useState<string[]>([]);
@@ -59,7 +46,20 @@ const TeachersPage = () => {
   const [editId, setEditId] = useState<string | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
-  useEffect(() => { saveTeachers(teachers); }, [teachers]);
+  useEffect(() => {
+    const loadTeachers = async () => {
+      setLoading(true);
+      try {
+        const rows = await api.getTeachers();
+        setTeachers(rows || []);
+      } catch (error) {
+        console.error("Error loading teachers:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadTeachers();
+  }, []);
 
   const { register, handleSubmit, reset, setValue } = useForm<Teacher>({
     defaultValues: { name: "", subject: "", classes: "", email: "", phone: "", status: "Active", qualification: "" }
@@ -76,9 +76,41 @@ const TeachersPage = () => {
     }
   }, [editOpen, editId, teachers, setEditVal]);
 
-  const onAdd = (data: Teacher) => { setTeachers([...teachers, { ...data, id: `TCH-${String(teachers.length + 1).padStart(3, "0")}` }]); setAddOpen(false); reset(); };
-  const onEdit = (data: Teacher) => { setTeachers(teachers.map(t => t.id === editId ? { ...data, id: editId! } : t)); setEditOpen(false); editReset(); };
-  const onDelete = () => { setTeachers(teachers.filter(t => t.id !== deleteId)); setSelected(selected.filter(id => id !== deleteId)); setDeleteOpen(false); setDeleteId(null); };
+  const onAdd = async (data: Teacher) => {
+    try {
+      const created = await api.createTeacher(data);
+      setTeachers(prev => [created, ...prev]);
+      setAddOpen(false);
+      reset();
+    } catch (error) {
+      console.error("Error creating teacher:", error);
+    }
+  };
+
+  const onEdit = async (data: Teacher) => {
+    if (!editId) return;
+    try {
+      const updated = await api.updateTeacher(editId, data);
+      setTeachers(prev => prev.map(t => (t.id === editId ? updated : t)));
+      setEditOpen(false);
+      editReset();
+    } catch (error) {
+      console.error("Error updating teacher:", error);
+    }
+  };
+
+  const onDelete = async () => {
+    if (!deleteId) return;
+    try {
+      await api.deleteTeacher(deleteId);
+      setTeachers(prev => prev.filter(t => t.id !== deleteId));
+      setSelected(prev => prev.filter(id => id !== deleteId));
+      setDeleteOpen(false);
+      setDeleteId(null);
+    } catch (error) {
+      console.error("Error deleting teacher:", error);
+    }
+  };
 
   const filtered = useMemo(() => teachers.filter(t => {
     const matchesSearch = t.name.toLowerCase().includes(search.toLowerCase()) || t.id.toLowerCase().includes(search.toLowerCase());
@@ -86,7 +118,18 @@ const TeachersPage = () => {
     return matchesSearch && matchesSubject;
   }), [teachers, search, subjectFilter]);
 
-  const subjects = Array.from(new Set(teachers.map(t => t.subject)));
+  const subjects = Array.from(new Set(teachers.map(t => t.subject).filter(Boolean)));
+
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div className="rounded-lg border border-border bg-card p-6 shadow-sm">
+          <h1 className="text-2xl font-bold">Teacher Management</h1>
+          <p className="mt-2 text-sm text-muted-foreground">Loading teachers from the backend...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

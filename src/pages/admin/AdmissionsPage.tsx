@@ -1,13 +1,5 @@
 import { useState, useEffect } from "react";
-import { 
-  collection, 
-  query, 
-  orderBy, 
-  onSnapshot, 
-  doc, 
-  updateDoc 
-} from "firebase/firestore";
-import { db } from "@/lib/firebase";
+import { api } from "@/lib/api";
 import { 
   Card, 
   CardContent, 
@@ -62,21 +54,30 @@ const AdminAdmissionsPage = () => {
   const [selectedApp, setSelectedApp] = useState<Application | null>(null);
 
   useEffect(() => {
-    const q = query(collection(db, "applications"), orderBy("submittedAt", "desc"));
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const apps = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      })) as Application[];
-      setApplications(apps);
-      setLoading(false);
-    });
-    return () => unsubscribe();
+    let mounted = true;
+    api.getApplications()
+      .then((res: Application[]) => {
+        if (mounted) {
+          setApplications(res || []);
+          setLoading(false);
+        }
+      })
+      .catch((error) => {
+        console.error("Error loading applications:", error);
+        if (mounted) {
+          setApplications([]);
+          setLoading(false);
+        }
+      });
+    return () => {
+      mounted = false;
+    };
   }, []);
 
   const updateStatus = async (id: string, status: string) => {
     try {
-      await updateDoc(doc(db, "applications", id), { status });
+      const updated = await api.updateApplication(id, { status });
+      setApplications((prev) => prev.map((app) => (app.id === updated.id ? updated : app)));
       toast.success(`Application updated to ${status}`);
     } catch (error) {
       toast.error("Failed to update status");
@@ -127,7 +128,7 @@ const AdminAdmissionsPage = () => {
                     <TableCell className="uppercase">{app.desiredLevel}</TableCell>
                     <TableCell>{app.pastSchool}</TableCell>
                     <TableCell>
-                      {app.submittedAt ? format(app.submittedAt.toDate(), "MMM d, yyyy") : "N/A"}
+                      {app.submittedAt ? format(new Date(app.submittedAt), "MMM d, yyyy") : "N/A"}
                     </TableCell>
                     <TableCell>{getStatusBadge(app.status)}</TableCell>
                     <TableCell className="text-right">

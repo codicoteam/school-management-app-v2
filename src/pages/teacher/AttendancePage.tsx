@@ -4,26 +4,20 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { CheckCircle2, XCircle, Calendar } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
+import { api } from "@/lib/api";
+import { useAuth } from "@/contexts/AuthContext";
 
 const AttendancePage = () => {
-  const [selectedClass, setSelectedClass] = useState("Form 3A");
+  const { user } = useAuth();
+  const [selectedClass, setSelectedClass] = useState<string | null>(null);
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split("T")[0]);
   const [attendance, setAttendance] = useState<Record<string, boolean>>({});
-
-  const classes = ["Form 3A", "Form 4A", "Form 4B"];
-  
-  const students = [
-    { id: "1", name: "Alice Johnson", rollNo: "001" },
-    { id: "2", name: "Bob Smith", rollNo: "002" },
-    { id: "3", name: "Charlie Brown", rollNo: "003" },
-    { id: "4", name: "Diana Wilson", rollNo: "004" },
-    { id: "5", name: "Edward Davis", rollNo: "005" },
-    { id: "6", name: "Fiona Green", rollNo: "006" },
-    { id: "7", name: "George Harris", rollNo: "007" },
-  ];
+  const [classes, setClasses] = useState<any[]>([]);
+  const [students, setStudents] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
   const attendanceStats = [
     { date: "Mon", present: 35, absent: 5 },
@@ -33,11 +27,70 @@ const AttendancePage = () => {
     { date: "Fri", present: 35, absent: 5 },
   ];
 
+  useEffect(() => {
+    const loadClasses = async () => {
+      try {
+        setLoading(true);
+        const data = await api.getClasses();
+        setClasses(data || []);
+        if (data && data.length > 0) {
+          setSelectedClass(data[0].id);
+        }
+      } catch (error) {
+        console.error("Failed to load classes:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadClasses();
+  }, []);
+
+  useEffect(() => {
+    const loadAttendance = async () => {
+      if (!selectedClass) return;
+      try {
+        const data = await api.getAttendance(selectedClass);
+        // Group students from attendance records
+        const uniqueStudents = Array.from(
+          new Map(
+            (data || []).map((a: any) => [a.student_id, { id: a.student_id, name: a.student_id, rollNo: a.student_id }])
+          ).values()
+        );
+        setStudents(uniqueStudents);
+        setAttendance({});
+      } catch (error) {
+        console.error("Failed to load attendance:", error);
+      }
+    };
+    loadAttendance();
+  }, [selectedClass]);
+
   const toggleAttendance = (studentId: string) => {
     setAttendance(prev => ({
       ...prev,
       [studentId]: !prev[studentId]
     }));
+  };
+
+  const handleSaveAttendance = async () => {
+    if (!selectedClass || !user) return;
+
+    try {
+      for (const [studentId, isPresent] of Object.entries(attendance)) {
+        await api.markAttendance({
+          class_id: selectedClass,
+          student_id: studentId,
+          teacher_id: user.id,
+          date: selectedDate,
+          status: isPresent ? "present" : "absent",
+        });
+      }
+      alert("Attendance saved successfully");
+      setAttendance({});
+    } catch (error) {
+      console.error("Failed to save attendance:", error);
+      alert("Failed to save attendance");
+    }
   };
 
   const presentCount = Object.values(attendance).filter(Boolean).length;
@@ -57,13 +110,13 @@ const AttendancePage = () => {
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
                 <label className="text-sm font-medium">Select Class</label>
-                <Select value={selectedClass} onValueChange={setSelectedClass}>
+                <Select value={selectedClass || ""} onValueChange={setSelectedClass}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
                     {classes.map(cls => (
-                      <SelectItem key={cls} value={cls}>{cls}</SelectItem>
+                      <SelectItem key={cls.id} value={cls.id}>{cls.name}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -115,6 +168,11 @@ const AttendancePage = () => {
                     )}
                   </div>
                 ))}
+              </div>
+              <div className="mt-4 flex gap-3">
+                <Button onClick={handleSaveAttendance} disabled={loading || Object.keys(attendance).length === 0}>
+                  Save Attendance
+                </Button>
               </div>
             </CardContent>
           </Card>

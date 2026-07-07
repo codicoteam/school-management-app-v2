@@ -1,12 +1,14 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { FileText, Download, Award, FileCheck2, Receipt, Printer, Search } from "lucide-react";
 import { motion } from "framer-motion";
+import { useAuth } from "@/contexts/AuthContext";
+import { api } from "@/lib/api";
 
-const documents = [
+const fallbackDocuments = [
   { name: "Term 1 2025 Report Card", type: "Report Card", date: "15 Apr 2025", size: "320 KB", icon: FileText, color: "from-accent to-accent/70" },
   { name: "Term 1 2025 Fee Receipt", type: "Receipt", date: "12 Jan 2025", size: "120 KB", icon: Receipt, color: "from-green-500 to-green-400" },
   { name: "2024 Year-end Report Card", type: "Report Card", date: "10 Dec 2024", size: "410 KB", icon: FileText, color: "from-accent to-accent/70" },
@@ -18,10 +20,42 @@ const documents = [
 ];
 
 const DocumentsPage = () => {
+  const { user } = useAuth();
   const [search, setSearch] = useState("");
-  const filtered = documents.filter(d => d.name.toLowerCase().includes(search.toLowerCase()));
+  const [docs, setDocs] = useState<typeof fallbackDocuments>(fallbackDocuments);
+  const [child, setChild] = useState<any>(null);
 
-  const downloadDoc = (d: typeof documents[0]) => {
+  useEffect(() => {
+    const loadDocuments = async () => {
+      if (!user || user.role !== "parent") return;
+      const children = await api.getParentChildren(user.id);
+      const selectedChild = children?.[0] ?? null;
+      setChild(selectedChild);
+      if (selectedChild?.id) {
+        try {
+          const rows = await api.getDocuments(selectedChild.id);
+          if (Array.isArray(rows) && rows.length > 0) {
+            setDocs(rows.map((doc: any) => ({
+              name: doc.name,
+              type: doc.type,
+              date: new Date(doc.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }),
+              size: doc.size || '120 KB',
+              icon: doc.type === 'Receipt' ? Receipt : doc.type === 'Certificate' ? Award : FileText,
+              color: doc.type === 'Receipt' ? 'from-green-500 to-green-400' : doc.type === 'Certificate' ? 'from-secondary to-secondary/70' : 'from-accent to-accent/70',
+            })));
+          }
+        } catch (error) {
+          console.error(error);
+        }
+      }
+    };
+
+    loadDocuments();
+  }, [user]);
+
+  const filtered = docs.filter(d => d.name.toLowerCase().includes(search.toLowerCase()));
+
+  const downloadDoc = (d: typeof fallbackDocuments[0]) => {
     const content = `DOCUMENT\n=======\nName: ${d.name}\nType: ${d.type}\nDate: ${d.date}\nSize: ${d.size}\n\nStudent: Tawanda Ndlovu\nForm: 4A\n\nThis is a sample document content.`;
     const blob = new Blob([content], { type: "text/plain" });
     const url = URL.createObjectURL(blob);
@@ -31,7 +65,7 @@ const DocumentsPage = () => {
     a.click();
   };
 
-  const printDoc = (d: typeof documents[0]) => {
+  const printDoc = (d: typeof fallbackDocuments[0]) => {
     const content = `DOCUMENT\n=======\nName: ${d.name}\nType: ${d.type}\nDate: ${d.date}\nSize: ${d.size}\n\nStudent: Tawanda Ndlovu\nForm: 4A`;
     const printWindow = window.open("", "_blank");
     if (printWindow) {
@@ -50,10 +84,10 @@ const DocumentsPage = () => {
 
       <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
         {[
-          { label: "Total Documents", value: documents.length, color: "from-accent to-accent/70", icon: FileText },
-          { label: "Report Cards", value: documents.filter(d => d.type === "Report Card").length, color: "from-secondary to-secondary/70", icon: FileText },
-          { label: "Certificates", value: documents.filter(d => d.type === "Certificate").length, color: "from-green-500 to-green-400", icon: Award },
-          { label: "Receipts", value: documents.filter(d => d.type === "Receipt").length, color: "from-orange-500 to-orange-400", icon: Receipt },
+          { label: "Total Documents", value: docs.length, color: "from-accent to-accent/70", icon: FileText },
+          { label: "Report Cards", value: docs.filter(d => d.type === "Report Card").length, color: "from-secondary to-secondary/70", icon: FileText },
+          { label: "Certificates", value: docs.filter(d => d.type === "Certificate").length, color: "from-green-500 to-green-400", icon: Award },
+          { label: "Receipts", value: docs.filter(d => d.type === "Receipt").length, color: "from-orange-500 to-orange-400", icon: Receipt },
         ].map(s => (
           <Card key={s.label} className="relative overflow-hidden border-none shadow-md">
             <div className={`absolute inset-0 bg-gradient-to-br ${s.color} opacity-[0.08]`} />

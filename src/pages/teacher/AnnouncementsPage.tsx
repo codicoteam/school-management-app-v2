@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   MessageSquare,
   Plus,
@@ -23,52 +23,24 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { motion } from 'framer-motion';
+import { api } from '@/lib/api';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface Announcement {
   id: string;
   title: string;
-  content: string;
-  type: 'general' | 'event' | 'deadline' | 'achievement';
-  date: string; // ISO date string
-  isRead: boolean;
+  message?: string;
+  content?: string;
+  type?: 'general' | 'event' | 'deadline' | 'achievement';
+  created_at?: string;
+  date?: string;
+  isRead?: boolean;
 }
 
-const mockAnnouncements: Announcement[] = [
-  {
-    id: '1',
-    title: 'Welcome Back to School!',
-    content: 'We hope everyone had a wonderful break and is ready for an exciting new term.',
-    type: 'general',
-    date: '2024-04-01',
-    isRead: true,
-  },
-  {
-    id: '2',
-    title: 'Midterm Exams Schedule',
-    content: 'Midterm examinations will commence on Monday, April 15th. Please refer to the examination timetable posted on the notice board.',
-    type: 'event',
-    date: '2024-04-10',
-    isRead: false,
-  },
-  {
-    id: '3',
-    title: 'Science Fair Registration',
-    content: 'Students interested in participating in the annual science fair should register with their science teachers by April 20th.',
-    type: 'deadline',
-    date: '2024-04-05',
-    isRead: false,
-  },
-  {
-    id: '4',
-    title: 'Congratulations to Our Chess Team!',
-    content: 'Our school chess team has won the regional championship! Well done to all participants.',
-    type: 'achievement',
-    date: '2024-04-08',
-    isRead: true,
-  },
-];
-
 export default function AnnouncementsPage() {
+  const { user } = useAuth();
+  const [announcements, setAnnouncements] = useState<Announcement[]>([]);
+  const [loading, setLoading] = useState(false);
   const [selectedAnnouncement, setSelectedAnnouncement] = useState<Announcement | null>(null);
   const [isAnnouncementDetailOpen, setIsAnnouncementDetailOpen] = useState(false);
   const [isAddAnnouncementOpen, setIsAddAnnouncementOpen] = useState(false);
@@ -76,21 +48,51 @@ export default function AnnouncementsPage() {
     title: '',
     content: '',
     type: 'general' as const,
-    date: '',
   });
 
-  const handleAddAnnouncement = () => {
-    if (newAnnouncement.title && newAnnouncement.content && newAnnouncement.date) {
-      setIsAddAnnouncementOpen(false);
-      // In a real app, you would save to database and refresh list
-      setNewAnnouncement({
-        title: '',
-        content: '',
-        type: 'general' as const,
-        date: '',
+  // Load announcements on component mount
+  useEffect(() => {
+    const loadAnnouncements = async () => {
+      try {
+        setLoading(true);
+        const data = await api.getAnnouncements();
+        setAnnouncements(data || []);
+      } catch (error) {
+        console.error("Failed to load announcements:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadAnnouncements();
+  }, []);
+
+  const handleAddAnnouncement = async () => {
+    if (!newAnnouncement.title || !newAnnouncement.content) {
+      alert("Please fill in all fields");
+      return;
+    }
+
+    try {
+      await api.createAnnouncement({
+        title: newAnnouncement.title,
+        content: newAnnouncement.content,
+        type: newAnnouncement.type,
       });
+      alert("Announcement created successfully");
+      setNewAnnouncement({ title: '', content: '', type: 'general' });
+      setIsAddAnnouncementOpen(false);
+      // Reload announcements
+      const data = await api.getAnnouncements();
+      setAnnouncements(data || []);
+    } catch (error) {
+      console.error("Failed to create announcement:", error);
+      alert("Failed to create announcement");
     }
   };
+
+  if (loading) {
+    return <div className="p-6">Loading announcements...</div>;
+  }
 
   return (
     <div className="space-y-6 p-6">
@@ -114,41 +116,45 @@ export default function AnnouncementsPage() {
 
       {/* Announcements List */}
       <div className="space-y-4">
-        {mockAnnouncements.map((announcement) => (
-          <div
-            key={announcement.id}
-            onClick={() => {
-              setSelectedAnnouncement(announcement);
-              setIsAnnouncementDetailOpen(true);
-            }}
-            className={`p-4 border rounded-lg hover:shadow-md transition-shadow cursor-pointer ${
-              !announcement.isRead ? 'bg-blue-50' : ''
-            }`}
-          >
-            <div className="flex items-start gap-4">
-              <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${getAnnouncementBgColor(
-                announcement.type
-              )} text-white`}>
-                {getAnnouncementIcon(announcement.type)}
-              </div>
-              <div className="flex-1 space-y-2">
-                <div className="flex justify-between">
-                  <h3 className="font-medium text-gray-900">{announcement.title}</h3>
-                  <Badge variant="secondary" className="text-xs">
-                    {announcement.type}
-                  </Badge>
+        {announcements.length === 0 ? (
+          <p className="text-gray-500">No announcements yet.</p>
+        ) : (
+          announcements.map((announcement) => {
+            const announcementType = (announcement.type || 'general') as string;
+            const announcementDate = announcement.created_at || announcement.date || new Date().toISOString();
+            return (
+              <div
+                key={announcement.id}
+                onClick={() => {
+                  setSelectedAnnouncement(announcement);
+                  setIsAnnouncementDetailOpen(true);
+                }}
+                className="p-4 border rounded-lg hover:shadow-md transition-shadow cursor-pointer bg-white"
+              >
+                <div className="flex items-start gap-4">
+                  <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${getAnnouncementBgColor(
+                    announcementType
+                  )} text-white`}>
+                    {getAnnouncementIcon(announcementType)}
+                  </div>
+                  <div className="flex-1 space-y-2">
+                    <div className="flex justify-between">
+                      <h3 className="font-medium text-gray-900">{announcement.title}</h3>
+                      <Badge variant="secondary" className="text-xs">
+                        {announcementType}
+                      </Badge>
+                    </div>
+                    <p className="text-sm text-gray-700 line-clamp-2">{announcement.message || announcement.content || ''}</p>
+                    <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                      <Calendar className="h-3 w-3" />
+                      <span>{new Date(announcementDate).toLocaleDateString()}</span>
+                    </div>
+                  </div>
                 </div>
-                <p className="text-sm text-gray-700 line-clamp-2">{announcement.content}</p>
-                <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                  <Calendar className="h-3 w-3" />
-                  <span>{new Date(announcement.date).toLocaleDateString()}</span>
-                  <Clock className="h-3 w-3" />
-                  <span>{new Date(announcement.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                </div>
               </div>
-            </div>
-          </div>
-        ))}
+            );
+          })
+        )}
       </div>
 
       {/* Announcement Detail Dialog */}
@@ -157,7 +163,7 @@ export default function AnnouncementsPage() {
           <DialogContent className="sm:max-w-md">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
-                {getAnnouncementIcon(selectedAnnouncement.type)}
+                {getAnnouncementIcon((selectedAnnouncement.type || 'general') as string)}
                 {selectedAnnouncement.title}
               </DialogTitle>
             </DialogHeader>
@@ -166,8 +172,8 @@ export default function AnnouncementsPage() {
                 <Label className="text-xs uppercase font-semibold text-gray-600">
                   Type
                 </Label>
-                <Badge className={getAnnouncementBgColor(selectedAnnouncement.type)} text-white>
-                  {selectedAnnouncement.type}
+                <Badge className={getAnnouncementBgColor((selectedAnnouncement.type || 'general') as string)} text-white>
+                  {selectedAnnouncement.type || 'general'}
                 </Badge>
               </div>
               <div>
@@ -175,7 +181,7 @@ export default function AnnouncementsPage() {
                   Date
                 </Label>
                 <p className="text-sm font-medium text-gray-900">
-                  {new Date(selectedAnnouncement.date).toLocaleDateString('en-US', {
+                  {new Date(selectedAnnouncement.created_at || new Date().toISOString()).toLocaleDateString('en-US', {
                     weekday: 'long',
                     year: 'numeric',
                     month: 'long',
@@ -193,7 +199,7 @@ export default function AnnouncementsPage() {
                 <Label className="text-xs uppercase font-semibold text-gray-600">
                   Content
                 </Label>
-                <p className="text-sm text-gray-700">{selectedAnnouncement.content}</p>
+                <p className="text-sm text-gray-700">{selectedAnnouncement.message || selectedAnnouncement.content || ''}</p>
               </div>
             </div>
             <DialogFooter>
@@ -236,17 +242,6 @@ export default function AnnouncementsPage() {
                   <SelectItem value="achievement">Achievement</SelectItem>
                 </SelectContent>
               </Select>
-            </div>
-            <div>
-              <Label htmlFor="announcementDate">Date</Label>
-              <Input
-                id="announcementDate"
-                type="date"
-                value={newAnnouncement.date}
-                onChange={(e) =>
-                  setNewAnnouncement({ ...newAnnouncement, date: e.target.value })
-                }
-              />
             </div>
             <div>
               <Label htmlFor="announcementContent">Content</Label>

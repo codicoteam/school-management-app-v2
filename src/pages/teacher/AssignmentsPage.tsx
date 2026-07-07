@@ -6,12 +6,18 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Plus, FileText, Calendar, Users, Eye, Download, Clock, CheckCircle2 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
+import { api } from "@/lib/api";
+import { useAuth } from "@/contexts/AuthContext";
 
 const AssignmentsPage = () => {
-  const [selectedClass, setSelectedClass] = useState("Form 3A");
+  const { user } = useAuth();
+  const [selectedClass, setSelectedClass] = useState<string | null>(null);
   const [showNewAssignment, setShowNewAssignment] = useState(false);
+  const [classes, setClasses] = useState<any[]>([]);
+  const [assignments, setAssignments] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     title: "",
     subject: "",
@@ -19,52 +25,71 @@ const AssignmentsPage = () => {
     dueDate: "",
   });
 
-  const classes = ["Form 3A", "Form 4A", "Form 4B"];
-
-  const assignments = [
-    {
-      id: 1,
-      title: "Physics Chapter 5 Problems",
-      subject: "Physics",
-      class: "Form 3A",
-      dueDate: "2026-05-05",
-      description: "Solve problems 1-20 from Chapter 5. Show all working.",
-      totalSubmissions: 22,
-      totalStudents: 25,
-      averageGrade: 78,
-      status: "active"
-    },
-    {
-      id: 2,
-      title: "Mathematics Algebra Worksheet",
-      subject: "Mathematics",
-      class: "Form 3A",
-      dueDate: "2026-04-30",
-      description: "Complete the algebra worksheet covering quadratic equations.",
-      totalSubmissions: 24,
-      totalStudents: 25,
-      averageGrade: 82,
-      status: "pending"
-    },
-    {
-      id: 3,
-      title: "Biology Lab Report",
-      subject: "Biology",
-      class: "Form 4A",
-      dueDate: "2026-05-10",
-      description: "Submit a comprehensive lab report on mitosis.",
-      totalSubmissions: 18,
-      totalStudents: 28,
-      averageGrade: 85,
-      status: "active"
-    }
-  ];
-
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({
       ...prev,
       [field]: value
     }));
+  };
+
+  // Load classes on component mount
+  useEffect(() => {
+    const loadClasses = async () => {
+      try {
+        setLoading(true);
+        const data = await api.getClasses();
+        setClasses(data || []);
+        if (data && data.length > 0) {
+          setSelectedClass(data[0].id);
+        }
+      } catch (error) {
+        console.error("Failed to load classes:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadClasses();
+  }, []);
+
+  // Load assignments when selected class changes
+  useEffect(() => {
+    const loadAssignments = async () => {
+      if (!selectedClass) return;
+      try {
+        const data = await api.getAssignments(selectedClass);
+        setAssignments(data || []);
+      } catch (error) {
+        console.error("Failed to load assignments:", error);
+      }
+    };
+    loadAssignments();
+  }, [selectedClass]);
+
+  const handleCreateAssignment = async () => {
+    if (!formData.title || !formData.subject || !formData.dueDate || !selectedClass) {
+      alert("Please fill in all fields");
+      return;
+    }
+
+    try {
+      await api.createAssignment({
+        class_id: selectedClass,
+        teacher_id: user?.id,
+        title: formData.title,
+        subject: formData.subject,
+        description: formData.description,
+        due_date: formData.dueDate,
+      });
+      alert("Assignment created successfully");
+      setFormData({ title: "", subject: "", description: "", dueDate: "" });
+      setShowNewAssignment(false);
+      // Reload assignments
+      const data = await api.getAssignments(selectedClass);
+      setAssignments(data || []);
+    } catch (error) {
+      console.error("Failed to create assignment:", error);
+      alert("Failed to create assignment");
+    }
   };
 
   return (
@@ -115,13 +140,13 @@ const AssignmentsPage = () => {
                 </div>
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Class</label>
-                  <Select value={selectedClass} onValueChange={setSelectedClass}>
+                  <Select value={selectedClass || ""} onValueChange={setSelectedClass}>
                     <SelectTrigger>
                       <SelectValue placeholder="Select class" />
                     </SelectTrigger>
                     <SelectContent>
-                      {classes.map(cls => (
-                        <SelectItem key={cls} value={cls}>{cls}</SelectItem>
+                      {classes.map((cls: any) => (
+                        <SelectItem key={cls.id} value={cls.id}>{cls.name}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -145,7 +170,7 @@ const AssignmentsPage = () => {
                 />
               </div>
               <div className="flex gap-3">
-                <Button>Create Assignment</Button>
+                <Button onClick={handleCreateAssignment}>Create Assignment</Button>
                 <Button variant="outline" onClick={() => setShowNewAssignment(false)}>Cancel</Button>
               </div>
             </CardContent>

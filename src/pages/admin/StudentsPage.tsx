@@ -23,17 +23,7 @@ import {
 import { motion } from "framer-motion";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { db } from "@/lib/firebase";
-import { 
-  collection, 
-  onSnapshot, 
-  addDoc, 
-  updateDoc, 
-  deleteDoc, 
-  doc, 
-  query, 
-  serverTimestamp 
-} from "firebase/firestore";
+import { api } from '@/lib/api';
 import { toast } from "sonner";
 
 type Status = "Active" | "Suspended";
@@ -84,18 +74,11 @@ const StudentsPage = () => {
   const [deletingStudentId, setDeletingStudentId] = useState<string | null>(null);
 
   useEffect(() => {
-    const q = query(collection(db, "students"));
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const studentList = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      })) as Student[];
-      setStudents(studentList.length > 0 ? studentList : initialStudents);
-    }, (error) => {
-      console.error("Firestore error:", error);
-      setStudents(initialStudents);
-    });
-    return () => unsubscribe();
+    let mounted = true;
+    api.getStudents()
+      .then((res: any) => { if (mounted) setStudents(res.length ? res : initialStudents); })
+      .catch((err: any) => { console.error('API error:', err); setStudents(initialStudents); });
+    return () => { mounted = false; };
   }, []);
 
   const { register, handleSubmit, reset, formState: { errors }, setValue } = useForm<StudentFormData>({
@@ -142,43 +125,41 @@ const StudentsPage = () => {
 
   const onAddStudent = async (data: StudentFormData) => {
     try {
-      await addDoc(collection(db, "students"), {
-        ...data,
-        status: "Active",
-        createdAt: serverTimestamp(),
-      });
+      const created = await api.createStudent({ ...data, status: 'Active' });
+      setStudents(s => [created, ...s]);
       setAddDialogOpen(false);
       reset();
-      toast.success("Student added successfully");
+      toast.success('Student added successfully');
     } catch (error) {
-      toast.error("Failed to add student. Please check Firebase config.");
+      toast.error('Failed to add student.');
     }
   };
 
   const onEditStudent = async (data: StudentFormData) => {
     if (!editingStudent) return;
     try {
-      const studentRef = doc(db, "students", editingStudent.id);
-      await updateDoc(studentRef, { ...data });
+      const updated = await api.updateStudent(editingStudent.id, data);
+      setStudents(s => s.map(st => st.id === updated.id ? updated : st));
       setEditDialogOpen(false);
       setEditingStudent(null);
       editReset();
-      toast.success("Student updated");
+      toast.success('Student updated');
     } catch (error) {
-      toast.error("Update failed");
+      toast.error('Update failed');
     }
   };
 
   const confirmDelete = async () => {
     if (!deletingStudentId) return;
     try {
-      await deleteDoc(doc(db, "students", deletingStudentId));
+      await api.deleteStudent(deletingStudentId);
+      setStudents(s => s.filter(st => st.id !== deletingStudentId));
       setSelected(selected.filter(id => id !== deletingStudentId));
       setDialogOpen(false);
       setDeletingStudentId(null);
-      toast.success("Student deleted");
+      toast.success('Student deleted');
     } catch (error) {
-      toast.error("Delete failed");
+      toast.error('Delete failed');
     }
   };
 

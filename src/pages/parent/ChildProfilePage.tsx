@@ -9,6 +9,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { useAuth } from "@/contexts/AuthContext";
+import { api } from "@/lib/api";
 import { useState } from "react";
 
 const subjects = [
@@ -19,15 +21,44 @@ const subjects = [
 ];
 
 const ChildProfilePage = () => {
+  const { user } = useAuth();
   const navigate = useNavigate();
+  const [child, setChild] = useState<any>(null);
   const [msgOpen, setMsgOpen] = useState(false);
   const [message, setMessage] = useState("");
+
+  useEffect(() => {
+    const loadChild = async () => {
+      if (!user || user.role !== 'parent') return;
+      try {
+        const children = await api.getParentChildren(user.id);
+        setChild(children?.[0] ?? null);
+      } catch (error) {
+        console.error(error);
+      }
+    };
+
+    loadChild();
+  }, [user]);
 
   const sendMessage = () => {
     if (!message.trim()) return;
     setMsgOpen(false);
     setMessage("");
     alert("Message sent to Mr. Mhlanga (Class Teacher)!");
+  };
+
+  const profile = child ?? {
+    name: 'Tawanda Ndlovu',
+    class: 'Form 4A',
+    id: 'BPS-2451',
+    gender: 'M',
+    date_of_birth: '12 March 2009',
+    blood_group: 'O+',
+    address: '45 Borrowdale Rd, Harare',
+    email: 'tawanda.ndlovu@schoolmanagement.edu',
+    teacher: 'Mr. Mhlanga · +263 77 234 5678',
+    admissionDate: '15 January 2022',
   };
 
   return (
@@ -48,10 +79,10 @@ const ChildProfilePage = () => {
                 TN
               </div>
               <div className="pb-1">
-                <h2 className="font-heading text-2xl font-bold">Tawanda Ndlovu</h2>
-                <p className="text-sm text-muted-foreground">Form 4A · School Management</p>
+                <h2 className="font-heading text-2xl font-bold">{profile.name}</h2>
+                <p className="text-sm text-muted-foreground">{profile.class} · School Management</p>
                 <div className="mt-2 flex flex-wrap gap-2">
-                  <Badge className="bg-accent/15 text-accent">BPS-2451</Badge>
+                  <Badge className="bg-accent/15 text-accent">{profile.id}</Badge>
                   <Badge className="bg-green-500/15 text-green-700">92% Attendance</Badge>
                   <Badge className="bg-secondary/30 text-secondary-foreground">House: Mbira</Badge>
                 </div>
@@ -114,12 +145,12 @@ const ChildProfilePage = () => {
           </CardHeader>
           <CardContent className="space-y-3">
             {[
-              { icon: Calendar, label: "Date of Birth", value: "12 March 2009" },
-              { icon: Heart, label: "Blood Group", value: "O+" },
-              { icon: MapPin, label: "Home Address", value: "45 Borrowdale Rd, Harare" },
-              { icon: Mail, label: "School Email", value: "tawanda.ndlovu@School Managementhigh.edu" },
-              { icon: Phone, label: "Class Teacher", value: "Mr. Mhlanga · +263 77 234 5678" },
-              { icon: Calendar, label: "Admission Date", value: "15 January 2022" },
+              { icon: Calendar, label: "Date of Birth", value: profile.date_of_birth },
+              { icon: Heart, label: "Blood Group", value: profile.blood_group },
+              { icon: MapPin, label: "Home Address", value: profile.address },
+              { icon: Mail, label: "School Email", value: profile.email },
+              { icon: Phone, label: "Class Teacher", value: profile.teacher },
+              { icon: Calendar, label: "Admission Date", value: profile.admissionDate },
             ].map(d => (
               <div key={d.label} className="flex items-center gap-3 rounded-lg bg-muted/40 p-3">
                 <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-secondary/20 text-secondary-foreground"><d.icon className="h-4 w-4" /></div>
