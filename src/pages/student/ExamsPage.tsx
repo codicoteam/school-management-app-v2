@@ -10,9 +10,9 @@ import { motion } from "framer-motion";
 import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 
 const upcomingExams = [
-  { name: "Mathematics Midterm", date: "22 Apr 2025", time: "09:00", venue: "Hall A", color: "bg-accent" },
+  { name: "Mathematics Midterm", date: "22 Apr 2025", time: "09:00", venue: "Hall A", color: "bg-primary" },
   { name: "English Comprehension", date: "24 Apr 2025", time: "10:30", venue: "Rm 7", color: "bg-secondary" },
-  { name: "Science Practical", date: "26 Apr 2025", time: "08:30", venue: "Lab 2", color: "bg-green-500" },
+  { name: "Science Practical", date: "26 Apr 2025", time: "08:30", venue: "Lab 2", color: "bg-accent" },
 ];
 
 const results = [
@@ -65,10 +65,10 @@ ${trend.map(t => `${t.term}: ${t.avg}%`).join("\n")}`;
 
       <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
         {[
-          { label: "Overall Avg", value: `${overallAvg}%`, color: "from-accent to-accent/70", icon: ClipboardList },
+          { label: "Overall Avg", value: `${overallAvg}%`, color: "from-primary to-primary/70", icon: ClipboardList },
           { label: "Class Position", value: "5th", color: "from-secondary to-secondary/70", icon: Trophy },
-          { label: "Subjects", value: results.length, color: "from-green-500 to-green-400", icon: ClipboardList },
-          { label: "Upcoming", value: upcomingExams.length, color: "from-orange-500 to-orange-400", icon: Calendar },
+          { label: "Subjects", value: results.length, color: "from-accent to-accent/70", icon: ClipboardList },
+          { label: "Upcoming", value: upcomingExams.length, color: "from-primary/80 to-primary/60", icon: Calendar },
         ].map(s => (
           <Card key={s.label} className="relative overflow-hidden border-none shadow-md">
             <div className={`absolute inset-0 bg-gradient-to-br ${s.color} opacity-[0.08]`} />

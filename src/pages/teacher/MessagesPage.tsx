@@ -1,5 +1,4 @@
-import { useState, useMemo } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -7,23 +6,21 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { MessageSquare, Send, Search, Plus, MoreVertical, ShieldCheck, Users, MessageCircle } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/contexts/AuthContext";
-import { useChat, Message } from "@/hooks/useChat";
-import { formatDistanceToNow, format } from "date-fns";
-import { openWhatsApp } from "@/lib/utils";
+import { useChat } from "@/hooks/useChat";
+import { format } from "date-fns";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-
-import { contacts, getContactsByType } from "@/lib/contacts";
-
-const allTeacherContacts = contacts;
-const studentContacts = getContactsByType("Student");
-const parentContacts = getContactsByType("Parent");
+import { useContacts } from "@/hooks/useContacts";
+import MessageTick from "@/components/MessageTick";
 
 const TeacherMessagesPage = () => {
   const { user } = useAuth();
-  const { messages, loading, sendMessage } = useChat(user?.id);
+  const { messages, loading: messagesLoading, sendMessage, markMessagesRead } = useChat(user?.id);
+  const { contacts: allTeacherContacts, getContactsByType, getContactById } = useContacts();
+  const studentContacts = useMemo(() => getContactsByType("Student"), [getContactsByType]);
+  const parentContacts = useMemo(() => getContactsByType("Parent"), [getContactsByType]);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedContactId, setSelectedContactId] = useState<string | null>(null);
   const [newMessage, setNewMessage] = useState("");
@@ -34,6 +31,14 @@ const TeacherMessagesPage = () => {
     subject: '',
     message: '',
   });
+  const chatEndRef = useRef<HTMLDivElement>(null);
+
+  // Mark messages read when conversation opened
+  useEffect(() => {
+    if (selectedContactId) {
+      markMessagesRead(selectedContactId);
+    }
+  }, [selectedContactId, markMessagesRead]);
 
   const conversations = useMemo(() => {
     const groups: Record<string, { contactId: string, contactName: string, lastMessage: any, unreadCount: number, type: string }> = {};
@@ -42,11 +47,12 @@ const TeacherMessagesPage = () => {
       const otherId = m.senderId === user?.id ? m.receiverId : m.senderId;
       const otherName = m.senderId === user?.id ? m.receiverName : m.senderName;
       const contact = allTeacherContacts.find(c => c.id === otherId);
+      const defaultName = contact?.name || otherName || "Unknown Contact";
       
       if (!groups[otherId] || (m.createdAt?.seconds || 0) > (groups[otherId].lastMessage.createdAt?.seconds || 0)) {
         groups[otherId] = {
           contactId: otherId,
-          contactName: otherName,
+          contactName: defaultName,
           lastMessage: m,
           unreadCount: (groups[otherId]?.unreadCount || 0) + (m.isNew && m.receiverId === user?.id ? 1 : 0),
           type: contact?.type || "Contact"
@@ -56,23 +62,10 @@ const TeacherMessagesPage = () => {
       }
     });
 
-    // Ensure all static contacts are visible even without messages
-    allTeacherContacts.forEach(c => {
-      if (!groups[c.id]) {
-        groups[c.id] = {
-          contactId: c.id,
-          contactName: c.name,
-          lastMessage: { text: "Tap to start chatting", createdAt: null },
-          unreadCount: 0,
-          type: c.type
-        };
-      }
-    });
-
     return Object.values(groups).sort((a, b) => 
       (b.lastMessage.createdAt?.seconds || 0) - (a.lastMessage.createdAt?.seconds || 0)
     );
-  }, [messages, user?.id]);
+  }, [messages, user?.id, allTeacherContacts]);
 
   const filteredConversations = conversations.filter(c => 
     c.contactName.toLowerCase().includes(searchTerm.toLowerCase())
@@ -85,12 +78,23 @@ const TeacherMessagesPage = () => {
     ).sort((a, b) => (a.createdAt?.seconds || 0) - (b.createdAt?.seconds || 0));
   }, [messages, selectedContactId]);
 
-  const selectedContactInfo = allTeacherContacts.find(c => c.id === selectedContactId);
+  // Auto-scroll to bottom on new messages
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [selectedMessages]);
+
+  const selectedContactInfo = getContactById(selectedContactId || '') || conversations.find(c => c.contactId === selectedContactId) && { id: selectedContactId!, name: conversations.find(c => c.contactId === selectedContactId)?.contactName || "Contact", type: "Contact" };
 
   const handleSend = async () => {
     if (!selectedContactId || !newMessage.trim() || !user) return;
     
-    const contact = allTeacherContacts.find(c => c.id === selectedContactId);
+    let contact = allTeacherContacts.find(c => c.id === selectedContactId);
+    if (!contact) {
+      const recent = conversations.find(c => c.contactId === selectedContactId);
+      if (recent) {
+        contact = { id: recent.contactId, name: recent.contactName, type: "Student" } as any;
+      }
+    }
     if (!contact) return;
 
     try {
@@ -147,7 +151,7 @@ const TeacherMessagesPage = () => {
     <div className="h-[calc(100vh-140px)] flex bg-background border rounded-2xl overflow-hidden shadow-2xl">
       {/* Sidebar */}
       <div className="w-[380px] border-r flex flex-col bg-card shrink-0">
-        <header className="p-4 bg-[#00a884] text-white flex items-center justify-between">
+        <header className="p-4 bg-primary text-white flex items-center justify-between">
             <div className="flex items-center gap-3">
                <Avatar className="h-10 w-10 border-2 border-white/20">
                   <AvatarFallback className="bg-white/20 text-white font-bold">T</AvatarFallback>
@@ -185,25 +189,25 @@ const TeacherMessagesPage = () => {
                key={conv.contactId}
                onClick={() => setSelectedContactId(conv.contactId)}
                className={`group flex items-center gap-3 p-4 border-b cursor-pointer transition-all hover:bg-muted/30 ${
-                  selectedContactId === conv.contactId ? 'bg-muted/50 border-l-4 border-l-[#00a884]' : ''
+                  selectedContactId === conv.contactId ? 'bg-muted/50 border-l-4 border-l-primary' : ''
                }`}
              >
                 <div className="relative">
                   <Avatar className="h-12 w-12 shrink-0 shadow-sm transition-transform group-hover:scale-105">
                     <AvatarFallback className={`${
-                      conv.type === 'Parent' ? 'bg-orange-100 text-orange-600' : 
-                      conv.type === 'Admin' ? 'bg-purple-100 text-purple-600' :
-                      conv.type === 'Teacher' ? 'bg-blue-100 text-blue-600' :
-                      'bg-green-100 text-green-600'
+                      conv.type === 'Parent' ? 'bg-primary/10 text-primary' : 
+                      conv.type === 'Admin' ? 'bg-secondary/10 text-secondary' :
+                      conv.type === 'Teacher' ? 'bg-accent/10 text-accent' :
+                      'bg-primary/5 text-primary'
                     } font-bold`}>
                       {conv.contactName.substring(0, 2).toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
                   <span className={`absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-background ${
-                    conv.type === 'Teacher' ? 'bg-blue-500' : 
-                    conv.type === 'Parent' ? 'bg-orange-500' : 
-                    conv.type === 'Admin' ? 'bg-purple-500' :
-                    'bg-green-500'
+                    conv.type === 'Teacher' ? 'bg-accent' : 
+                    conv.type === 'Parent' ? 'bg-primary' : 
+                    conv.type === 'Admin' ? 'bg-secondary' :
+                    'bg-primary/60'
                   }`} />
                 </div>
                 <div className="flex-1 min-w-0">
@@ -216,7 +220,7 @@ const TeacherMessagesPage = () => {
                         <span className="text-[9px] uppercase font-bold opacity-70">[{conv.type}]</span> {conv.lastMessage.text}
                       </p>
                       {conv.unreadCount > 0 && (
-                        <Badge className="bg-[#00a884] rounded-full h-5 w-5 flex items-center justify-center p-0 text-[10px] ml-1 scale-in-center">
+                        <Badge className="bg-primary rounded-full h-5 w-5 flex items-center justify-center p-0 text-[10px] ml-1 scale-in-center">
                           {conv.unreadCount}
                         </Badge>
                       )}
@@ -234,8 +238,8 @@ const TeacherMessagesPage = () => {
              {/* Header */}
              <header className="px-6 py-3 border-b bg-muted/40 backdrop-blur-md flex items-center justify-between z-30 shadow-sm">
                 <div className="flex items-center gap-4">
-                   <Avatar className="h-12 w-12 ring-2 ring-[#00a884]/10">
-                      <AvatarFallback className="bg-[#00a884]/5 text-[#00a884] font-bold">
+                   <Avatar className="h-12 w-12 ring-2 ring-primary/10">
+                      <AvatarFallback className="bg-primary/5 text-primary font-bold">
                         {selectedContactInfo?.name.substring(0, 2).toUpperCase()}
                       </AvatarFallback>
                    </Avatar>
@@ -244,8 +248,8 @@ const TeacherMessagesPage = () => {
                         {selectedContactInfo?.name}
                         <Badge variant="outline" className="text-[9px] h-4 uppercase">{selectedContactInfo?.type}</Badge>
                       </h3>
-                      <p className="text-xs text-emerald-500 font-bold flex items-center gap-1">
-                        <span className="h-1.5 w-1.5 bg-emerald-500 rounded-full animate-pulse" /> End-to-end encrypted
+                      <p className="text-xs text-primary font-bold flex items-center gap-1">
+                        <span className="h-1.5 w-1.5 bg-primary rounded-full animate-pulse" /> End-to-end encrypted
                       </p>
                    </div>
                 </div>
@@ -254,15 +258,15 @@ const TeacherMessagesPage = () => {
                 </div>
              </header>
 
-             {/* Messages */}
-             <div 
-               className="flex-1 overflow-y-auto p-6 space-y-4"
-               style={{
-                 backgroundImage: 'url("https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png")',
-                 backgroundBlendMode: 'overlay',
-                 backgroundSize: '400px'
-               }}
-             >
+{/* Messages */}
+              <div 
+                className="flex-1 overflow-y-auto p-6 space-y-4"
+                style={{
+                  backgroundImage: 'url("https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png")',
+                  backgroundBlendMode: 'overlay',
+                  backgroundSize: '400px'
+                }}
+              >
                 <div className="flex justify-center mb-6">
                    <Badge className="bg-muted-foreground/10 text-muted-foreground border-none text-[10px] rounded-sm px-3 uppercase tracking-widest font-bold">
                      Today
@@ -286,25 +290,24 @@ const TeacherMessagesPage = () => {
                              m.senderId === user?.id ? "text-gray-500/80" : "text-gray-400"
                           }`}>
                              {formatDate(m.createdAt)}
-                             {m.senderId === user?.id && (
-                               <svg viewBox="0 0 16 11" width="16" height="11" fill="currentColor" className="text-blue-500">
-                                  <path d="M11.133 1.341l-6.195 6.471-2.909-2.946-1.029 1.042 3.938 3.985 7.225-7.549-1.03-1.003zm3.837 0l-7.224 7.548-1.029-1.042 7.224-7.548 1.029 1.042z" />
-                               </svg>
-                             )}
+{m.senderId === user?.id && (
+                                 <MessageTick status={m.status} isSender={m.senderId === user?.id} className="h-4 w-4" />
+                               )}
                           </div>
                        </div>
                     </motion.div>
                   ))}
                 </AnimatePresence>
+                <div ref={chatEndRef} />
              </div>
 
              {/* Footer */}
              <footer className="px-6 py-4 bg-muted/30 backdrop-blur-md flex items-center gap-4">
-                <Button variant="ghost" size="icon" className="shrink-0 text-muted-foreground hover:text-[#00a884] rounded-full hover:bg-muted"><Plus className="h-6 w-6" /></Button>
+                <Button variant="ghost" size="icon" className="shrink-0 text-muted-foreground hover:text-primary rounded-full hover:bg-muted"><Plus className="h-6 w-6" /></Button>
                 <div className="flex-1 relative">
                    <Input 
                       placeholder="Message contact..."
-                      className="w-full bg-background border-none rounded-2xl h-12 shadow-inner px-5 pr-12 focus-visible:ring-1 focus-visible:ring-[#00a884]/20"
+                      className="w-full bg-background border-none rounded-2xl h-12 shadow-inner px-5 pr-12 focus-visible:ring-1 focus-visible:ring-primary/20"
                       value={newMessage}
                       onChange={e => setNewMessage(e.target.value)}
                       onKeyDown={e => e.key === 'Enter' && !e.shiftKey && handleSend()}
@@ -313,7 +316,7 @@ const TeacherMessagesPage = () => {
                 <Button 
                    onClick={handleSend}
                    disabled={!newMessage.trim()}
-                   className="bg-[#00a884] hover:bg-[#00a884]/90 h-12 w-12 rounded-full p-0 shadow-lg shrink-0 transition-all active:scale-95"
+                   className="bg-primary hover:bg-primary/90 h-12 w-12 rounded-full p-0 shadow-lg shrink-0 transition-all active:scale-95"
                 >
                    <Send className="h-6 w-6 fill-current text-white" />
                 </Button>
@@ -322,7 +325,7 @@ const TeacherMessagesPage = () => {
          ) : (
            <div className="flex-1 flex flex-col items-center justify-center text-center p-12 space-y-6">
               <div className="relative">
-                 <div className="h-24 w-24 bg-[#00a884]/10 rounded-full flex items-center justify-center text-[#00a884] animate-bounce-slow">
+                 <div className="h-24 w-24 bg-primary/10 rounded-full flex items-center justify-center text-primary animate-bounce-slow">
                     <MessageCircle className="h-12 w-12" />
                  </div>
               </div>
@@ -380,7 +383,7 @@ const TeacherMessagesPage = () => {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsComposeDialogOpen(false)}>Cancel</Button>
-            <Button onClick={handleCompose} className="bg-[#00a884] hover:bg-[#00a884]/90">Start Chat</Button>
+            <Button onClick={handleCompose} className="bg-primary hover:bg-primary/90">Start Chat</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

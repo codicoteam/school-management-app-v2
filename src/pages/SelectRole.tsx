@@ -1,7 +1,8 @@
 import { motion } from "framer-motion";
-import { GraduationCap, ShieldCheck, Users, UserCog, ArrowLeft } from "lucide-react";
+import { GraduationCap, Users, UserCog, ArrowLeft, ShieldCheck } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import heroBg from "@/assets/hero-bg.jpg";
+import { isAdminDomain } from "@/utils/adminDomain";
 
 const roles = [
   {
@@ -25,13 +26,22 @@ const roles = [
   {
     id: "admin",
     label: "Admin",
-    description: "Manage courses, students and platform settings",
+    description: "Manage school operations, users, and settings",
     icon: ShieldCheck,
   },
 ];
 
 const SelectRole = () => {
   const navigate = useNavigate();
+  const isDevAdmin = isAdminDomain() || window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
+  
+  // Filter out admin role if we're on the public/main domain
+  const displayRoles = roles.filter(role => {
+    if (role.id === "admin") {
+      return isDevAdmin;
+    }
+    return true;
+  });
 
   return (
     <div className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden">
@@ -44,7 +54,7 @@ const SelectRole = () => {
           width={1920}
           height={1080}
         />
-        <div className="absolute inset-0 bg-black/60" />
+        <div className="absolute inset-0 bg-emerald-600/60 backdrop-blur-[2px]" />
       </div>
 
       {/* Back button */}
@@ -76,7 +86,7 @@ const SelectRole = () => {
         </motion.div>
 
         <div className="grid w-full gap-5 sm:grid-cols-3">
-          {roles.map((role, i) => (
+          {displayRoles.map((role, i) => (
             <motion.button
               key={role.id}
               whileHover={{ scale: 1.04, y: -4 }}
@@ -84,17 +94,22 @@ const SelectRole = () => {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.3 + i * 0.12 }}
-              onClick={() => navigate(`/login?role=${role.id}`)}
-              className="group flex flex-col items-center gap-4 rounded-2xl border border-white/10 bg-white/10 px-6 py-8 backdrop-blur-md transition-colors hover:bg-secondary hover:border-secondary"
+              onClick={() => {
+                if (role.id === "admin") {
+                  localStorage.setItem("admin_portal_mode", "true");
+                }
+                navigate(`/login?role=${role.id}`);
+              }}
+              className="group flex flex-col items-center gap-4 rounded-2xl border border-white/10 bg-white/10 px-6 py-8 backdrop-blur-md transition-colors hover:bg-orange-500 hover:border-orange-500"
             >
-              <div className="flex h-16 w-16 items-center justify-center rounded-xl bg-white/15 transition-colors group-hover:bg-primary/90">
-                <role.icon className="h-8 w-8 text-white transition-colors group-hover:text-secondary" />
+              <div className="flex h-16 w-16 items-center justify-center rounded-xl bg-white/15 transition-colors group-hover:bg-emerald-600/90">
+                <role.icon className="h-8 w-8 text-white transition-colors group-hover:text-white" />
               </div>
               <div className="text-center">
-                <h3 className="text-lg font-semibold text-white transition-colors group-hover:text-primary">
+                <h3 className="text-lg font-semibold text-white transition-colors group-hover:text-white">
                   {role.label}
                 </h3>
-                <p className="mt-1 text-sm text-white/60 transition-colors group-hover:text-primary/70">
+                <p className="mt-1 text-sm text-white/60 transition-colors group-hover:text-white/70">
                   {role.description}
                 </p>
               </div>

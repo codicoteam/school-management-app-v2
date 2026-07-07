@@ -1,45 +1,58 @@
-import { useState, useMemo } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { MessageSquare, Send, Search, Plus, MoreVertical } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/contexts/AuthContext";
-import { useChat, Message } from "@/hooks/useChat";
-import { formatDistanceToNow, format } from "date-fns";
-
-import { contacts } from "@/lib/contacts";
-
-const schoolContacts = contacts.filter(c => c.type === "Teacher" || c.type === "Admin");
+import { useChat } from "@/hooks/useChat";
+import { format } from "date-fns";
+import { useContacts } from "@/hooks/useContacts";
+import MessageTick from "@/components/MessageTick";
 
 const ParentMessagesPage = () => {
   const { user } = useAuth();
-  const { messages, loading, sendMessage } = useChat(user?.id);
+  const { messages, loading: messagesLoading, sendMessage, markMessagesRead } = useChat(user?.id);
+  const { contacts, getContactsByType, getContactById } = useContacts();
+  const schoolContacts = useMemo(() => getContactsByType("Teacher").concat(getContactsByType("Admin")), [getContactsByType]);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedContactId, setSelectedContactId] = useState<string | null>(null);
   const [newMessage, setNewMessage] = useState("");
+  const [isComposeDialogOpen, setIsComposeDialogOpen] = useState(false);
+  const [composeData, setComposeData] = useState({ recipientId: '', message: '' });
+  const chatEndRef = useRef<HTMLDivElement>(null);
+
+  // Mark messages read when conversation opened
+  useEffect(() => {
+    if (selectedContactId) {
+      markMessagesRead(selectedContactId);
+    }
+  }, [selectedContactId, markMessagesRead]);
 
   // Group messages for conversations
   const conversations = useMemo(() => {
     const groups: Record<string, { contactId: string, contactName: string, lastMessage: any, unreadCount: number }> = {};
-    
-    // Default list of school contacts
-    schoolContacts.forEach(c => {
-      groups[c.id] = {
-        contactId: c.id,
-        contactName: c.name,
-        lastMessage: { text: "No interaction yet", createdAt: null },
-        unreadCount: 0
-      };
-    });
 
     messages.forEach(m => {
       const otherId = m.senderId === user?.id ? m.receiverId : m.senderId;
       const otherName = m.senderId === user?.id ? m.receiverName : m.senderName;
+      const contact = contacts.find(c => c.id === otherId);
       
-      if (groups[otherId]) {
+      const defaultName = contact?.name || otherName || "Unknown Contact";
+
+      if (!groups[otherId]) {
+        groups[otherId] = {
+          contactId: otherId,
+          contactName: defaultName,
+          lastMessage: m,
+          unreadCount: m.isNew && m.receiverId === user?.id ? 1 : 0
+        };
+      } else {
         if (!groups[otherId].lastMessage.createdAt || (m.createdAt?.seconds || 0) > (groups[otherId].lastMessage.createdAt?.seconds || 0)) {
           groups[otherId].lastMessage = m;
         }
@@ -52,7 +65,7 @@ const ParentMessagesPage = () => {
     return Object.values(groups).sort((a, b) => 
       (b.lastMessage.createdAt?.seconds || 0) - (a.lastMessage.createdAt?.seconds || 0)
     );
-  }, [messages, user?.id]);
+  }, [messages, user?.id, contacts]);
 
   const filteredConversations = conversations.filter(c => 
     c.contactName.toLowerCase().includes(searchTerm.toLowerCase())
@@ -65,13 +78,17 @@ const ParentMessagesPage = () => {
     ).sort((a, b) => (a.createdAt?.seconds || 0) - (b.createdAt?.seconds || 0));
   }, [messages, selectedContactId]);
 
-  const selectedContactInfo = schoolContacts.find(c => c.id === selectedContactId);
+  // Auto-scroll to bottom on new messages
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [selectedMessages]);
+
+  const selectedContactInfo = getContactById(selectedContactId || '') || conversations.find(c => c.contactId === selectedContactId) && { id: selectedContactId!, name: conversations.find(c => c.contactId === selectedContactId)?.contactName || "Contact" };
 
   const handleSend = async () => {
     if (!selectedContactId || !newMessage.trim() || !user) return;
     
-    const contact = schoolContacts.find(c => c.id === selectedContactId);
-    if (!contact) return;
+    const contact = getContactById(selectedContactId) || { id: selectedContactId!, name: conversations.find(c => c.contactId === selectedContactId)?.contactName || "Contact" };
 
     try {
       await sendMessage({
@@ -85,6 +102,28 @@ const ParentMessagesPage = () => {
       setNewMessage("");
     } catch (error) {
       alert("Failed to send message");
+    }
+  };
+
+  const handleCompose = async () => {
+    if (composeData.recipientId && composeData.message && user) {
+       const recipient = schoolContacts.find(r => r.id === composeData.recipientId);
+       if (!recipient) return;
+       try {
+         await sendMessage({
+           senderId: user.id,
+           senderName: user.name,
+           receiverId: recipient.id,
+           receiverName: recipient.name,
+           subject: "Parent Inquiry",
+           text: composeData.message,
+         });
+         setIsComposeDialogOpen(false);
+         setComposeData({ recipientId: '', message: '' });
+         setSelectedContactId(recipient.id);
+       } catch (error) {
+         alert("Failed to send");
+       }
     }
   };
 
@@ -117,7 +156,7 @@ const ParentMessagesPage = () => {
               <AvatarFallback className="bg-primary/10 text-primary font-bold">PG</AvatarFallback>
            </Avatar>
            <div className="flex gap-2">
-              <Button variant="ghost" size="icon" className="rounded-full"><MessageSquare className="h-5 w-5 text-muted-foreground" /></Button>
+              <Button variant="ghost" size="icon" onClick={() => setIsComposeDialogOpen(true)} className="rounded-full shadow-sm bg-primary/5 text-primary"><Plus className="h-5 w-5" /></Button>
               <Button variant="ghost" size="icon" className="rounded-full"><MoreVertical className="h-5 w-5 text-muted-foreground" /></Button>
            </div>
         </header>
@@ -156,7 +195,7 @@ const ParentMessagesPage = () => {
                    <div className="flex justify-between items-center">
                       <p className="text-xs text-muted-foreground truncate w-full">{conv.lastMessage.text}</p>
                       {conv.unreadCount > 0 && (
-                        <Badge className="bg-emerald-500 rounded-full h-5 w-5 flex items-center justify-center p-0 text-[10px] ml-1">
+                        <Badge className="bg-primary rounded-full h-5 w-5 flex items-center justify-center p-0 text-[10px] ml-1">
                           {conv.unreadCount}
                         </Badge>
                       )}
@@ -191,14 +230,14 @@ const ParentMessagesPage = () => {
                 </div>
              </header>
 
-             <div 
-               className="flex-1 overflow-y-auto p-4 space-y-4"
-               style={{
-                 backgroundImage: 'url("https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png")',
-                 backgroundBlendMode: 'overlay',
-                 backgroundSize: '400px'
-               }}
-             >
+<div 
+                className="flex-1 overflow-y-auto p-4 space-y-4"
+                style={{
+                  backgroundImage: 'url("https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png")',
+                  backgroundBlendMode: 'overlay',
+                  backgroundSize: '400px'
+                }}
+              >
                 <AnimatePresence>
                   {selectedMessages.map(m => (
                     <motion.div 
@@ -213,20 +252,19 @@ const ParentMessagesPage = () => {
                            : "bg-white text-gray-800 dark:bg-[#202c33] dark:text-[#e9edef] rounded-tl-none wa-bubble-received"
                        }`}>
                           <p className="text-[13.5px] leading-relaxed pr-10">{m.text}</p>
-                          <div className={`absolute bottom-1 right-2 flex items-center gap-1 text-[9px] ${
-                             m.senderId === user?.id ? "text-gray-500" : "text-gray-400"
-                          }`}>
-                             {formatDate(m.createdAt)}
-                             {m.senderId === user?.id && (
-                               <svg viewBox="0 0 16 11" width="14" height="10" fill="currentColor" className="text-blue-500">
-                                  <path d="M11.133 1.341l-6.195 6.471-2.909-2.946-1.029 1.042 3.938 3.985 7.225-7.549-1.03-1.003zm3.837 0l-7.224 7.548-1.029-1.042 7.224-7.548 1.029 1.042z" />
-                               </svg>
-                             )}
-                          </div>
+<div className={`absolute bottom-1 right-2 flex items-center gap-1 text-[9px] ${
+                              m.senderId === user?.id ? "text-gray-500" : "text-gray-400"
+                            }`}>
+                              {formatDate(m.createdAt)}
+                              {m.senderId === user?.id && (
+                                <MessageTick status={m.status} isSender={m.senderId === user?.id} className="h-4 w-4" />
+                              )}
+                            </div>
                        </div>
                     </motion.div>
                   ))}
                 </AnimatePresence>
+                <div ref={chatEndRef} />
              </div>
 
              <footer className="px-4 py-3 bg-muted/40 flex items-center gap-3">
@@ -241,9 +279,9 @@ const ParentMessagesPage = () => {
                 <Button 
                    onClick={handleSend}
                    disabled={!newMessage.trim()}
-                   className="bg-emerald-500 hover:bg-emerald-600 h-11 w-11 rounded-full p-0 shadow-lg shrink-0"
+                   className="bg-primary hover:bg-primary/90 h-11 w-11 rounded-full p-0 shadow-lg shrink-0"
                 >
-                   <Send className="h-5 w-5 fill-current" />
+                   <Send className="h-5 w-5 fill-current text-white" />
                 </Button>
              </footer>
            </>
@@ -259,6 +297,42 @@ const ParentMessagesPage = () => {
            </div>
          )}
       </div>
+
+      {/* Compose Message Dialog */}
+      <Dialog open={isComposeDialogOpen} onOpenChange={setIsComposeDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader><DialogTitle>New Chat</DialogTitle></DialogHeader>
+          <div className="space-y-4 pt-4">
+            <div className="space-y-2">
+              <Label>Select Teacher or Admin</Label>
+              <Select 
+                value={composeData.recipientId} 
+                onValueChange={(v) => setComposeData({...composeData, recipientId: v})}
+              >
+                <SelectTrigger><SelectValue placeholder="Choose contact..." /></SelectTrigger>
+                <SelectContent>
+                  {schoolContacts.map(r => (
+                    <SelectItem key={r.id} value={r.id}>{r.name} ({r.role || r.type})</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+               <Label>Message</Label>
+               <Textarea 
+                 className="min-h-[100px]" 
+                 placeholder="Type your first message..."
+                 value={composeData.message}
+                 onChange={e => setComposeData({...composeData, message: e.target.value})}
+               />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsComposeDialogOpen(false)}>Cancel</Button>
+            <Button onClick={handleCompose} className="bg-primary hover:bg-primary/90">Start Chat</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

@@ -7,18 +7,18 @@ import {
 import { motion } from "framer-motion";
 
 const stats = [
-  { label: "Subjects", value: "8", icon: BookOpen, gradient: "from-accent to-accent/70" },
+  { label: "Subjects", value: "8", icon: BookOpen, gradient: "from-primary to-primary/70" },
   { label: "Avg. Grade", value: "B+", icon: ClipboardList, gradient: "from-secondary to-secondary/70" },
-  { label: "Attendance", value: "92%", icon: Clock, gradient: "from-green-500 to-green-400" },
-  { label: "Fee Balance", value: "$120", icon: DollarSign, gradient: "from-orange-500 to-orange-400" },
+  { label: "Attendance", value: "92%", icon: Clock, gradient: "from-accent to-accent/70" },
+  { label: "Fee Balance", value: "$120", icon: DollarSign, gradient: "from-primary/90 to-primary/60" },
 ];
 
 const timetable = [
-  { time: "08:00 — 08:45", subject: "Mathematics", room: "Rm 12", color: "bg-accent" },
+  { time: "08:00 — 08:45", subject: "Mathematics", room: "Rm 12", color: "bg-primary" },
   { time: "08:50 — 09:35", subject: "English", room: "Rm 7", color: "bg-secondary" },
-  { time: "09:40 — 10:25", subject: "Shona", room: "Rm 4", color: "bg-purple-500" },
-  { time: "10:45 — 11:30", subject: "Science", room: "Lab 2", color: "bg-green-500" },
-  { time: "11:35 — 12:20", subject: "History", room: "Rm 9", color: "bg-orange-500" },
+  { time: "09:40 — 10:25", subject: "Shona", room: "Rm 4", color: "bg-accent" },
+  { time: "10:45 — 11:30", subject: "Science", room: "Lab 2", color: "bg-primary/80" },
+  { time: "11:35 — 12:20", subject: "History", room: "Rm 9", color: "bg-secondary/80" },
 ];
 
 const assignments = {
@@ -33,10 +33,10 @@ const assignments = {
 };
 
 const results = [
-  { subject: "Mathematics", score: 78, color: "bg-accent" },
+  { subject: "Mathematics", score: 78, color: "bg-primary" },
   { subject: "English", score: 85, color: "bg-secondary" },
-  { subject: "Science", score: 89, color: "bg-green-500" },
-  { subject: "Shona", score: 92, color: "bg-purple-500" },
+  { subject: "Science", score: 89, color: "bg-accent" },
+  { subject: "Shona", score: 92, color: "bg-primary/70" },
 ];
 
 const announcements = [
@@ -105,12 +105,12 @@ const StudentDashboard = () => (
           <CardHeader><CardTitle className="font-heading text-lg font-semibold">Assignments</CardTitle></CardHeader>
           <CardContent className="space-y-4">
             <div>
-              <div className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-orange-600">
+              <div className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-primary">
                 <AlertCircle className="h-3.5 w-3.5" /> Pending
               </div>
               <div className="space-y-2">
                 {assignments.pending.map((a, i) => (
-                  <div key={i} className="rounded-lg border border-orange-500/20 bg-orange-500/5 p-3">
+                   <div key={i} className="rounded-lg border border-primary/20 bg-primary/5 p-3">
                     <p className="text-sm font-medium text-foreground">{a.title}</p>
                     <p className="text-xs text-muted-foreground">{a.subject} · Due {a.due}</p>
                   </div>
@@ -118,7 +118,7 @@ const StudentDashboard = () => (
               </div>
             </div>
             <div>
-              <div className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-green-600">
+              <div className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-secondary">
                 <CheckCircle2 className="h-3.5 w-3.5" /> Submitted
               </div>
               <div className="space-y-2">
@@ -128,7 +128,7 @@ const StudentDashboard = () => (
                       <p className="text-sm font-medium text-foreground">{a.title}</p>
                       <p className="text-xs text-muted-foreground">{a.subject}</p>
                     </div>
-                    <Badge className="bg-green-500/15 text-green-700 hover:bg-green-500/20">{a.grade}</Badge>
+                    <Badge className="bg-primary/15 text-primary hover:bg-primary/20">{a.grade}</Badge>
                   </div>
                 ))}
               </div>

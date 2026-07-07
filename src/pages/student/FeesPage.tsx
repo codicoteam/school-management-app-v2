@@ -68,7 +68,7 @@ const StudentFeesPage = () => {
           <p className="mt-1 text-sm text-muted-foreground">Term 2 · 2025</p>
         </div>
         <Dialog open={payOpen} onOpenChange={setPayOpen}>
-          <DialogTrigger asChild><Button className="bg-accent text-accent-foreground hover:bg-accent/90"><CreditCard className="h-4 w-4" /> Pay Now</Button></DialogTrigger>
+          <DialogTrigger asChild><Button className="bg-primary text-white hover:bg-primary/90"><CreditCard className="h-4 w-4" /> Pay Now</Button></DialogTrigger>
           <DialogContent>
             <DialogHeader><DialogTitle>Make Payment</DialogTitle><DialogDescription>Enter payment details to complete your payment.</DialogDescription></DialogHeader>
             <div className="grid gap-4 py-4">
@@ -97,7 +97,7 @@ const StudentFeesPage = () => {
 
       <div className="grid gap-4 lg:grid-cols-3">
         <Card className="relative overflow-hidden border-none shadow-md lg:col-span-2">
-          <div className="absolute inset-0 bg-gradient-to-br from-orange-500 to-orange-400 opacity-[0.08]" />
+          <div className="absolute inset-0 bg-gradient-to-br from-primary to-primary/60 opacity-[0.08]" />
           <CardContent className="relative p-6">
             <div className="flex items-center justify-between">
               <div>
@@ -105,7 +105,7 @@ const StudentFeesPage = () => {
                 <p className="mt-1 text-4xl font-bold">${newBalance > 0 ? newBalance : 0}<span className="text-sm font-normal text-muted-foreground">.00</span></p>
                 <p className="text-xs text-muted-foreground">Due 30 April 2025</p>
               </div>
-              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-orange-500 to-orange-400 shadow-md">
+              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-primary/70 shadow-md">
                 <DollarSign className="h-7 w-7 text-white" />
               </div>
             </div>
@@ -131,8 +131,8 @@ const StudentFeesPage = () => {
 
       <div className="grid gap-3 grid-cols-2 lg:grid-cols-3">
         {[
-          { icon: AlertCircle, label: "Reminder", text: "Payment due in 12 days", color: "from-orange-500 to-orange-400" },
-          { icon: CheckCircle2, label: "Payment methods", text: "EcoCash · Bank · Cash", color: "from-green-500 to-green-400" },
+          { icon: AlertCircle, label: "Reminder", text: "Payment due in 12 days", color: "from-primary/80 to-primary/60" },
+          { icon: CheckCircle2, label: "Payment methods", text: "EcoCash · Bank · Cash", color: "from-secondary to-secondary/70" },
           { icon: CreditCard, label: "EcoCash code", text: "*151*2*2*12345#", color: "from-accent to-accent/70" },
         ].map(s => (
           <Card key={s.label} className="border-none shadow-md">
@@ -154,7 +154,7 @@ const StudentFeesPage = () => {
                 {history.map(h => (
                   <TableRow key={h.id}>
                     <TableCell className="font-mono text-xs text-muted-foreground">{h.id}</TableCell><TableCell>{h.date}</TableCell><TableCell>{h.item}</TableCell><TableCell className="font-semibold">${h.amount}</TableCell><TableCell>{h.method}</TableCell>
-                    <TableCell><Badge className="bg-green-500/15 text-green-700">{h.status}</Badge></TableCell>
+                    <TableCell><Badge className="bg-primary/10 text-primary">{h.status}</Badge></TableCell>
                     <TableCell><Button size="icon" variant="ghost" onClick={() => downloadReceipt(h)}><Download className="h-4 w-4" /></Button></TableCell>
                   </TableRow>
                 ))}

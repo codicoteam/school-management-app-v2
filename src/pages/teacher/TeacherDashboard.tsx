@@ -15,7 +15,7 @@ const stats = [
   { label: "Total Students", value: "245", change: "+2%", icon: Users, gradient: "from-accent to-accent/70" },
   { label: "Assigned Classes", value: "4", change: "0%", icon: BookOpen, gradient: "from-secondary to-secondary/70" },
   { label: "Pending Assignments", value: "8", change: "+3", icon: FileText, gradient: "from-primary to-primary/70" },
-  { label: "Attendance Rate", value: "92%", change: "+5%", icon: Clock, gradient: "from-green-500 to-green-400" },
+  { label: "Attendance Rate", value: "92%", change: "+5%", icon: Clock, gradient: "from-primary/90 to-primary/60" },
 ];
 
 const todaysSchedule = [
@@ -66,7 +66,7 @@ const TeacherDashboard = () => (
               </CardHeader>
               <CardContent>
                 <p className="text-2xl font-bold text-foreground">{stat.value}</p>
-                <div className="mt-1 flex items-center gap-1 text-xs font-medium text-green-600">
+                <div className="mt-1 flex items-center gap-1 text-xs font-medium text-primary">
                   <TrendingUp className="h-3 w-3" />
                   {stat.change} from last month
                 </div>
@@ -155,7 +155,7 @@ const TeacherDashboard = () => (
               <div className="space-y-4">
                 {announcements.map((item, i) => (
                   <div key={i} className="flex items-start gap-3">
-                    <div className={`mt-1.5 h-2 w-2 rounded-full ${item.priority === 'high' ? 'bg-red-500' : 'bg-yellow-500'} shrink-0`} />
+                    <div className={`mt-1.5 h-2 w-2 rounded-full ${item.priority === 'high' ? 'bg-primary' : 'bg-secondary'} shrink-0`} />
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium text-foreground">{item.title}</p>
                       <p className="text-xs text-muted-foreground mb-1">{item.message}</p>

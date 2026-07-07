@@ -47,40 +47,51 @@ export const useAdminDashboardData = () => {
     ],
   });
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
 
   useEffect(() => {
-    // In a real app, you would fetch from multiple collections
-    // Here we'll listen to a "dashboard_stats" doc or individual collections
-    
-    const unsubscribeStudents = onSnapshot(collection(db, "students"), (snapshot) => {
-      setData(prev => ({ ...prev, totalStudents: snapshot.size || prev.totalStudents }));
-    });
+    let unsubscribed = false;
+    try {
+      // In a real app, you would fetch from multiple collections
+      // Here we'll listen to a "dashboard_stats" doc or individual collections
+      const unsubscribeStudents = onSnapshot(collection(db, "students"), (snapshot) => {
+        if (unsubscribed) return;
+        setData(prev => ({ ...prev, totalStudents: snapshot.size || prev.totalStudents }));
+      });
 
-    const unsubscribeTeachers = onSnapshot(collection(db, "teachers"), (snapshot) => {
-      setData(prev => ({ ...prev, totalTeachers: snapshot.size || prev.totalTeachers }));
-    });
+      const unsubscribeTeachers = onSnapshot(collection(db, "teachers"), (snapshot) => {
+        if (unsubscribed) return;
+        setData(prev => ({ ...prev, totalTeachers: snapshot.size || prev.totalTeachers }));
+      });
 
-    const unsubscribeActivity = onSnapshot(
-      query(collection(db, "activity"), orderBy("createdAt", "desc"), limit(5)),
-      (snapshot) => {
-        const activities = snapshot.docs.map(doc => ({
-           text: doc.data().text,
-           time: "Recent",
-           dot: doc.data().type === 'alert' ? 'bg-red-500' : 'bg-blue-500'
-        }));
-        if (activities.length > 0) {
-          setData(prev => ({ ...prev, recentActivity: activities }));
+      const unsubscribeActivity = onSnapshot(
+        query(collection(db, "activity"), orderBy("createdAt", "desc"), limit(5)),
+        (snapshot) => {
+          if (unsubscribed) return;
+          const activities = snapshot.docs.map(doc => ({
+            text: doc.data().text,
+            time: "Recent",
+            dot: doc.data().type === 'alert' ? 'bg-red-500' : 'bg-blue-500'
+          }));
+          if (activities.length > 0) {
+            setData(prev => ({ ...prev, recentActivity: activities }));
+          }
         }
-      }
-    );
+      );
 
-    setLoading(false);
-    return () => {
-      unsubscribeStudents();
-      unsubscribeTeachers();
-      unsubscribeActivity();
-    };
+      // Set up a cleanup function to unsubscribe from all listeners
+      return () => {
+        unsubscribed = true;
+        unsubscribeStudents();
+        unsubscribeTeachers();
+        unsubscribeActivity();
+      };
+    } catch (err) {
+      console.error('Error setting up data listeners:', err);
+      setError(err as Error);
+      setLoading(false);
+    }
   }, []);
 
-  return { data, loading };
+  return { data, loading, error };
 };

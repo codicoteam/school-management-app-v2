@@ -2,6 +2,7 @@ import { useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/contexts/AuthContext";
 import {
   Menu,
   X,
@@ -31,6 +32,12 @@ const DashboardLayout = ({ children, role, roleLabel, navGroups }: DashboardLayo
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
   const navigate = useNavigate();
+  const { logout } = useAuth();
+
+  const handleLogout = async () => {
+    await logout();
+    navigate("/");
+  };
 
   return (
     <div className="flex h-screen bg-muted/30">
@@ -118,7 +125,7 @@ const DashboardLayout = ({ children, role, roleLabel, navGroups }: DashboardLayo
         {/* Footer */}
         <div className="border-t border-primary-foreground/10 p-3">
           <button
-            onClick={() => navigate("/")}
+            onClick={handleLogout}
             className={cn(
               "flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-red-300 hover:bg-red-500/10 transition-colors",
               collapsed && "justify-center"

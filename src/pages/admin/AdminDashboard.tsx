@@ -11,40 +11,7 @@ import {
 } from "recharts";
 import { useNavigate } from "react-router-dom";
 
-const stats = [
-  { label: "Total Students", value: "1,250", change: "+12%", icon: GraduationCap, gradient: "from-accent to-accent/70" },
-  { label: "Total Teachers", value: "45", change: "+3%", icon: Users, gradient: "from-secondary to-secondary/70" },
-  { label: "Total Classes", value: "30", change: "+5%", icon: BookOpen, gradient: "from-primary to-primary/70" },
-  { label: "Total Revenue", value: "$32,500", change: "+18%", icon: DollarSign, gradient: "from-green-500 to-green-400" },
-];
-
-const enrollmentData = [
-  { month: "Jan", students: 980 },
-  { month: "Feb", students: 1020 },
-  { month: "Mar", students: 1080 },
-  { month: "Apr", students: 1130 },
-  { month: "May", students: 1180 },
-  { month: "Jun", students: 1210 },
-  { month: "Jul", students: 1250 },
-];
-
-const feeData = [
-  { month: "Jan", collected: 22000, expected: 30000 },
-  { month: "Feb", collected: 25500, expected: 30000 },
-  { month: "Mar", collected: 28000, expected: 31000 },
-  { month: "Apr", collected: 26500, expected: 31000 },
-  { month: "May", collected: 30200, expected: 32000 },
-  { month: "Jun", collected: 31800, expected: 32000 },
-  { month: "Jul", collected: 32500, expected: 33000 },
-];
-
-const recentActivity = [
-  { text: "New student Tatenda Moyo registered in Form 2B", time: "2 mins ago", dot: "bg-accent" },
-  { text: "Fee payment of $250 received from Chipo Ncube", time: "15 mins ago", dot: "bg-green-500" },
-  { text: "End-of-term exam timetable published", time: "1 hour ago", dot: "bg-secondary" },
-  { text: "Mr. Mhlanga assigned to Grade 7 Mathematics", time: "3 hours ago", dot: "bg-purple-500" },
-  { text: "Sports Day announcement sent to all parents", time: "5 hours ago", dot: "bg-orange-500" },
-];
+import { useAdminDashboardData } from "@/hooks/useAdminDashboardData";
 
 const quickActions = [
   { label: "Add Student", icon: UserPlus, href: "/admin/students" },
@@ -53,18 +20,30 @@ const quickActions = [
   { label: "Send Announcement", icon: Megaphone, href: "/admin/announcements" },
 ];
 
-import { useAdminDashboardData } from "@/hooks/useAdminDashboardData";
-
 const AdminDashboard = () => {
   const navigate = useNavigate();
-  const { data: fbData, loading } = useAdminDashboardData();
+  const { data: fbData, loading, error } = useAdminDashboardData();
 
   const stats = [
-    { label: "Total Students", value: fbData.totalStudents.toLocaleString(), change: "+12%", icon: GraduationCap, gradient: "from-accent to-accent/70" },
+    { label: "Total Students", value: fbData.totalStudents.toLocaleString(), change: "+12%", icon: GraduationCap, gradient: "from-primary to-primary/70" },
     { label: "Total Teachers", value: fbData.totalTeachers.toLocaleString(), change: "+3%", icon: Users, gradient: "from-secondary to-secondary/70" },
-    { label: "Total Classes", value: fbData.totalClasses.toLocaleString(), change: "+5%", icon: BookOpen, gradient: "from-primary to-primary/70" },
-    { label: "Total Revenue", value: `$${fbData.totalRevenue.toLocaleString()}`, change: "+18%", icon: DollarSign, gradient: "from-green-500 to-green-400" },
+    { label: "Total Classes", value: fbData.totalClasses.toLocaleString(), change: "+5%", icon: BookOpen, gradient: "from-accent to-accent/70" },
+    { label: "Total Revenue", value: `$${fbData.totalRevenue.toLocaleString()}`, change: "+18%", icon: DollarSign, gradient: "from-primary/90 to-primary/60" },
   ];
+
+  if (error) {
+    return (
+      <div className="flex h-screen w-full items-center justify-center bg-background">
+        <div className="text-center p-6">
+          <h2 className="text-2xl font-bold text-destructive mb-4">Failed to Load Dashboard Data</h2>
+          <p className="mb-4">Please check your connection and try again.</p>
+          <Button onClick={() => window.location.reload()} className="btn-primary">
+            Retry
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -88,7 +67,7 @@ const AdminDashboard = () => {
               </CardHeader>
               <CardContent>
                 <p className="text-2xl font-bold text-foreground">{stat.value}</p>
-                <div className="mt-1 flex items-center gap-1 text-xs font-medium text-green-600">
+                <div className="mt-1 flex items-center gap-1 text-xs font-medium text-primary">
                   <TrendingUp className="h-3 w-3" />
                   {stat.change} from last month
                 </div>
@@ -171,7 +150,7 @@ const AdminDashboard = () => {
             </button>
           </CardHeader>
           <CardContent>
-             <div className="space-y-4">
+            <div className="space-y-4">
               {fbData.recentActivity.map((item, i) => (
                 <div key={i} className="flex items-start gap-3">
                   <div className={`mt-1.5 h-2 w-2 rounded-full ${item.dot} shrink-0`} />

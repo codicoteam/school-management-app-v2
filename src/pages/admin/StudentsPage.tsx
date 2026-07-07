@@ -195,7 +195,7 @@ const StudentsPage = () => {
         </div>
         <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
           <DialogTrigger asChild>
-            <Button className="bg-accent text-accent-foreground hover:bg-accent/90">
+            <Button className="bg-primary text-white hover:bg-primary/90">
               <Plus className="h-4 w-4" /> Add Student
             </Button>
           </DialogTrigger>
