@@ -13,6 +13,72 @@ function createApp(db) {
   app.use(cors());
   app.use(express.json());
 
+  const swaggerSpec = {
+    openapi: '3.0.0',
+    info: {
+      title: 'School Management API',
+      version: '1.0.0',
+      description: 'API endpoints for the school management application',
+    },
+    servers: [{ url: `http://localhost:${PORT}`, description: 'Local development server' }],
+    paths: {
+      '/api/auth/login': {
+        post: {
+          summary: 'Authenticate a user',
+          responses: { '200': { description: 'JWT issued successfully' } },
+        },
+      },
+      '/api/students/{id}': {
+        get: {
+          summary: 'Fetch a student record',
+          responses: { '200': { description: 'Student record returned' } },
+        },
+      },
+      '/api/classes': {
+        get: {
+          summary: 'List all classes',
+          responses: { '200': { description: 'Classes returned' } },
+        },
+      },
+    },
+  };
+
+  app.get('/api-docs.json', (req, res) => {
+    res.json(swaggerSpec);
+  });
+
+  app.get('/api-docs', (req, res) => {
+    res.type('html').send(`<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>School Management API Docs</title>
+    <style>
+      body { font-family: Arial, sans-serif; margin: 2rem; line-height: 1.6; color: #111827; }
+      code { background: #f3f4f6; padding: 0.1rem 0.3rem; border-radius: 0.25rem; }
+      .card { border: 1px solid #e5e7eb; border-radius: 0.75rem; padding: 1rem 1.25rem; margin-bottom: 1rem; }
+    </style>
+  </head>
+  <body>
+    <h1>School Management API Docs</h1>
+    <p>This endpoint provides a lightweight Swagger-style overview for the local backend.</p>
+    <div class="card">
+      <h2>Available endpoints</h2>
+      <ul>
+        <li><code>POST /api/auth/login</code> - sign in and receive a JWT</li>
+        <li><code>GET /api/students/:id</code> - fetch a specific student</li>
+        <li><code>GET /api/classes</code> - list all classes</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h2>Raw OpenAPI JSON</h2>
+      <p><a href="/api-docs.json">/api-docs.json</a></p>
+    </div>
+  </body>
+</html>`);
+  });
+
   const mapUserRow = (user) => ({
     id: user.id,
     name: user.name,
@@ -1041,7 +1107,10 @@ if (require.main === module) {
   const app = createApp(db);
   // seed initial data
   app._seedInitialData().catch(err => console.error('Seed failed', err));
-  app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+  app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+    console.log(`Swagger docs available at http://127.0.0.1:${PORT}/api-docs`);
+  });
 }
 
 module.exports = { createApp };

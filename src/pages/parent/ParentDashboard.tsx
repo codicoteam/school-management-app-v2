@@ -15,8 +15,6 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAuth } from "@/contexts/AuthContext";
 import { api } from "@/lib/api";
-import { useAuth } from "@/contexts/AuthContext";
-import { api } from "@/lib/api";
 
 const recentResults = [
   { subject: "Mathematics", score: 78 },
