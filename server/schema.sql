@@ -261,3 +261,74 @@ CREATE TABLE IF NOT EXISTS timetable (
   room VARCHAR(50),
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+-- Subjects/Courses
+CREATE TABLE IF NOT EXISTS subjects (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name VARCHAR(255) NOT NULL UNIQUE,
+  description TEXT,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Add room and max_students to classes if not exists
+ALTER TABLE classes ADD COLUMN IF NOT EXISTS room VARCHAR(50);
+ALTER TABLE classes ADD COLUMN IF NOT EXISTS max_students INTEGER DEFAULT 30;
+
+-- School profile and settings
+CREATE TABLE IF NOT EXISTS school_profile (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  school_name VARCHAR(255),
+  address VARCHAR(255),
+  contact_phone VARCHAR(20),
+  public_email VARCHAR(255),
+  motto_slogan VARCHAR(255),
+  system_currency VARCHAR(10) DEFAULT 'USD',
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- System settings and security configurations
+CREATE TABLE IF NOT EXISTS system_settings (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  setting_key VARCHAR(100) UNIQUE NOT NULL,
+  setting_value TEXT,
+  setting_type VARCHAR(50),
+  description TEXT,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Audit logs for tracking admin actions
+CREATE TABLE IF NOT EXISTS audit_logs (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  admin_id UUID REFERENCES users(id),
+  admin_name VARCHAR(255),
+  action VARCHAR(255),
+  entity_type VARCHAR(100),
+  entity_id VARCHAR(255),
+  description TEXT,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Generated documents (certificates, letters, reports)
+CREATE TABLE IF NOT EXISTS generated_documents (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  student_id VARCHAR(50) REFERENCES students(id),
+  document_type VARCHAR(100),
+  file_name VARCHAR(255),
+  url VARCHAR(500),
+  status VARCHAR(50) DEFAULT 'generated',
+  generated_by UUID REFERENCES users(id),
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Payment transactions for fee payments
+CREATE TABLE IF NOT EXISTS payment_transactions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  student_id VARCHAR(50) REFERENCES students(id),
+  amount DECIMAL(10, 2) NOT NULL,
+  method VARCHAR(50),
+  reference VARCHAR(255),
+  status VARCHAR(50) DEFAULT 'completed',
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
