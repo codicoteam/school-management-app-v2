@@ -32,6 +32,15 @@ function createApp(db) {
   const upload = multer({ storage });
   app.use('/uploads', express.static(uploadsDir));
 
+  app.get('/', (req, res) => {
+    res.send({
+      status: 'ok',
+      message: 'School Management API backend is deployed successfully.',
+      docs: '/api-docs',
+      swaggerJson: '/api-docs.json',
+    });
+  });
+
   const swaggerSpec = {
     openapi: '3.0.0',
     info: {
