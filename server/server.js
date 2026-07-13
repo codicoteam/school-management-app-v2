@@ -48,7 +48,10 @@ function createApp(db) {
       version: '1.0.0',
       description: 'Complete backend API documentation for the school management system',
     },
-    servers: [{ url: `http://localhost:${PORT}`, description: 'Local development server' }],
+    servers: [
+      { url: `http://localhost:${PORT}`, description: 'Local development server' },
+      { url: 'https://school-management-app-v2.onrender.com', description: 'Production server' }
+    ],
     tags: [
       { name: 'Authentication', description: 'User authentication and management' },
       { name: 'Students', description: 'Student information and management' },
