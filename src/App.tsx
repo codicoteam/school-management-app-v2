@@ -11,9 +11,6 @@ import Login from "./pages/Login.tsx";
 import EnrollmentPage from "./pages/EnrollmentPage.tsx";
 import NotFound from "./pages/NotFound.tsx";
 import { ThemeToggle } from "./components/ThemeToggle.tsx";
-import { isAdminDomain } from "./utils/adminDomain";
-import AdminDomainRedirect from "./pages/admin/AdminDomainRedirect.tsx";
-
 
 // Admin
 import AdminLayout from "./pages/admin/AdminLayout.tsx";
@@ -72,8 +69,6 @@ import ReportsPage from "./pages/teacher/ReportsPage.tsx";
 const queryClient = new QueryClient();
 
 const App = () => {
-  const isAdmin = isAdminDomain();
-
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
@@ -82,90 +77,70 @@ const App = () => {
           <Sonner />
           <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
             <Routes>
-              {isAdmin ? (
-                // ── ADMIN PORTAL ROUTING ──
-                <>
-                  <Route path="/" element={<Navigate to="/admin" replace />} />
-                  <Route path="/login" element={<Login />} />
-                  
-                  <Route path="/admin" element={<ProtectedRoute allowedRoles={['admin']}><AdminLayout /></ProtectedRoute>}>
-                    <Route index element={<AdminDashboard />} />
-                    <Route path="students" element={<StudentsPage />} />
-                    <Route path="teachers" element={<TeachersPage />} />
-                    <Route path="academics" element={<AdminAcademicsPage />} />
-                    <Route path="exams" element={<ExamsPage />} />
-                    <Route path="attendance" element={<AdminAttendancePage />} />
-                    <Route path="fees" element={<AdminFeesPage />} />
-                    <Route path="inventory" element={<InventoryPage />} />
-                    <Route path="announcements" element={<AdminAnnouncementsPage />} />
-                    <Route path="certificates" element={<CertificatesPage />} />
-                    <Route path="admissions" element={<AdmissionsPage />} />
-                    <Route path="messages" element={<AdminMessagesPage />} />
-                    <Route path="settings" element={<SettingsPage />} />
-                  </Route>
+              {/* ── PUBLIC ROUTING ── */}
+              <Route path="/" element={<Index />} />
+              <Route path="/select-role" element={<SelectRole />} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/enrollment" element={<EnrollmentPage />} />
 
-                  {/* On the Admin subdomain, deny student/teacher/parent URLs */}
-                  <Route path="/student/*" element={<NotFound />} />
-                  <Route path="/parent/*" element={<NotFound />} />
-                  <Route path="/teacher/*" element={<NotFound />} />
-                  <Route path="/select-role" element={<Navigate to="/login" replace />} />
-                  <Route path="/enrollment" element={<Navigate to="/login" replace />} />
-                  <Route path="*" element={<NotFound />} />
-                </>
-              ) : (
-                // ── MAIN PORTAL ROUTING (Student, Parent, Teacher, Public Site) ──
-                <>
-                  <Route path="/" element={<Index />} />
-                  <Route path="/select-role" element={<SelectRole />} />
-                  <Route path="/login" element={<Login />} />
-                  <Route path="/enrollment" element={<EnrollmentPage />} />
+              {/* ── ADMIN PORTAL ROUTING ── */}
+              <Route path="/admin" element={<ProtectedRoute allowedRoles={['admin']}><AdminLayout /></ProtectedRoute>}>
+                <Route index element={<AdminDashboard />} />
+                <Route path="students" element={<StudentsPage />} />
+                <Route path="teachers" element={<TeachersPage />} />
+                <Route path="academics" element={<AdminAcademicsPage />} />
+                <Route path="exams" element={<ExamsPage />} />
+                <Route path="attendance" element={<AdminAttendancePage />} />
+                <Route path="fees" element={<AdminFeesPage />} />
+                <Route path="inventory" element={<InventoryPage />} />
+                <Route path="announcements" element={<AdminAnnouncementsPage />} />
+                <Route path="certificates" element={<CertificatesPage />} />
+                <Route path="admissions" element={<AdmissionsPage />} />
+                <Route path="messages" element={<AdminMessagesPage />} />
+                <Route path="settings" element={<SettingsPage />} />
+              </Route>
 
-                  {/* Student */}
-                  <Route path="/student" element={<ProtectedRoute allowedRoles={['student']}><StudentLayout /></ProtectedRoute>}>
-                    <Route index element={<StudentDashboard />} />
-                    <Route path="profile" element={<StudentProfilePage />} />
-                    <Route path="academics" element={<StudentAcademicsPage />} />
-                    <Route path="exams" element={<StudentExamsPage />} />
-                    <Route path="attendance" element={<StudentAttendancePage />} />
-                    <Route path="fees" element={<StudentFeesPage />} />
-                    <Route path="messages" element={<StudentMessagesPage />} />
-                    <Route path="announcements" element={<StudentAnnouncementsPage />} />
-                    <Route path="library" element={<StudentLibraryPage />} />
-                  </Route>
+              {/* ── STUDENT ROUTING ── */}
+              <Route path="/student" element={<ProtectedRoute allowedRoles={['student']}><StudentLayout /></ProtectedRoute>}>
+                <Route index element={<StudentDashboard />} />
+                <Route path="profile" element={<StudentProfilePage />} />
+                <Route path="academics" element={<StudentAcademicsPage />} />
+                <Route path="exams" element={<StudentExamsPage />} />
+                <Route path="attendance" element={<StudentAttendancePage />} />
+                <Route path="fees" element={<StudentFeesPage />} />
+                <Route path="messages" element={<StudentMessagesPage />} />
+                <Route path="announcements" element={<StudentAnnouncementsPage />} />
+                <Route path="library" element={<StudentLibraryPage />} />
+              </Route>
 
-                  {/* Parent */}
-                  <Route path="/parent" element={<ProtectedRoute allowedRoles={['parent']}><ParentLayout /></ProtectedRoute>}>
-                    <Route index element={<ParentDashboard />} />
-                    <Route path="child" element={<ChildProfilePage />} />
-                    <Route path="results" element={<ResultsPage />} />
-                    <Route path="attendance" element={<ParentAttendancePage />} />
-                    <Route path="fees" element={<ParentFeesPage />} />
-                    <Route path="messages" element={<ParentMessagesPage />} />
-                    <Route path="announcements" element={<ParentAnnouncementsPage />} />
-                    <Route path="documents" element={<DocumentsPage />} />
-                  </Route>
+              {/* ── PARENT ROUTING ── */}
+              <Route path="/parent" element={<ProtectedRoute allowedRoles={['parent']}><ParentLayout /></ProtectedRoute>}>
+                <Route index element={<ParentDashboard />} />
+                <Route path="child" element={<ChildProfilePage />} />
+                <Route path="results" element={<ResultsPage />} />
+                <Route path="attendance" element={<ParentAttendancePage />} />
+                <Route path="fees" element={<ParentFeesPage />} />
+                <Route path="messages" element={<ParentMessagesPage />} />
+                <Route path="announcements" element={<ParentAnnouncementsPage />} />
+                <Route path="documents" element={<DocumentsPage />} />
+              </Route>
 
-                  {/* Teacher */}
-                  <Route path="/teacher" element={<ProtectedRoute allowedRoles={['teacher']}><TeacherLayout /></ProtectedRoute>}>
-                    <Route index element={<TeacherDashboard />} />
-                    <Route path="profile" element={<TeacherProfilePage />} />
-                    <Route path="classes" element={<ClassesPage />} />
-                    <Route path="attendance" element={<TeacherAttendancePage />} />
-                    <Route path="assignments" element={<AssignmentsPage />} />
-                    <Route path="exams" element={<TeacherExamsPage />} />
-                    <Route path="messages" element={<TeacherMessagesPage />} />
-                    <Route path="announcements" element={<TeacherAnnouncementsPage />} />
-                    <Route path="resources" element={<ResourcesPage />} />
-                    <Route path="calendar" element={<CalendarPage />} />
-                    <Route path="reports" element={<ReportsPage />} />
-                  </Route>
+              {/* ── TEACHER ROUTING ── */}
+              <Route path="/teacher" element={<ProtectedRoute allowedRoles={['teacher']}><TeacherLayout /></ProtectedRoute>}>
+                <Route index element={<TeacherDashboard />} />
+                <Route path="profile" element={<TeacherProfilePage />} />
+                <Route path="classes" element={<ClassesPage />} />
+                <Route path="attendance" element={<TeacherAttendancePage />} />
+                <Route path="assignments" element={<AssignmentsPage />} />
+                <Route path="exams" element={<TeacherExamsPage />} />
+                <Route path="messages" element={<TeacherMessagesPage />} />
+                <Route path="announcements" element={<TeacherAnnouncementsPage />} />
+                <Route path="resources" element={<ResourcesPage />} />
+                <Route path="calendar" element={<CalendarPage />} />
+                <Route path="reports" element={<ReportsPage />} />
+              </Route>
 
-                  {/* Intercept /admin attempts on main subdomain and show redirect page */}
-                  <Route path="/admin/*" element={<AdminDomainRedirect />} />
-                  <Route path="/admin" element={<AdminDomainRedirect />} />
-                  <Route path="*" element={<NotFound />} />
-                </>
-              )}
+              <Route path="*" element={<NotFound />} />
             </Routes>
             <ThemeToggle />
           </BrowserRouter>

@@ -2,7 +2,7 @@ import { motion } from "framer-motion";
 import { GraduationCap, Users, UserCog, ArrowLeft, ShieldCheck } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import heroBg from "@/assets/hero-bg.jpg";
-import { isAdminDomain } from "@/utils/adminDomain";
+// Removed adminDomain import
 
 const roles = [
   {
@@ -33,7 +33,7 @@ const roles = [
 
 const SelectRole = () => {
   const navigate = useNavigate();
-  const isDevAdmin = isAdminDomain() || window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
+  // Removed isDevAdmin check
   
 // Include all roles (admin included)
    const displayRoles = roles;
@@ -91,7 +91,7 @@ const SelectRole = () => {
               transition={{ duration: 0.5, delay: 0.3 + i * 0.12 }}
               onClick={() => {
                 if (role.id === "admin") {
-                  localStorage.setItem("admin_portal_mode", "true");
+                  // admin portal mode local storage removed
                 }
                 navigate(`/login?role=${role.id}`);
               }}
