@@ -1727,7 +1727,20 @@ function createApp(db) {
     },
   };
 
-  app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+  // Load custom CSS to simplify the responses panel (hide media type selector,
+  // "Example Value" and "Schema" panels) so docs show only status codes
+  // and descriptions.
+  const swaggerUiOptions = {
+    customCss: fs.existsSync(path.join(__dirname, 'swagger-custom.css'))
+      ? fs.readFileSync(path.join(__dirname, 'swagger-custom.css'), 'utf8')
+      : '',
+    swaggerOptions: {
+      defaultModelsExpandDepth: -1,
+      defaultModelExpandDepth: -1,
+    },
+  };
+
+  app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, swaggerUiOptions));
   app.get('/api-docs.json', (req, res) => res.json(swaggerSpec));
 
   const mapUserRow = (user) => ({
