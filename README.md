@@ -44,6 +44,26 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 3. Optionally wire Swagger UI into the backend server.
 4. Document the final docs link in this README.
 
+## Environment Setup
+
+For the backend, copy the example environment file and fill in your own values:
+
+```bash
+cp server/.env.example server/.env
+```
+
+Use the following values:
+
+- `PORT`: usually `3001`
+- `JWT_SECRET`: a strong random secret string
+- `DB_HOST`: use `localhost` for local development, or the shared/staging database host for integration testing
+- `DB_PORT`: usually `5432`
+- `DB_USER`: your PostgreSQL username
+- `DB_PASSWORD`: your PostgreSQL password
+- `DB_NAME`: usually `school_management`
+
+Do not commit your real `.env` file. Keep it local to each machine or deployment environment.
+
 ## Notes
 
 - Since this repo currently has only a placeholder README, this section is intentionally explicit about Swagger availability.
