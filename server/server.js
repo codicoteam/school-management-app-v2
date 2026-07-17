@@ -50,7 +50,7 @@ function createApp(db) {
     },
     servers: [
       { url: `http://localhost:${PORT}`, description: 'Local development server' },
-      { url: 'https://school-management-app-v2.onrender.com', description: 'Production server' }
+      { url: 'https://school-management-app-v2-8vbm.onrender.com', description: 'Production server' }
     ],
     tags: [
       { name: 'Authentication', description: 'User authentication and management' },
@@ -1953,15 +1953,16 @@ function createApp(db) {
       }
 
       const hashedPassword = await bcrypt.hash(password, 10);
-      const userId = await db('users').insert({
-        email,
-        password: hashedPassword,
-        name,
-        role,
-        created_at: new Date(),
-      });
+      const [newUser] = await db('users')
+        .insert({
+          email,
+          password: hashedPassword,
+          name,
+          role,
+          created_at: new Date(),
+        })
+        .returning('*');
 
-      const newUser = await db('users').where({ id: userId[0] }).first();
       res.status(201).json(mapUserRow(newUser));
     } catch (error) {
       console.error(error);
