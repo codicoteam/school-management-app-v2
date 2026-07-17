@@ -3688,8 +3688,24 @@ if (require.main === module) {
   // run with real db when executed directly
   const db = require('./db');
   const app = createApp(db);
-  // seed initial data
-  app._seedInitialData().catch(err => console.error('Seed failed', err));
+
+  // On a fresh database (e.g. first deploy), create tables before seeding.
+  // schema.sql only uses CREATE ... IF NOT EXISTS, so this is idempotent.
+  const ensureSchema = async () => {
+    const hasUsers = await db.schema.hasTable('users');
+    if (hasUsers) return;
+    console.log('users table missing — applying schema.sql...');
+    const schemaSQL = fs.readFileSync(path.join(__dirname, 'schema.sql'), 'utf-8');
+    for (const statement of schemaSQL.split(';')) {
+      if (statement.trim()) await db.raw(statement);
+    }
+    console.log('Schema applied successfully.');
+  };
+
+  ensureSchema()
+    .then(() => app._seedInitialData())
+    .catch(err => console.error('Database initialisation failed:', err.message));
+
   app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
     console.log(`Swagger docs available at http://127.0.0.1:${PORT}/api-docs`);
