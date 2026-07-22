@@ -50,7 +50,7 @@ const AdminDashboard = () => {
       <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
         <h1 className="font-heading text-2xl font-bold text-foreground">Admin Dashboard</h1>
         <p className="mt-1 text-sm text-muted-foreground">Welcome back! Here's what's happening at School Management today.</p>
-        {loading && <p className="text-[10px] text-accent animate-pulse mt-2">Syncing with Cloud Database...</p>}
+        {loading && <p className="text-[10px] text-accent animate-pulse mt-2">Loading dashboard data...</p>}
       </motion.div>
 
       {/* Stats */}

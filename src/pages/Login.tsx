@@ -1,21 +1,13 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { ArrowLeft, Eye, EyeOff, GraduationCap, ShieldCheck, Users, UserCog, Loader2, MailCheck } from "lucide-react";
+import { ArrowLeft, Eye, EyeOff, GraduationCap, ShieldCheck, Users, UserCog, Loader2 } from "lucide-react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import heroBg from "@/assets/hero-bg.jpg";
-import {
-  createUserWithEmailAndPassword,
-  signInWithEmailAndPassword,
-  signOut,
-  sendEmailVerification,
-} from "firebase/auth";
-import { doc, setDoc, getDoc, serverTimestamp } from "firebase/firestore";
-import { auth, db } from "@/lib/firebase";
-import type { UserRole } from "@/contexts/AuthContext";
+import { useAuth, type UserRole } from "@/contexts/AuthContext";
 
 const roleConfig: Record<string, { label: string; icon: typeof GraduationCap }> = {
   student: { label: "Student", icon: GraduationCap },
@@ -33,6 +25,7 @@ const dashboardMap: Record<string, string> = {
 
 const Login = () => {
   const navigate = useNavigate();
+  const { login, signup, logout } = useAuth();
 const [searchParams] = useSearchParams();
 const rawRole = searchParams.get("role") || "student";
 
@@ -45,7 +38,6 @@ const role = allowedRoles.includes(rawRole) ? rawRole : 'student';
   const [isSignUp, setIsSignUp] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [verificationSent, setVerificationSent] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -99,72 +91,22 @@ const role = allowedRoles.includes(rawRole) ? rawRole : 'student';
           return;
         }
 
-        // Create Firebase Auth user
-        const credential = await createUserWithEmailAndPassword(
-          auth,
-          formData.email,
-          formData.password
-        );
+        // Create account on the backend
+        const newUser = await signup(formData.email, formData.password, formData.name.trim(), role as UserRole);
 
-        // Send email verification
-        await sendEmailVerification(credential.user);
+        toast.success("Account created successfully!");
 
-        // Save user profile to Firestore
-        await setDoc(doc(db, "users", credential.user.uid), {
-          uid: credential.user.uid,
-          name: formData.name.trim(),
-          email: formData.email,
-          role: role as UserRole,
-          createdAt: serverTimestamp(),
-        });
-
-        toast.success("Account created successfully! Please check your email to verify your account.");
-
-        // Sign out to prevent unverified app usage
-        await signOut(auth);
-        
-        // Show verification success screen
-        setVerificationSent(true);
-        // Clear password fields
-        setFormData(prev => ({ ...prev, password: '', confirmPassword: '' }));
+        navigate(dashboardMap[newUser.role] || "/student", { replace: true });
       } else {
         // ── Login ──
-        const credential = await signInWithEmailAndPassword(
-          auth,
-          formData.email,
-          formData.password
-        );
-
-        if (!credential.user.emailVerified) {
-          try {
-            // Automatically resend a fresh verification email in case they missed the first one
-            await sendEmailVerification(credential.user);
-            toast.success("A new verification email has been sent! Please check your Spam/Junk folder.");
-          } catch (e) {
-            toast.error("Please verify your email address. It may be in your Spam or Junk folder.");
-          }
-          await signOut(auth);
-          setIsLoading(false);
-          return;
-        }
-
-        // Read the user's role from Firestore
-        const userDoc = await getDoc(doc(db, "users", credential.user.uid));
-
-        if (!userDoc.exists()) {
-          toast.error("Account profile not found. Please contact an administrator.");
-          setIsLoading(false);
-          return;
-        }
-
-        const userData = userDoc.data();
-        const userRole = userData.role as string;
+        const user = await login(formData.email, formData.password, role as UserRole);
+        const userRole = user.role as string;
 
         // Validate that the user has a valid role
         if (!userRole || !roleConfig[userRole]) {
           toast.error("Account has invalid role configuration. Please contact an administrator.");
           // Sign out the user since we authenticated but role is invalid
-          await signOut(auth);
+          await logout();
           // Redirect to role selection page
           navigate("/select-role", { replace: true });
           setIsLoading(false);
@@ -176,31 +118,19 @@ const role = allowedRoles.includes(rawRole) ? rawRole : 'student';
         if (userRole !== role) {
           toast.error(`Invalid login. This account is registered as a ${roleConfig[userRole]?.label}. Please use the ${roleConfig[userRole]?.label} login page.`);
           // Sign out the user since we authenticated but role doesn't match
-          await signOut(auth);
+          await logout();
           // Redirect to the correct login page for their role
           navigate(`/login?role=${userRole}`, { replace: true });
           setIsLoading(false);
           return;
         }
 
-        toast.success("Logged in securely!");
+        toast.success("Logged in successfully!");
 
-        // Redirect based on Firestore role (not query param)
         navigate(dashboardMap[userRole] || "/student", { replace: true });
       }
     } catch (error: any) {
-      // Map Firebase error codes to friendly messages
-      const errorMap: Record<string, string> = {
-        "auth/email-already-in-use": "This email is already registered. Try logging in.",
-        "auth/invalid-email": "Please enter a valid email address.",
-        "auth/operation-not-allowed": "Email/Password sign-in is not enabled.",
-        "auth/weak-password": "Password is too weak. Use at least 6 characters.",
-        "auth/user-not-found": "No account found with this email.",
-        "auth/wrong-password": "Incorrect password. Please try again.",
-        "auth/invalid-credential": "Invalid email or password. Please try again.",
-        "auth/too-many-requests": "Too many attempts. Please try again later.",
-      };
-      const message = errorMap[error?.code] || error?.message || "Authentication failed. Please try again.";
+      const message = error?.message || "Authentication failed. Please try again.";
       toast.error(message);
     } finally {
       setIsLoading(false);
@@ -235,28 +165,6 @@ const role = allowedRoles.includes(rawRole) ? rawRole : 'student';
         className="relative z-10 w-full max-w-md mx-6"
       >
         <div className="rounded-2xl border border-white/10 bg-white/10 p-8 backdrop-blur-lg">
-          {verificationSent ? (
-            <div className="flex flex-col items-center justify-center text-center py-6">
-              <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-secondary/20">
-                <MailCheck className="h-8 w-8 text-secondary" />
-              </div>
-              <h2 className="text-2xl font-bold text-white mb-2">Check Your Email</h2>
-              <p className="text-white/70 mb-8 max-w-sm">
-                We've sent a verification link to <strong>{formData.email}</strong>. 
-                Please verify your email address to continue.
-              </p>
-              <Button 
-                onClick={() => {
-                  setVerificationSent(false);
-                  setIsSignUp(false);
-                }}
-                className="w-full bg-secondary text-secondary-foreground hover:bg-secondary/90 h-11 text-base font-semibold"
-              >
-                Back to Login
-              </Button>
-            </div>
-          ) : (
-            <>
               {/* Role badge */}
               <div className="mb-6 flex flex-col items-center gap-3">
                 <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-secondary">
@@ -364,8 +272,6 @@ const role = allowedRoles.includes(rawRole) ? rawRole : 'student';
                   </button>
                 </p>
               </div>
-            </>
-          )}
         </div>
       </motion.div>
     </div>

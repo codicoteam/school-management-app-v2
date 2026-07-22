@@ -1,19 +1,5 @@
-import { useState, useEffect, useRef, useCallback } from "react";
-import { 
-  collection, 
-  query, 
-  orderBy, 
-  onSnapshot, 
-  addDoc, 
-  serverTimestamp, 
-  updateDoc,
-  doc,
-  where,
-  limit,
-  writeBatch,
-  getDocs
-} from "firebase/firestore";
-import { db } from "@/lib/firebase";
+import { useState, useEffect, useCallback } from "react";
+import { subscribe, addItem, updateItem, getAll } from "@/lib/localDb";
 
 export type MessageStatus = 'sending' | 'sent' | 'delivered' | 'read';
 
@@ -25,10 +11,27 @@ export interface Message {
   receiverName: string;
   subject: string;
   text: string;
+  participants: string[];
   createdAt: any;
   isNew: boolean;
   status: MessageStatus;
   _optimistic?: boolean; // local-only flag for optimistic updates
+}
+
+interface StoredMessage extends Omit<Message, "createdAt"> {
+  createdAt: { seconds: number };
+}
+
+const MESSAGES_COLLECTION = "messages";
+
+// Firestore Timestamp-compatible shape, so downstream pages that call
+// `.seconds` / `.toDate()` on message timestamps keep working unchanged.
+function withTimestamp(m: StoredMessage): Message {
+  const seconds = m.createdAt?.seconds ?? Math.floor(Date.now() / 1000);
+  return {
+    ...m,
+    createdAt: { seconds, toDate: () => new Date(seconds * 1000) },
+  };
 }
 
 export const useChat = (currentUserId: string | undefined) => {
@@ -38,48 +41,39 @@ export const useChat = (currentUserId: string | undefined) => {
   useEffect(() => {
     if (!currentUserId) return;
 
-    const q = query(
-      collection(db, "messages"),
-      where("participants", "array-contains", currentUserId),
-      orderBy("createdAt", "desc"),
-      limit(100)
-    );
-
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const firestoreMsgs = snapshot.docs.map(docSnap => ({
-        id: docSnap.id,
-        ...docSnap.data()
-      })) as Message[];
+    const unsubscribe = subscribe<StoredMessage>(MESSAGES_COLLECTION, (all) => {
+      const mine = all
+        .filter((m) => m.participants?.includes(currentUserId))
+        .map(withTimestamp)
+        .sort((a, b) => (b.createdAt.seconds || 0) - (a.createdAt.seconds || 0))
+        .slice(0, 100);
 
       // Merge: keep optimistic messages that haven't been confirmed yet,
-      // but prefer the real Firestore version when it arrives
+      // but prefer the real stored version when it arrives
       setMessages(prev => {
-        const firestoreIds = new Set(firestoreMsgs.map(m => m.id));
-        const stillOptimistic = prev.filter(m => m._optimistic && !firestoreIds.has(m.id));
-        return [...stillOptimistic, ...firestoreMsgs];
+        const storedIds = new Set(mine.map(m => m.id));
+        const stillOptimistic = prev.filter(m => m._optimistic && !storedIds.has(m.id));
+        return [...stillOptimistic, ...mine];
       });
       setLoading(false);
     });
 
-    return () => unsubscribe();
+    return unsubscribe;
   }, [currentUserId]);
 
   // Mark messages as read when receiver opens the conversation
   const markMessagesRead = useCallback(async (conversationPartnerId: string) => {
     if (!currentUserId || !conversationPartnerId) return;
     try {
-      const q = query(
-        collection(db, "messages"),
-        where("participants", "array-contains", currentUserId),
-        where("receiverId", "==", currentUserId),
-        where("senderId", "==", conversationPartnerId),
-        where("status", "in", ["sent", "delivered"])
-      );
-      const snap = await getDocs(q);
-      if (snap.empty) return;
-      const batch = writeBatch(db);
-      snap.docs.forEach(d => batch.update(d.ref, { status: "read", isNew: false }));
-      await batch.commit();
+      const all = getAll<StoredMessage>(MESSAGES_COLLECTION);
+      all
+        .filter(m =>
+          m.participants?.includes(currentUserId) &&
+          m.receiverId === currentUserId &&
+          m.senderId === conversationPartnerId &&
+          (m.status === "sent" || m.status === "delivered")
+        )
+        .forEach(m => updateItem<StoredMessage>(MESSAGES_COLLECTION, m.id, { status: "read", isNew: false }));
     } catch (e) {
       // Silently fail — non-critical
     }
@@ -95,29 +89,30 @@ export const useChat = (currentUserId: string | undefined) => {
   }) => {
     // 1. Add optimistic message immediately (shows instantly like WhatsApp)
     const optimisticId = `optimistic-${Date.now()}`;
+    const optimisticSeconds = Math.floor(Date.now() / 1000);
     const optimisticMsg: Message = {
       id: optimisticId,
       ...data,
       participants: [data.senderId, data.receiverId],
-      createdAt: { seconds: Math.floor(Date.now() / 1000), toDate: () => new Date() },
+      createdAt: { seconds: optimisticSeconds, toDate: () => new Date(optimisticSeconds * 1000) },
       isNew: true,
       status: 'sending',
       _optimistic: true,
-    } as any;
+    };
 
     setMessages(prev => [optimisticMsg, ...prev]);
 
     try {
-      // 2. Write to Firestore with status = 'sent'
-      await addDoc(collection(db, "messages"), {
+      // 2. Write to the local store with status = 'sent'
+      addItem<Omit<StoredMessage, "id">>(MESSAGES_COLLECTION, {
         ...data,
         participants: [data.senderId, data.receiverId],
-        createdAt: serverTimestamp(),
+        createdAt: { seconds: Math.floor(Date.now() / 1000) },
         isNew: true,
         status: 'sent',
       });
 
-      // Remove optimistic on next Firestore snapshot (handled in merge logic above)
+      // Remove optimistic on next store update (handled in merge logic above)
     } catch (error) {
       // Remove optimistic message on failure
       setMessages(prev => prev.filter(m => m.id !== optimisticId));

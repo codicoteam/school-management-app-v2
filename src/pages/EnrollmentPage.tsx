@@ -9,8 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { toast } from "sonner";
-import { db } from "@/lib/firebase";
-import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+import { addItem } from "@/lib/localDb";
 
 const EnrollmentPage = () => {
   const navigate = useNavigate();
@@ -31,13 +30,13 @@ const EnrollmentPage = () => {
     setLoading(true);
 
     try {
-      await addDoc(collection(db, "applications"), {
+      addItem("applications", {
         ...formData,
         desiredLevel,
         status: "pending",
-        submittedAt: serverTimestamp(),
+        submittedAt: new Date().toISOString(),
       });
-      
+
       setLoading(false);
       setIsSubmitted(true);
       toast.success("Application submitted successfully!");

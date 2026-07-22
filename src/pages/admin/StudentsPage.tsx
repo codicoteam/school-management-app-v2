@@ -23,17 +23,7 @@ import {
 import { motion } from "framer-motion";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { db } from "@/lib/firebase";
-import { 
-  collection, 
-  onSnapshot, 
-  addDoc, 
-  updateDoc, 
-  deleteDoc, 
-  doc, 
-  query, 
-  serverTimestamp 
-} from "firebase/firestore";
+import { subscribe, addItem, updateItem, deleteItem } from "@/lib/localDb";
 import { toast } from "sonner";
 
 type Status = "Active" | "Suspended";
@@ -84,18 +74,10 @@ const StudentsPage = () => {
   const [deletingStudentId, setDeletingStudentId] = useState<string | null>(null);
 
   useEffect(() => {
-    const q = query(collection(db, "students"));
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const studentList = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      })) as Student[];
+    const unsubscribe = subscribe<Student>("students", (studentList) => {
       setStudents(studentList.length > 0 ? studentList : initialStudents);
-    }, (error) => {
-      console.error("Firestore error:", error);
-      setStudents(initialStudents);
     });
-    return () => unsubscribe();
+    return unsubscribe;
   }, []);
 
   const { register, handleSubmit, reset, formState: { errors }, setValue } = useForm<StudentFormData>({
@@ -142,24 +124,23 @@ const StudentsPage = () => {
 
   const onAddStudent = async (data: StudentFormData) => {
     try {
-      await addDoc(collection(db, "students"), {
+      addItem("students", {
         ...data,
         status: "Active",
-        createdAt: serverTimestamp(),
+        createdAt: new Date().toISOString(),
       });
       setAddDialogOpen(false);
       reset();
       toast.success("Student added successfully");
     } catch (error) {
-      toast.error("Failed to add student. Please check Firebase config.");
+      toast.error("Failed to add student.");
     }
   };
 
   const onEditStudent = async (data: StudentFormData) => {
     if (!editingStudent) return;
     try {
-      const studentRef = doc(db, "students", editingStudent.id);
-      await updateDoc(studentRef, { ...data });
+      updateItem("students", editingStudent.id, { ...data });
       setEditDialogOpen(false);
       setEditingStudent(null);
       editReset();
@@ -172,7 +153,7 @@ const StudentsPage = () => {
   const confirmDelete = async () => {
     if (!deletingStudentId) return;
     try {
-      await deleteDoc(doc(db, "students", deletingStudentId));
+      deleteItem("students", deletingStudentId);
       setSelected(selected.filter(id => id !== deletingStudentId));
       setDialogOpen(false);
       setDeletingStudentId(null);
@@ -210,7 +191,7 @@ const StudentsPage = () => {
       <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }} className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="font-heading text-2xl font-bold text-foreground">Student Management</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Manage student records with Real-time Firebase Sync.</p>
+          <p className="mt-1 text-sm text-muted-foreground">Manage student records in real time.</p>
         </div>
         <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
           <DialogTrigger asChild>
@@ -221,7 +202,7 @@ const StudentsPage = () => {
           <DialogContent className="sm:max-w-[500px]">
             <DialogHeader>
               <DialogTitle>Add New Student</DialogTitle>
-              <DialogDescription>Enter details to sync with Cloud Firestore.</DialogDescription>
+              <DialogDescription>Enter details for the new student record.</DialogDescription>
             </DialogHeader>
             <form onSubmit={handleSubmit(onAddStudent)} className="grid gap-4 py-4">
               <div className="grid gap-2">

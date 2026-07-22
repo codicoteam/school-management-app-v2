@@ -1,12 +1,6 @@
-import { useState, useEffect } from "react";
-import { 
-  collection, 
-  onSnapshot, 
-  query, 
-  limit, 
-  orderBy 
-} from "firebase/firestore";
-import { db } from "@/lib/firebase";
+import { useState, useEffect, useCallback, useRef } from "react";
+import { getDashboardStats, getDashboardEnrollment, getDashboardFees } from "@/lib/adminApi";
+import { toast } from "sonner";
 
 export interface DashboardStats {
   totalStudents: number;
@@ -18,80 +12,61 @@ export interface DashboardStats {
   recentActivity: any[];
 }
 
+const REFRESH_INTERVAL_MS = 30000;
+
 export const useAdminDashboardData = () => {
   const [data, setData] = useState<DashboardStats>({
-    totalStudents: 1250,
-    totalTeachers: 45,
-    totalClasses: 30,
-    totalRevenue: 32500,
-    enrollmentTrend: [
-      { month: "Jan", students: 980 },
-      { month: "Feb", students: 1020 },
-      { month: "Mar", students: 1080 },
-      { month: "Apr", students: 1130 },
-      { month: "May", students: 1180 },
-      { month: "Jun", students: 1210 },
-      { month: "Jul", students: 1250 },
-    ],
-    feeCollectionTrend: [
-      { month: "Jan", collected: 22000, expected: 30000 },
-      { month: "Feb", collected: 25500, expected: 30000 },
-      { month: "Mar", collected: 28000, expected: 31000 },
-      { month: "Apr", collected: 26500, expected: 31000 },
-      { month: "May", collected: 30200, expected: 32000 },
-      { month: "Jun", collected: 31800, expected: 32000 },
-      { month: "Jul", collected: 32500, expected: 33000 },
-    ],
-    recentActivity: [
-      { text: "System monitoring active", time: "Just now", dot: "bg-emerald-500" },
-    ],
+    totalStudents: 0,
+    totalTeachers: 0,
+    totalClasses: 0,
+    totalRevenue: 0,
+    enrollmentTrend: [],
+    feeCollectionTrend: [],
+    recentActivity: [],
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
+  // Only warn once per broken endpoint per session, not on every 30s poll.
+  const warnedRef = useRef<Set<string>>(new Set());
 
-  useEffect(() => {
-    let unsubscribed = false;
-    try {
-      // In a real app, you would fetch from multiple collections
-      // Here we'll listen to a "dashboard_stats" doc or individual collections
-      const unsubscribeStudents = onSnapshot(collection(db, "students"), (snapshot) => {
-        if (unsubscribed) return;
-        setData(prev => ({ ...prev, totalStudents: snapshot.size || prev.totalStudents }));
-      });
+  const fetchData = useCallback(async () => {
+    const [statsResult, enrollmentResult, feesResult] = await Promise.allSettled([
+      getDashboardStats(),
+      getDashboardEnrollment(),
+      getDashboardFees(),
+    ]);
 
-      const unsubscribeTeachers = onSnapshot(collection(db, "teachers"), (snapshot) => {
-        if (unsubscribed) return;
-        setData(prev => ({ ...prev, totalTeachers: snapshot.size || prev.totalTeachers }));
-      });
+    setData(prev => ({
+      ...prev,
+      ...(statsResult.status === "fulfilled" ? statsResult.value : {}),
+      enrollmentTrend: enrollmentResult.status === "fulfilled" ? enrollmentResult.value ?? [] : prev.enrollmentTrend,
+      feeCollectionTrend: feesResult.status === "fulfilled" ? feesResult.value ?? [] : prev.feeCollectionTrend,
+    }));
 
-      const unsubscribeActivity = onSnapshot(
-        query(collection(db, "activity"), orderBy("createdAt", "desc"), limit(5)),
-        (snapshot) => {
-          if (unsubscribed) return;
-          const activities = snapshot.docs.map(doc => ({
-            text: doc.data().text,
-            time: "Recent",
-            dot: doc.data().type === 'alert' ? 'bg-red-500' : 'bg-blue-500'
-          }));
-          if (activities.length > 0) {
-            setData(prev => ({ ...prev, recentActivity: activities }));
-          }
-        }
-      );
+    const failures: [string, PromiseSettledResult<unknown>][] = [
+      ["stats", statsResult],
+      ["enrollment", enrollmentResult],
+      ["fees", feesResult],
+    ].filter(([, r]) => r.status === "rejected") as any;
 
-      // Set up a cleanup function to unsubscribe from all listeners
-      return () => {
-        unsubscribed = true;
-        unsubscribeStudents();
-        unsubscribeTeachers();
-        unsubscribeActivity();
-      };
-    } catch (err) {
-      console.error('Error setting up data listeners:', err);
-      setError(err as Error);
-      setLoading(false);
-    }
+    failures.forEach(([label, result]) => {
+      console.error(`Error fetching admin dashboard ${label}:`, (result as PromiseRejectedResult).reason);
+      if (!warnedRef.current.has(label)) {
+        warnedRef.current.add(label);
+        toast.error(`Couldn't load dashboard ${label} data`);
+      }
+    });
+
+    // Only surface a hard error if literally nothing loaded.
+    setError(failures.length === 3 ? new Error("Failed to load dashboard data") : null);
+    setLoading(false);
   }, []);
 
-  return { data, loading, error };
+  useEffect(() => {
+    fetchData();
+    const interval = setInterval(fetchData, REFRESH_INTERVAL_MS);
+    return () => clearInterval(interval);
+  }, [fetchData]);
+
+  return { data, loading, error, refetch: fetchData };
 };

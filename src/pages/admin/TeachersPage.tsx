@@ -9,9 +9,11 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Label } from "@/components/ui/label";
-import { Search, Plus, Pencil, Trash2, Mail, Phone, Users, GraduationCap, BookOpen, Clock } from "lucide-react";
+import { Search, Plus, Pencil, Trash2, Mail, Phone, Users, GraduationCap, BookOpen, Clock, Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { useForm } from "react-hook-form";
+import { toast } from "sonner";
+import { getTeachers, createTeacher, type TeacherRecord } from "@/lib/teachersApi";
 
 interface Teacher {
   id: string;
@@ -24,32 +26,20 @@ interface Teacher {
   qualification?: string;
 }
 
-const initialTeachers: Teacher[] = [
-  { id: "TCH-001", name: "Mr. Tendai Mhlanga", subject: "Mathematics", classes: "Form 4A, 4B", email: "tmhlanga@nexushigh.edu", phone: "+263 77 234 5678", status: "Active", qualification: "BSc Mathematics, UZ" },
-  { id: "TCH-002", name: "Mrs. Rufaro Moyo", subject: "English", classes: "Form 2A, 3B", email: "rmoyo@nexushigh.edu", phone: "+263 71 998 1122", status: "Active", qualification: "BA English, UZ" },
-  { id: "TCH-003", name: "Mr. Tinashe Dube", subject: "Science", classes: "Form 5A, 6A", email: "tdube@nexushigh.edu", phone: "+263 78 445 9090", status: "Active", qualification: "BSc Chemistry, NUST" },
-  { id: "TCH-004", name: "Mrs. Chiedza Banda", subject: "Shona", classes: "Form 1A, 1B, 1C", email: "cbanda@nexushigh.edu", phone: "+263 77 121 3344", status: "On Leave", qualification: "BA Shona, UZ" },
-  { id: "TCH-005", name: "Mr. Farai Sibanda", subject: "History", classes: "Form 3A, 4A", email: "fsibanda@nexushigh.edu", phone: "+263 71 778 2211", status: "Active", qualification: "BA History, UZ" },
-  { id: "TCH-006", name: "Ms. Nyasha Phiri", subject: "Geography", classes: "Form 2B, 5A", email: "nphiri@nexushigh.edu", phone: "+263 78 332 0099", status: "Active", qualification: "BA Geography, UZ" },
-];
-
-const STORAGE_KEY = "school_teachers";
-
-const loadTeachers = (): Teacher[] => {
-  try {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) return JSON.parse(stored);
-  } catch (err) {
-    // Fallback to initial teachers if storage access fails
-    console.warn("Could not load teachers from localStorage:", err);
-  }
-  return initialTeachers;
-};
-
-const saveTeachers = (teachers: Teacher[]) => localStorage.setItem(STORAGE_KEY, JSON.stringify(teachers));
+const mapTeacher = (t: TeacherRecord): Teacher => ({
+  id: t.id,
+  name: t.name,
+  subject: t.subject || "",
+  classes: Array.isArray(t.classes) ? t.classes.join(", ") : "",
+  email: t.email,
+  phone: "",
+  status: t.status === "On Leave" ? "On Leave" : "Active",
+  qualification: t.qualification || "",
+});
 
 const TeachersPage = () => {
-  const [teachers, setTeachers] = useState<Teacher[]>(loadTeachers);
+  const [teachers, setTeachers] = useState<Teacher[]>([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [subjectFilter, setSubjectFilter] = useState("all");
   const [selected, setSelected] = useState<string[]>([]);
@@ -58,8 +48,23 @@ const TeachersPage = () => {
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [addingTeacher, setAddingTeacher] = useState(false);
 
-  useEffect(() => { saveTeachers(teachers); }, [teachers]);
+  useEffect(() => {
+    const fetchTeachers = async () => {
+      setLoading(true);
+      try {
+        const records = await getTeachers();
+        setTeachers(records.map(mapTeacher));
+      } catch (error) {
+        console.error("Error fetching teachers:", error);
+        toast.error("Failed to load teachers");
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchTeachers();
+  }, []);
 
   const { register, handleSubmit, reset, setValue } = useForm<Teacher>({
     defaultValues: { name: "", subject: "", classes: "", email: "", phone: "", status: "Active", qualification: "" }
@@ -76,7 +81,29 @@ const TeachersPage = () => {
     }
   }, [editOpen, editId, teachers, setEditVal]);
 
-  const onAdd = (data: Teacher) => { setTeachers([...teachers, { ...data, id: `TCH-${String(teachers.length + 1).padStart(3, "0")}` }]); setAddOpen(false); reset(); };
+  const onAdd = async (data: Teacher) => {
+    setAddingTeacher(true);
+    try {
+      const created = await createTeacher({
+        name: data.name,
+        email: data.email,
+        role: "teacher",
+        subject: data.subject || null,
+        classes: data.classes ? data.classes.split(",").map(c => c.trim()).filter(Boolean) : [],
+        qualification: data.qualification || null,
+        status: data.status,
+      });
+      setTeachers(prev => [...prev, mapTeacher(created)]);
+      toast.success("Teacher added successfully");
+      setAddOpen(false);
+      reset();
+    } catch (error: any) {
+      console.error("Error creating teacher:", error);
+      toast.error(error?.message || "Failed to add teacher");
+    } finally {
+      setAddingTeacher(false);
+    }
+  };
   const onEdit = (data: Teacher) => { setTeachers(teachers.map(t => t.id === editId ? { ...data, id: editId! } : t)); setEditOpen(false); editReset(); };
   const onDelete = () => { setTeachers(teachers.filter(t => t.id !== deleteId)); setSelected(selected.filter(id => id !== deleteId)); setDeleteOpen(false); setDeleteId(null); };
 
@@ -113,7 +140,7 @@ const TeachersPage = () => {
               </div>
               <div className="grid gap-2"><Label>Classes</Label><Input {...register("classes")} placeholder="Form 4A, 4B" /></div>
               <div className="grid gap-2"><Label>Qualification</Label><Input {...register("qualification")} /></div>
-              <DialogFooter><Button type="button" variant="outline" onClick={() => setAddOpen(false)}>Cancel</Button><Button type="submit">Add Teacher</Button></DialogFooter>
+              <DialogFooter><Button type="button" variant="outline" onClick={() => setAddOpen(false)}>Cancel</Button><Button type="submit" disabled={addingTeacher}>{addingTeacher && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Add Teacher</Button></DialogFooter>
             </form>
           </DialogContent>
         </Dialog>
@@ -135,20 +162,27 @@ const TeachersPage = () => {
           </div>
           {selected.length > 0 && <div className="mt-4 flex items-center gap-2 rounded-lg border border-accent/30 bg-accent/5 p-3"><span className="text-sm font-medium">{selected.length} selected</span><Button size="sm" variant="outline" className="text-destructive" onClick={() => { setDeleteId(selected[0]); setDeleteOpen(true); }}><Trash2 className="h-4 w-4" /> Delete</Button></div>}
           <div className="mt-4 overflow-hidden rounded-lg border border-border">
-            <Table>
-              <TableHeader><TableRow className="bg-muted/40"><TableHead>Teacher</TableHead><TableHead>Subject</TableHead><TableHead>Classes</TableHead><TableHead>Contact</TableHead><TableHead>Status</TableHead><TableHead className="text-right">Actions</TableHead></TableRow></TableHeader>
-              <TableBody>
-                {filtered.map(t => (
-                  <TableRow key={t.id}>
-                    <TableCell><div className="flex items-center gap-3"><div className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-secondary to-secondary/70 text-xs font-bold text-secondary-foreground">{t.name.split(" ").slice(-2).map(n => n[0]).join("")}</div><div><p className="font-medium">{t.name}</p><p className="font-mono text-xs text-muted-foreground">{t.id}</p></div></div></TableCell>
-                    <TableCell>{t.subject}</TableCell><TableCell>{t.classes}</TableCell>
-                    <TableCell><div className="space-y-0.5 text-xs"><div className="flex items-center gap-1"><Mail className="h-3 w-3" /> {t.email}</div><div className="flex items-center gap-1"><Phone className="h-3 w-3" /> {t.phone}</div></div></TableCell>
-                    <TableCell><Badge className={t.status === "Active" ? "bg-green-500/15 text-green-700" : "bg-orange-500/15 text-orange-700"}>{t.status}</Badge></TableCell>
-                    <TableCell className="text-right"><Button size="icon" variant="ghost" onClick={() => { setEditId(t.id); setEditOpen(true); }}><Pencil className="h-4 w-4" /></Button><Button size="icon" variant="ghost" className="text-destructive" onClick={() => { setDeleteId(t.id); setDeleteOpen(true); }}><Trash2 className="h-4 w-4" /></Button></TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+            {loading ? (
+              <div className="flex justify-center p-8"><Loader2 className="animate-spin h-8 w-8 text-primary" /></div>
+            ) : (
+              <Table>
+                <TableHeader><TableRow className="bg-muted/40"><TableHead>Teacher</TableHead><TableHead>Subject</TableHead><TableHead>Classes</TableHead><TableHead>Contact</TableHead><TableHead>Status</TableHead><TableHead className="text-right">Actions</TableHead></TableRow></TableHeader>
+                <TableBody>
+                  {filtered.map(t => (
+                    <TableRow key={t.id}>
+                      <TableCell><div className="flex items-center gap-3"><div className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-secondary to-secondary/70 text-xs font-bold text-secondary-foreground">{t.name.split(" ").slice(-2).map(n => n[0]).join("")}</div><div><p className="font-medium">{t.name}</p><p className="font-mono text-xs text-muted-foreground">{t.id}</p></div></div></TableCell>
+                      <TableCell>{t.subject}</TableCell><TableCell>{t.classes}</TableCell>
+                      <TableCell><div className="space-y-0.5 text-xs"><div className="flex items-center gap-1"><Mail className="h-3 w-3" /> {t.email}</div>{t.phone && <div className="flex items-center gap-1"><Phone className="h-3 w-3" /> {t.phone}</div>}</div></TableCell>
+                      <TableCell><Badge className={t.status === "Active" ? "bg-green-500/15 text-green-700" : "bg-orange-500/15 text-orange-700"}>{t.status}</Badge></TableCell>
+                      <TableCell className="text-right"><Button size="icon" variant="ghost" onClick={() => { setEditId(t.id); setEditOpen(true); }}><Pencil className="h-4 w-4" /></Button><Button size="icon" variant="ghost" className="text-destructive" onClick={() => { setDeleteId(t.id); setDeleteOpen(true); }}><Trash2 className="h-4 w-4" /></Button></TableCell>
+                    </TableRow>
+                  ))}
+                  {filtered.length === 0 && (
+                    <TableRow><TableCell colSpan={6} className="text-center py-10 text-muted-foreground italic">No teachers found.</TableCell></TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            )}
           </div>
         </CardContent>
       </Card>

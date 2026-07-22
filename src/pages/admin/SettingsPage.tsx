@@ -8,11 +8,17 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Settings as SettingsIcon, Shield, Database, Bell, User, Loader2, Plus } from "lucide-react";
 import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
-import { doc, setDoc, getDoc, collection, getDocs, query, orderBy, limit, addDoc, serverTimestamp } from "firebase/firestore";
-import { db, firebaseConfig } from "@/lib/firebase";
+import {
+  getSchoolProfile,
+  updateSchoolProfile,
+  getSettings,
+  upsertSetting,
+  getAuditLogs,
+  createUserAccount,
+  getUsers,
+  type SchoolProfile,
+} from "@/lib/adminApi";
 import { toast } from "sonner";
-import { initializeApp, deleteApp } from "firebase/app";
-import { getAuth, createUserWithEmailAndPassword, sendEmailVerification, signOut as secondarySignOut } from "firebase/auth";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 
 interface UserProfile {
@@ -31,9 +37,16 @@ interface AuditLog {
   timestamp?: any;
 }
 
+interface SecuritySettings {
+  twoFactor: boolean;
+  dailyBackups: boolean;
+  emailNotifications: boolean;
+  smsAlerts: boolean;
+}
+
 const SettingsPage = () => {
   // General Profile State
-  const [profile, setProfile] = useState({
+  const [profile, setProfile] = useState<SchoolProfile>({
     schoolName: "School Management",
     motto: "Knowledge · Discipline · Excellence",
     address: "123 Borrowdale Rd, Harare, Zimbabwe",
@@ -45,7 +58,7 @@ const SettingsPage = () => {
   const [savingProfile, setSavingProfile] = useState(false);
 
   // Security Toggles
-  const [securitySettings, setSecuritySettings] = useState({
+  const [securitySettings, setSecuritySettings] = useState<SecuritySettings>({
     twoFactor: true,
     dailyBackups: true,
     emailNotifications: true,
@@ -79,16 +92,11 @@ const SettingsPage = () => {
 
   const fetchProfile = async () => {
     try {
-      const docRef = doc(db, "system", "profile");
-      const docSnap = await getDoc(docRef);
-      if (docSnap.exists()) {
-        setProfile(docSnap.data() as any);
-      } else {
-        // Initialize default profile document if not exists
-        await setDoc(docRef, profile);
-      }
+      const data = await getSchoolProfile();
+      setProfile(data);
     } catch (error) {
       console.error("Error fetching profile:", error);
+      toast.error("Failed to load school profile");
     } finally {
       setLoadingProfile(false);
     }
@@ -96,16 +104,16 @@ const SettingsPage = () => {
 
   const fetchSecurity = async () => {
     try {
-      const docRef = doc(db, "system", "security");
-      const docSnap = await getDoc(docRef);
-      if (docSnap.exists()) {
-        setSecuritySettings(docSnap.data() as any);
-      } else {
-        // Initialize default security doc if not exists
-        await setDoc(docRef, securitySettings);
-      }
+      const settings = await getSettings() as Partial<SecuritySettings>;
+      setSecuritySettings(prev => ({
+        twoFactor: settings.twoFactor ?? prev.twoFactor,
+        dailyBackups: settings.dailyBackups ?? prev.dailyBackups,
+        emailNotifications: settings.emailNotifications ?? prev.emailNotifications,
+        smsAlerts: settings.smsAlerts ?? prev.smsAlerts,
+      }));
     } catch (error) {
-      console.error("Error fetching security:", error);
+      console.error("Error fetching security settings:", error);
+      toast.error("Failed to load security settings");
     } finally {
       setLoadingSecurity(false);
     }
@@ -114,70 +122,43 @@ const SettingsPage = () => {
   const fetchUsers = async () => {
     setLoadingUsers(true);
     try {
-      const usersCol = collection(db, "users");
-      const q = query(usersCol, orderBy("role"), limit(50));
-      const querySnapshot = await getDocs(q);
-      const fetchedUsers: UserProfile[] = [];
-      querySnapshot.forEach((doc) => {
-        fetchedUsers.push(doc.data() as UserProfile);
-      });
-
-      // If we don't have users in DB yet, show fallback mock data
-      if (fetchedUsers.length === 0) {
-        setUsers([
-          { uid: "mock-1", name: "Mrs. Patience Ncube", email: "principal@School Managementhigh.edu", role: "admin" },
-          { uid: "mock-2", name: "Mr. Kudzai Hove", email: "bursar@School Managementhigh.edu", role: "teacher" },
-          { uid: "mock-3", name: "Mrs. Tariro Banda", email: "registrar@School Managementhigh.edu", role: "parent" },
-          { uid: "mock-4", name: "Mr. Tendai Mhlanga", email: "tmhlanga@School Managementhigh.edu", role: "teacher" },
-        ]);
-      } else {
-        setUsers(fetchedUsers);
-      }
+      const fetchedUsers = await getUsers();
+      setUsers(
+        fetchedUsers.map((u) => ({
+          uid: u.id,
+          name: u.name,
+          email: u.email,
+          role: u.role as UserProfile["role"],
+          createdAt: u.createdAt,
+        }))
+      );
     } catch (error) {
       console.error("Error fetching users:", error);
-      // Fallback
-      setUsers([
-        { uid: "mock-1", name: "Mrs. Patience Ncube", email: "principal@School Managementhigh.edu", role: "admin" },
-        { uid: "mock-2", name: "Mr. Kudzai Hove", email: "bursar@School Managementhigh.edu", role: "teacher" },
-        { uid: "mock-3", name: "Mrs. Tariro Banda", email: "registrar@School Managementhigh.edu", role: "parent" },
-        { uid: "mock-4", name: "Mr. Tendai Mhlanga", email: "tmhlanga@School Managementhigh.edu", role: "teacher" },
-      ]);
+      toast.error("Failed to load users");
+      setUsers([]);
     } finally {
       setLoadingUsers(false);
     }
   };
 
   const fetchAuditLogs = async () => {
+    setLoadingAudit(true);
     try {
-      const auditCol = collection(db, "auditLogs");
-      const q = query(auditCol, orderBy("timestamp", "desc"), limit(20));
-      const querySnapshot = await getDocs(q);
-      const logs: AuditLog[] = [];
-      querySnapshot.forEach((doc) => {
-        const data = doc.data();
-        logs.push({
-          id: doc.id,
-          who: data.who,
-          what: data.what,
-          when: data.timestamp ? new Date(data.timestamp.toDate()).toLocaleTimeString() + " - " + new Date(data.timestamp.toDate()).toLocaleDateString() : "Just now"
-        });
-      });
-
-      if (logs.length === 0) {
-        setAuditLogs([
-          { id: "1", who: "Mrs. Patience Ncube", what: "Updated fee structure for Form 5-6", when: "10 mins ago" },
-          { id: "2", who: "Mr. Kudzai Hove", what: "Recorded payment $760 for BPS-2451", when: "1 hour ago" },
-          { id: "3", who: "System", what: "Daily backup completed (2.4 GB)", when: "6 hours ago" },
-          { id: "4", who: "Mrs. Tariro Banda", what: "Added new student BPS-2461", when: "Yesterday" },
-        ]);
-      } else {
-        setAuditLogs(logs);
-      }
+      const logs = await getAuditLogs();
+      setAuditLogs(
+        logs.map((l) => ({
+          id: l.id,
+          who: l.who,
+          what: l.what,
+          when: l.timestamp
+            ? new Date(l.timestamp).toLocaleTimeString() + " - " + new Date(l.timestamp).toLocaleDateString()
+            : "Just now",
+        }))
+      );
     } catch (error) {
       console.error("Error fetching audit logs:", error);
-      setAuditLogs([
-        { id: "1", who: "System", what: "Audit logs initialized", when: "Just now" }
-      ]);
+      toast.error("Failed to load audit logs");
+      setAuditLogs([]);
     } finally {
       setLoadingAudit(false);
     }
@@ -187,9 +168,10 @@ const SettingsPage = () => {
   const handleSaveProfile = async () => {
     setSavingProfile(true);
     try {
-      await setDoc(doc(db, "system", "profile"), profile);
-      await addAuditLog("Admin", `Updated system school profile settings`);
+      const updated = await updateSchoolProfile(profile);
+      setProfile(updated);
       toast.success("School profile updated successfully!");
+      fetchAuditLogs();
     } catch (error) {
       console.error("Error saving profile:", error);
       toast.error("Failed to update school profile");
@@ -202,25 +184,13 @@ const SettingsPage = () => {
     const updated = { ...securitySettings, [key]: val };
     setSecuritySettings(updated);
     try {
-      await setDoc(doc(db, "system", "security"), updated);
-      await addAuditLog("Admin", `Toggled security setting (${key}) to ${val}`);
+      await upsertSetting(key, val);
       toast.success("Security setting updated!");
+      fetchAuditLogs();
     } catch (error) {
       console.error("Error updating security setting:", error);
       toast.error("Failed to update security setting");
-    }
-  };
-
-  const addAuditLog = async (who: string, what: string) => {
-    try {
-      await addDoc(collection(db, "auditLogs"), {
-        who,
-        what,
-        timestamp: serverTimestamp()
-      });
-      fetchAuditLogs();
-    } catch (e) {
-      console.error("Failed to write audit log:", e);
+      setSecuritySettings(securitySettings);
     }
   };
 
@@ -236,54 +206,23 @@ const SettingsPage = () => {
     }
 
     setAddingUser(true);
-    let secondaryApp;
     try {
-      // 1. Initialize a secondary firebase app to register user without signing out the admin
-      const tempAppName = `temp-user-${Date.now()}`;
-      secondaryApp = initializeApp(firebaseConfig, tempAppName);
-      const secondaryAuth = getAuth(secondaryApp);
-
-      // 2. Create the credentials on secondary app instance
-      const credential = await createUserWithEmailAndPassword(
-        secondaryAuth,
-        newUser.email,
-        newUser.password
-      );
-
-      // 3. Send email verification
-      await sendEmailVerification(credential.user);
-
-      // 4. Save the user record in Firestore shared database
-      await setDoc(doc(db, "users", credential.user.uid), {
-        uid: credential.user.uid,
-        name: newUser.fullName.trim(),
+      await createUserAccount({
         email: newUser.email,
-        role: newUser.role,
-        createdAt: serverTimestamp(),
+        password: newUser.password,
+        name: newUser.fullName.trim(),
+        role: newUser.role as UserProfile["role"],
       });
 
-      // 5. Clean up secondary auth session
-      await secondarySignOut(secondaryAuth);
-      
-      // 6. Complete and document inside audit log
-      await addAuditLog("Admin", `Registered new user account: ${newUser.fullName} (${newUser.role})`);
-      
-      toast.success(`User Account for ${newUser.fullName} created successfully! Verification email sent.`);
+      toast.success(`User account for ${newUser.fullName} created successfully!`);
       setIsAddUserOpen(false);
       setNewUser({ fullName: "", email: "", password: "", role: "teacher" });
       fetchUsers();
+      fetchAuditLogs();
     } catch (error: any) {
       console.error("Error creating user:", error);
-      const errorMap: Record<string, string> = {
-        "auth/email-already-in-use": "This email is already registered.",
-        "auth/invalid-email": "Please enter a valid email address.",
-        "auth/weak-password": "Password is too weak. Use at least 6 characters.",
-      };
-      toast.error(errorMap[error?.code] || error?.message || "Failed to create user account.");
+      toast.error(error?.message || "Failed to create user account.");
     } finally {
-      if (secondaryApp) {
-        await deleteApp(secondaryApp);
-      }
       setAddingUser(false);
     }
   };
@@ -399,7 +338,7 @@ const SettingsPage = () => {
                     <DialogHeader>
                       <DialogTitle>Add New User</DialogTitle>
                       <DialogDescription>
-                        Create a secure credential for school staff, parents, or students. An email verification will be sent.
+                        Create a secure credential for school staff, parents, or students.
                       </DialogDescription>
                     </DialogHeader>
                     <div className="grid gap-4 py-4">
@@ -518,7 +457,7 @@ const SettingsPage = () => {
                     <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-accent/10 text-accent"><Database className="h-4 w-4" /></div>
                     <div className="flex-1">
                       <p className="text-sm font-medium">Automatic Backups</p>
-                      <p className="text-xs text-muted-foreground">Run daily backups of Firestore databases automatically at 02:00 UTC.</p>
+                      <p className="text-xs text-muted-foreground">Run daily backups of the database automatically at 02:00 UTC.</p>
                     </div>
                     <Switch 
                       checked={securitySettings.dailyBackups} 

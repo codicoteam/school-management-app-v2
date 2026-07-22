@@ -1,11 +1,12 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import {
-  onAuthStateChanged,
-  signOut,
-  User as FirebaseUser,
-} from 'firebase/auth';
-import { doc, getDoc } from 'firebase/firestore';
-import { auth, db } from '@/lib/firebase';
+  login as apiLogin,
+  register as apiRegister,
+  logout as apiLogout,
+  getMe,
+  type AuthUser,
+} from '@/lib/authService';
+import { getToken } from '@/lib/apiClient';
 
 export type UserRole = 'student' | 'parent' | 'teacher' | 'admin';
 
@@ -21,6 +22,8 @@ export interface AuthContextType {
   user: AppUser | null;
   loading: boolean;
   error: Error | null;
+  login: (email: string, password: string, role: UserRole) => Promise<AppUser>;
+  signup: (email: string, password: string, name: string, role: UserRole) => Promise<AppUser>;
   logout: () => Promise<void>;
 }
 
@@ -38,73 +41,59 @@ interface AuthProviderProps {
   children: ReactNode;
 };
 
+const mapUser = (u: AuthUser): AppUser => ({
+  id: u.id,
+  uid: u.id,
+  name: u.name,
+  email: u.email,
+  role: u.role,
+});
+
 export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [user, setUser] = useState<AppUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
   useEffect(() => {
-    let unsubscribed = false;
-    try {
-      const unsubscribe = onAuthStateChanged(auth, async (firebaseUser: FirebaseUser | null) => {
-        if (unsubscribed) return;
-        try {
-          if (firebaseUser) {
-            try {
-              // Load user profile from Firestore
-              const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
-
-              if (userDoc.exists()) {
-                const data = userDoc.data();
-                setUser({
-                  id: firebaseUser.uid,
-                  uid: firebaseUser.uid,
-                  name: data.name || '',
-                  email: data.email || firebaseUser.email || '',
-                  role: data.role as UserRole,
-                });
-              } else {
-                // User exists in Firebase Auth but not in Firestore
-                // This shouldn't normally happen; sign them out
-                console.warn('User document not found in Firestore for uid:', firebaseUser.uid);
-                await signOut(auth);
-                setUser(null);
-              }
-            } catch (error) {
-              console.error('Error loading user profile:', error);
-              setUser(null);
-            }
-          } else {
-            setUser(null);
-          }
-        } catch (error) {
-          console.error('Error in auth state change:', error);
+    const loadUser = async () => {
+      try {
+        if (!getToken()) {
           setUser(null);
-        } finally {
-          if (!unsubscribed) {
-            setLoading(false);
-          }
+          return;
         }
-      });
-
-      return () => {
-        unsubscribed = true;
-        unsubscribe();
-      };
-    } catch (error) {
-      console.error('Failed to set up auth listener:', error);
-      setUser(null);
-      setLoading(false);
-      setError(error as Error);
-    }
+        const me = await getMe();
+        setUser(me ? mapUser(me) : null);
+      } catch (err) {
+        console.error('Failed to load current user:', err);
+        setUser(null);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadUser();
   }, []);
+
+  const login = async (email: string, password: string, role: UserRole) => {
+    const authUser = await apiLogin(email, password, role);
+    const mapped = mapUser(authUser);
+    setUser(mapped);
+    return mapped;
+  };
+
+  const signup = async (email: string, password: string, name: string, role: UserRole) => {
+    const authUser = await apiRegister({ email, password, name, role });
+    const mapped = mapUser(authUser);
+    setUser(mapped);
+    return mapped;
+  };
 
   const logout = async () => {
     try {
-      await signOut(auth);
-      setUser(null);
+      await apiLogout();
     } catch (error) {
       console.error('Error signing out:', error);
+    } finally {
+      setUser(null);
     }
   };
 
@@ -115,12 +104,10 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         <div className="bg-card rounded-xl p-6 w-full max-w-md shadow-lg text-center">
           <h2 className="text-2xl font-bold text-destructive mb-4">Authentication Error</h2>
           <p className="mb-4">{error.message}</p>
-          <button 
+          <button
             onClick={() => {
               setError(null);
               setLoading(true);
-              // Trigger a retry by unmounting and remounting the effect? 
-              // We'll just reload the page for simplicity.
               window.location.reload();
             }}
             className="btn btn-primary w-full"
@@ -133,7 +120,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   }
 
   return (
-    <AuthContext.Provider value={{ user, loading, error, logout }}>
+    <AuthContext.Provider value={{ user, loading, error, login, signup, logout }}>
       {children}
     </AuthContext.Provider>
   );

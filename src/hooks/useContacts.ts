@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
-import { collection, query, onSnapshot } from "firebase/firestore";
-import { db } from "@/lib/firebase";
+import { subscribe } from "@/lib/localDb";
+import type { MockUser } from "@/lib/mockAuth";
 
 export interface Contact {
   id: string;
@@ -16,35 +16,29 @@ export const useContacts = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Real-time listener — fetches all registered Firebase users
-    const q = query(collection(db, "users"));
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const users: Contact[] = snapshot.docs.map(doc => {
-        const data = doc.data();
+    // Real-time listener — reflects all locally registered users
+    const unsubscribe = subscribe<MockUser>("users", (users) => {
+      const mapped: Contact[] = users.map((u) => {
         let type: Contact['type'] = 'Student';
-        if (data.role === 'admin') type = 'Admin';
-        else if (data.role === 'teacher') type = 'Teacher';
-        else if (data.role === 'parent') type = 'Parent';
-        else if (data.role === 'student') type = 'Student';
+        if (u.role === 'admin') type = 'Admin';
+        else if (u.role === 'teacher') type = 'Teacher';
+        else if (u.role === 'parent') type = 'Parent';
+        else if (u.role === 'student') type = 'Student';
 
         return {
-          id: doc.id,
-          name: data.name || data.email || 'Unknown User',
+          id: u.uid,
+          name: u.name || u.email || 'Unknown User',
           type,
-          role: data.role,
-          email: data.email,
-          phone: data.phone
+          role: u.role,
+          email: u.email,
         };
       });
 
-      setContacts(users);
-      setLoading(false);
-    }, (error) => {
-      console.error("useContacts: Firestore error:", error);
+      setContacts(mapped);
       setLoading(false);
     });
 
-    return () => unsubscribe();
+    return unsubscribe;
   }, []);
 
   const getContactsByType = useCallback((type: Contact['type']) => {

@@ -1,14 +1,6 @@
 import { useState, useEffect } from "react";
-import { 
-  collection, 
-  query, 
-  orderBy, 
-  onSnapshot, 
-  doc, 
-  updateDoc 
-} from "firebase/firestore";
-import { db } from "@/lib/firebase";
-import { 
+import { subscribe, updateItem } from "@/lib/localDb";
+import {
   Card, 
   CardContent, 
   CardHeader, 
@@ -62,21 +54,19 @@ const AdminAdmissionsPage = () => {
   const [selectedApp, setSelectedApp] = useState<Application | null>(null);
 
   useEffect(() => {
-    const q = query(collection(db, "applications"), orderBy("submittedAt", "desc"));
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const apps = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      })) as Application[];
-      setApplications(apps);
+    const unsubscribe = subscribe<Application>("applications", (apps) => {
+      const sorted = [...apps].sort(
+        (a, b) => new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime()
+      );
+      setApplications(sorted);
       setLoading(false);
     });
-    return () => unsubscribe();
+    return unsubscribe;
   }, []);
 
   const updateStatus = async (id: string, status: string) => {
     try {
-      await updateDoc(doc(db, "applications", id), { status });
+      updateItem("applications", id, { status });
       toast.success(`Application updated to ${status}`);
     } catch (error) {
       toast.error("Failed to update status");
@@ -127,7 +117,7 @@ const AdminAdmissionsPage = () => {
                     <TableCell className="uppercase">{app.desiredLevel}</TableCell>
                     <TableCell>{app.pastSchool}</TableCell>
                     <TableCell>
-                      {app.submittedAt ? format(app.submittedAt.toDate(), "MMM d, yyyy") : "N/A"}
+                      {app.submittedAt ? format(new Date(app.submittedAt), "MMM d, yyyy") : "N/A"}
                     </TableCell>
                     <TableCell>{getStatusBadge(app.status)}</TableCell>
                     <TableCell className="text-right">
