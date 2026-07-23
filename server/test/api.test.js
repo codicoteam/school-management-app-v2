@@ -18,18 +18,31 @@ function createMockDb() {
   const fees = [];
   const documents = [];
   const messages = [];
+  const classes = [];
+  const inventory_items = [];
+  const school_profile = [];
+  const system_settings = [];
+  const generated_documents = [];
+  const audit_logs = [];
 
   function table(name) {
-    const rows = { users, students, grades, student_classes, exams, attendance, library_items, bookmarks, borrowings, announcements, fees, documents, messages }[name];
+    const rows = { users, students, grades, student_classes, exams, attendance, library_items, bookmarks, borrowings, announcements, fees, documents, messages, classes, inventory_items, school_profile, system_settings, generated_documents, audit_logs }[name];
 
     function makeQb(filtered) {
       let _filtered = filtered || rows;
       let avgCalled = false;
       let countCalled = false;
+      let _limit = null;
       return {
         where: function (conds) {
           if (typeof conds === 'function') {
             conds.call(this);
+            return this;
+          }
+          if (!conds || typeof conds !== 'object') {
+            return this;
+          }
+          if (conds.raw === true) {
             return this;
           }
           const res = _filtered.filter(r => Object.keys(conds).every(k => r[k] === conds[k]));
@@ -37,6 +50,9 @@ function createMockDb() {
           return this;
         },
         orWhere: function (conds) {
+          if (!conds || typeof conds !== 'object') {
+            return this;
+          }
           const orRows = rows.filter(r => Object.keys(conds).every(k => r[k] === conds[k]));
           const union = _filtered.concat(orRows.filter(r => !_filtered.includes(r)));
           _filtered = union;
@@ -44,7 +60,7 @@ function createMockDb() {
         },
         first: async () => {
           if (countCalled) {
-            return { cnt: _filtered.length };
+            return { count: _filtered.length };
           }
           return _filtered[0] || undefined;
         },
@@ -52,18 +68,41 @@ function createMockDb() {
           countCalled = true;
           return this;
         },
+        sum: function (expr) {
+          const match = typeof expr === 'string' ? expr.match(/([a-zA-Z_][a-zA-Z0-9_]*)\s+as\s+([a-zA-Z_][a-zA-Z0-9_]*)/) : null;
+          const alias = match ? match[2] : 'sum';
+          const field = match ? match[1] : 'value';
+          return {
+            first: async () => ({ [alias]: _filtered.reduce((sum, row) => sum + Number(row[field] || 0), 0) })
+          };
+        },
         select: function () { return this; },
+        distinct: function () { return this; },
         orderBy: function () { return this; },
+        limit: function (n) {
+          _limit = n;
+          return this;
+        },
         insert: function (payload) {
-          if (Array.isArray(payload)) payload.forEach(p => rows.push(p)); else rows.push(payload);
-          const result = Array.isArray(payload) ? payload : [payload];
-          const promiseResult = Promise.resolve(result);
+          const entries = Array.isArray(payload) ? payload : [payload];
+          const insertedRows = entries.map(p => {
+            const row = { ...p };
+            if (!row.id) row.id = `${name}-${rows.length + 1}`;
+            rows.push(row);
+            return row;
+          });
+          const insertedIds = insertedRows.map(p => p.id);
+          const promiseResult = Promise.resolve(insertedIds);
           return {
             returning: async function () {
-              return result;
+              return insertedRows;
             },
             then: promiseResult.then.bind(promiseResult),
           };
+        },
+        update: function (payload) {
+          _filtered.forEach(row => Object.assign(row, payload));
+          return Promise.resolve(_filtered.length);
         },
         del: async () => 0,
         join: function () { return this; },
@@ -71,6 +110,7 @@ function createMockDb() {
         groupBy: function () { return this; },
         countDistinct: function () { return this; },
         then: function (resolve) {
+          const applyLimit = (items) => (_limit !== null ? items.slice(0, _limit) : items);
           if (avgCalled) {
             const map = {};
             _filtered.forEach(r => {
@@ -80,24 +120,30 @@ function createMockDb() {
               map[key].n += 1;
             });
             const out = Object.keys(map).map(k => ({ exam_name: k, avg_score: map[k].sum / map[k].n }));
-            return Promise.resolve(out).then(resolve);
+            return Promise.resolve(applyLimit(out)).then(resolve);
           }
           if (countCalled) {
-            return Promise.resolve({ cnt: _filtered.length }).then(resolve);
+            return Promise.resolve({ count: applyLimit(_filtered).length }).then(resolve);
           }
-          return Promise.resolve(_filtered).then(resolve);
+          return Promise.resolve(applyLimit(_filtered)).then(resolve);
         }
       };
     }
 
     const api = makeQb();
     api.insert = function (payload) {
-      if (Array.isArray(payload)) payload.forEach(p => rows.push(p)); else rows.push(payload);
-      const result = Array.isArray(payload) ? payload : [payload];
-      const promiseResult = Promise.resolve(result);
+      const entries = Array.isArray(payload) ? payload : [payload];
+      const insertedRows = entries.map(p => {
+        const row = { ...p };
+        if (!row.id) row.id = `${name}-${rows.length + 1}`;
+        rows.push(row);
+        return row;
+      });
+      const insertedIds = insertedRows.map(p => p.id);
+      const promiseResult = Promise.resolve(insertedIds);
       return {
         returning: async function () {
-          return result;
+          return insertedRows;
         },
         then: promiseResult.then.bind(promiseResult),
       };
@@ -105,6 +151,10 @@ function createMockDb() {
     api.select = function () { return this; };
     return api;
   }
+
+  table.raw = function () {
+    return { raw: true };
+  };
 
   return table;
 }
@@ -129,6 +179,13 @@ describe('API routes', () => {
     await mockDb('library_items').insert({ id: 'li1', title: 'Quantum Physics for Beginners', author: 'Jason Stephenson', subject: 'Science', digital_url: 'http://example.com/quantum' });
     await mockDb('documents').insert({ id: 'd1', student_id: 'BPS-2451', name: 'Term 1 2025 Report Card', type: 'Report Card', size: '320 KB', url: '/docs/term1-2025-report-card.pdf', created_at: new Date() });
     await mockDb('messages').insert({ id: 'm1', sender_id: 'teacher-1', sender_name: 'Mr. Mhlanga', receiver_id: 'p1', receiver_name: 'Mrs. Ndlovu', subject: 'Attendance follow-up', text: 'Please sign the permission slip.', is_new: true, created_at: new Date() });
+    await mockDb('classes').insert({ id: 'class1', name: 'Form 4A', subject: 'Mathematics', teacher_id: 'u1' });
+    await mockDb('inventory_items').insert({ id: 'inv1', name: 'Chalk', category: 'Stationery', qty: 5, status: 'Low Stock' });
+    await mockDb('school_profile').insert({ id: 'sp1', school_name: 'Bright Star Academy', address: 'Harare', contact_phone: '+263 772000000', public_email: 'info@brightstar.edu', motto_slogan: 'Excellence', system_currency: 'USD' });
+    await mockDb('system_settings').insert({ id: 'ss1', setting_key: 'school_name', setting_value: 'Bright Star Academy', setting_type: 'string', description: 'School display name' });
+    await mockDb('generated_documents').insert({ id: 'gd1', student_id: 'BPS-2451', document_type: 'Report Card', file_name: 'report_card.pdf', url: '/documents/BPS-2451/report_card.pdf', status: 'generated', generated_by: 'u1', created_at: new Date() });
+    await mockDb('audit_logs').insert({ id: 'al1', admin_id: 'u1', admin_name: 'Jane', action: 'LOGIN', entity_type: 'user', entity_id: 'u1', description: 'Admin login', created_at: new Date() });
+    await mockDb('users').insert({ id: 'admin-1', email: 'admin@example.com', password: '$2a$10$ABCDEFG', name: 'Admin User', role: 'admin' });
   });
 
   it('returns student data with valid auth', async () => {
@@ -278,5 +335,71 @@ describe('API routes', () => {
     const res2 = await request(app).get('/api/library').query({ q: 'quantum' }).set('Authorization', `Bearer ${token}`);
     expect(res2.status).to.equal(200);
     expect(res2.body.length).to.be.greaterThan(0);
+  });
+
+  it('serves the admin dashboard, fees, and attendance endpoints for an admin', async () => {
+    const jwt = require('jsonwebtoken');
+    const token = jwt.sign({ id: 'admin-1', email: 'admin@example.com', role: 'admin', name: 'Admin User' }, process.env.JWT_SECRET || 'your-secret-key');
+
+    const dashboard = await request(app).get('/api/admin/dashboard/stats').set('Authorization', `Bearer ${token}`);
+    expect(dashboard.status).to.equal(200);
+    expect(dashboard.body).to.have.property('totalStudents');
+
+    const enrollment = await request(app).get('/api/admin/dashboard/enrollment').set('Authorization', `Bearer ${token}`);
+    expect(enrollment.status).to.equal(200);
+    expect(enrollment.body).to.be.an('array');
+
+    const fees = await request(app).get('/api/admin/fees/stats').set('Authorization', `Bearer ${token}`);
+    expect(fees.status).to.equal(200);
+    expect(fees.body).to.have.property('collected');
+
+    const recentFees = await request(app).get('/api/admin/fees/recent').set('Authorization', `Bearer ${token}`);
+    expect(recentFees.status).to.equal(200);
+    expect(recentFees.body).to.be.an('array');
+
+    const attendance = await request(app).get('/api/admin/attendance/stats').set('Authorization', `Bearer ${token}`);
+    expect(attendance.status).to.equal(200);
+    expect(attendance.body).to.have.property('present');
+
+    const weeklyTrend = await request(app).get('/api/admin/attendance/weekly-trend').set('Authorization', `Bearer ${token}`);
+    expect(weeklyTrend.status).to.equal(200);
+    expect(weeklyTrend.body).to.be.an('array');
+  });
+
+  it('serves admin user, school profile, settings, document, and audit endpoints', async () => {
+    const jwt = require('jsonwebtoken');
+    const token = jwt.sign({ id: 'admin-1', email: 'admin@example.com', role: 'admin', name: 'Admin User' }, process.env.JWT_SECRET || 'your-secret-key');
+
+    const users = await request(app).get('/api/admin/users').set('Authorization', `Bearer ${token}`);
+    expect(users.status).to.equal(200);
+    expect(users.body).to.be.an('array');
+
+    const profile = await request(app).get('/api/admin/school-profile').set('Authorization', `Bearer ${token}`);
+    expect(profile.status).to.equal(200);
+    expect(profile.body).to.have.property('school_name');
+
+    const updatedProfile = await request(app).put('/api/admin/school-profile').send({ schoolName: 'Bright Star Academy', address: 'Harare', contactPhone: '+263 772000000', publicEmail: 'info@brightstar.edu', mottoSlogan: 'Excellence', systemCurrency: 'USD' }).set('Authorization', `Bearer ${token}`);
+    expect(updatedProfile.status).to.equal(200);
+    expect(updatedProfile.body).to.have.property('school_name', 'Bright Star Academy');
+
+    const settings = await request(app).get('/api/admin/settings').set('Authorization', `Bearer ${token}`);
+    expect(settings.status).to.equal(200);
+    expect(settings.body).to.be.an('object');
+
+    const newSetting = await request(app).post('/api/admin/settings').send({ settingKey: 'maintenance_mode', settingValue: 'false', settingType: 'boolean', description: 'Maintenance flag' }).set('Authorization', `Bearer ${token}`);
+    expect(newSetting.status).to.equal(200);
+    expect(newSetting.body).to.have.property('setting_key', 'maintenance_mode');
+
+    const document = await request(app).post('/api/admin/generate-document').send({ studentId: 'BPS-2451', documentType: 'Clearance Letter', fileName: 'clearance.pdf' }).set('Authorization', `Bearer ${token}`);
+    expect(document.status).to.equal(201);
+    expect(document.body).to.have.property('document_type', 'Clearance Letter');
+
+    const recentDocuments = await request(app).get('/api/admin/documents/recent').set('Authorization', `Bearer ${token}`);
+    expect(recentDocuments.status).to.equal(200);
+    expect(recentDocuments.body).to.be.an('array');
+
+    const auditLogs = await request(app).get('/api/admin/audit-logs').set('Authorization', `Bearer ${token}`);
+    expect(auditLogs.status).to.equal(200);
+    expect(auditLogs.body).to.be.an('array');
   });
 });
