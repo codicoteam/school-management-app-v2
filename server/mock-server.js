@@ -17,9 +17,17 @@ function createMockDb() {
   const audit_logs = [];
   const messages = [];
   const documents = [];
+  const subjects = [];
+  const assignments = [];
+  const timetable = [];
+  const bookmarks = [];
+  const borrowings = [];
+  const announcements = [];
+  const library_items = [];
+  const applications = [];
 
   function table(name) {
-    const rows = { users, students, grades, student_classes, exams, attendance, fees, classes, inventory_items, school_profile, system_settings, generated_documents, audit_logs, messages, documents }[name];
+    const rows = { users, students, grades, student_classes, exams, attendance, fees, classes, inventory_items, school_profile, system_settings, generated_documents, audit_logs, messages, documents, subjects, assignments, timetable, bookmarks, borrowings, announcements, library_items, applications }[name];
     function makeQb(filtered) {
       let _filtered = filtered || rows;
       let avgCalled = false;
@@ -39,6 +47,22 @@ function createMockDb() {
           }
           const res = _filtered.filter(r => Object.keys(conds).every(k => r[k] === conds[k]));
           _filtered = res;
+          return self;
+        },
+        andWhere: function (fieldOrCond, value) {
+          if (typeof fieldOrCond === 'function') {
+            fieldOrCond.call(this);
+            return self;
+          }
+          if (typeof fieldOrCond === 'string' && value !== undefined) {
+            _filtered = _filtered.filter(r => r[fieldOrCond] === value);
+            return self;
+          }
+          return self.where(fieldOrCond);
+        },
+        whereIn: function (field, values) {
+          const valuesSet = new Set(values || []);
+          _filtered = _filtered.filter(r => valuesSet.has(r[field]));
           return self;
         },
         orWhere: function (conds) {
@@ -88,7 +112,10 @@ function createMockDb() {
         },
         update: function (payload) {
           _filtered.forEach(row => Object.assign(row, payload));
-          return Promise.resolve(_filtered.length);
+          return {
+            returning: async () => _filtered,
+            then: (resolve) => Promise.resolve(_filtered.length).then(resolve),
+          };
         },
         del: async () => 0,
         join: function () { return self; },
@@ -147,6 +174,7 @@ const mockDb = createMockDb();
 mockDb('students').insert({ id: 'BPS-2451', name: 'Tatenda', class: 'Form 4A', guardian_email: 'parent@example.com', guardian_user_id: 'p1' });
 mockDb('users').insert({ id: 'u1', email: 'student@example.com', password: 'x', name: 'Jane', role: 'student' });
 mockDb('users').insert({ id: 'p1', email: 'parent@example.com', password: 'x', name: 'Mrs. Ndlovu', role: 'parent' });
+mockDb('users').insert({ id: 'teacher-1', email: 'teacher@example.com', password: 'x', name: 'Mr. Mhlanga', role: 'teacher', subject: 'Mathematics' });
 mockDb('users').insert({ id: 'admin-1', email: 'admin@example.com', password: 'x', name: 'Admin User', role: 'admin' });
 mockDb('grades').insert({ id: 'g1', student_id: 'BPS-2451', subject: 'Mathematics', exam_name: 'Term 1', score: 78, grade: 'A', created_at: new Date() });
 mockDb('student_classes').insert({ id: 'sc1', student_id: 'BPS-2451', class_id: 'class1' });
@@ -154,7 +182,7 @@ mockDb('exams').insert({ id: 'e1', class_id: 'class1', name: 'Math Midterm', dat
 mockDb('attendance').insert({ id: 'a1', class_id: 'class1', student_id: 'BPS-2451', teacher_id: 'u1', date: '2025-04-20', status: 'present' });
 mockDb('attendance').insert({ id: 'a2', class_id: 'class1', student_id: 'BPS-2451', teacher_id: 'u1', date: '2025-04-19', status: 'absent' });
 mockDb('fees').insert({ id: 'f1', student_id: 'BPS-2451', amount: 760.0, item: 'Term 1 — Full', method: 'Bank Transfer', due_date: '2025-04-30', status: 'paid' });
-mockDb('classes').insert({ id: 'class1', name: 'Form 4A', subject: 'Mathematics', teacher_id: 'u1' });
+mockDb('classes').insert({ id: 'class1', name: 'Form 4A', subject: 'Mathematics', teacher_id: 'teacher-1' });
 mockDb('inventory_items').insert({ id: 'inv1', name: 'Chalk', category: 'Stationery', qty: 5, status: 'Low Stock' });
 mockDb('school_profile').insert({ id: 'sp1', school_name: 'Bright Star Academy', address: 'Harare', contact_phone: '+263 772000000', public_email: 'info@brightstar.edu', motto_slogan: 'Excellence', system_currency: 'USD' });
 mockDb('system_settings').insert({ id: 'ss1', setting_key: 'school_name', setting_value: 'Bright Star Academy', setting_type: 'string', description: 'School display name' });
@@ -162,6 +190,9 @@ mockDb('generated_documents').insert({ id: 'gd1', student_id: 'BPS-2451', docume
 mockDb('audit_logs').insert({ id: 'al1', admin_id: 'u1', admin_name: 'Jane', action: 'LOGIN', entity_type: 'user', entity_id: 'u1', description: 'Admin login', created_at: new Date() });
 mockDb('messages').insert({ id: 'm1', sender_id: 'teacher-1', sender_name: 'Mr. Mhlanga', receiver_id: 'p1', receiver_name: 'Mrs. Ndlovu', subject: 'Attendance follow-up', text: 'Please sign the permission slip.', is_new: true, created_at: new Date() });
 mockDb('documents').insert({ id: 'd1', student_id: 'BPS-2451', name: 'Term 1 2025 Report Card', type: 'Report Card', size: '320 KB', url: '/docs/term1-2025-report-card.pdf', created_at: new Date() });
+mockDb('subjects').insert({ id: 'subj1', name: 'Mathematics', description: 'Core mathematics' });
+mockDb('subjects').insert({ id: 'subj2', name: 'Science', description: 'Physical sciences' });
+mockDb('applications').insert({ id: 'app1', student_id: 'BPS-2451', applicant_name: 'Tatenda', status: 'pending', created_at: new Date() });
 
 const app = createApp(mockDb);
 

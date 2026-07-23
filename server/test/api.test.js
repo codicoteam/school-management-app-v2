@@ -24,9 +24,13 @@ function createMockDb() {
   const system_settings = [];
   const generated_documents = [];
   const audit_logs = [];
+  const subjects = [];
+  const assignments = [];
+  const timetable = [];
+  const applications = [];
 
   function table(name) {
-    const rows = { users, students, grades, student_classes, exams, attendance, library_items, bookmarks, borrowings, announcements, fees, documents, messages, classes, inventory_items, school_profile, system_settings, generated_documents, audit_logs }[name];
+    const rows = { users, students, grades, student_classes, exams, attendance, library_items, bookmarks, borrowings, announcements, fees, documents, messages, classes, inventory_items, school_profile, system_settings, generated_documents, audit_logs, subjects, assignments, timetable, applications }[name];
 
     function makeQb(filtered) {
       let _filtered = filtered || rows;
@@ -47,6 +51,22 @@ function createMockDb() {
           }
           const res = _filtered.filter(r => Object.keys(conds).every(k => r[k] === conds[k]));
           _filtered = res;
+          return this;
+        },
+        andWhere: function (fieldOrCond, value) {
+          if (typeof fieldOrCond === 'function') {
+            fieldOrCond.call(this);
+            return this;
+          }
+          if (typeof fieldOrCond === 'string' && value !== undefined) {
+            _filtered = _filtered.filter(r => r[fieldOrCond] === value);
+            return this;
+          }
+          return this.where(fieldOrCond);
+        },
+        whereIn: function (field, values) {
+          const valuesSet = new Set(values || []);
+          _filtered = _filtered.filter(r => valuesSet.has(r[field]));
           return this;
         },
         orWhere: function (conds) {
@@ -102,7 +122,10 @@ function createMockDb() {
         },
         update: function (payload) {
           _filtered.forEach(row => Object.assign(row, payload));
-          return Promise.resolve(_filtered.length);
+          return {
+            returning: async () => _filtered,
+            then: (resolve) => Promise.resolve(_filtered.length).then(resolve),
+          };
         },
         del: async () => 0,
         join: function () { return this; },
@@ -179,12 +202,16 @@ describe('API routes', () => {
     await mockDb('library_items').insert({ id: 'li1', title: 'Quantum Physics for Beginners', author: 'Jason Stephenson', subject: 'Science', digital_url: 'http://example.com/quantum' });
     await mockDb('documents').insert({ id: 'd1', student_id: 'BPS-2451', name: 'Term 1 2025 Report Card', type: 'Report Card', size: '320 KB', url: '/docs/term1-2025-report-card.pdf', created_at: new Date() });
     await mockDb('messages').insert({ id: 'm1', sender_id: 'teacher-1', sender_name: 'Mr. Mhlanga', receiver_id: 'p1', receiver_name: 'Mrs. Ndlovu', subject: 'Attendance follow-up', text: 'Please sign the permission slip.', is_new: true, created_at: new Date() });
-    await mockDb('classes').insert({ id: 'class1', name: 'Form 4A', subject: 'Mathematics', teacher_id: 'u1' });
+    await mockDb('classes').insert({ id: 'class1', name: 'Form 4A', subject: 'Mathematics', teacher_id: 'teacher-1' });
     await mockDb('inventory_items').insert({ id: 'inv1', name: 'Chalk', category: 'Stationery', qty: 5, status: 'Low Stock' });
     await mockDb('school_profile').insert({ id: 'sp1', school_name: 'Bright Star Academy', address: 'Harare', contact_phone: '+263 772000000', public_email: 'info@brightstar.edu', motto_slogan: 'Excellence', system_currency: 'USD' });
     await mockDb('system_settings').insert({ id: 'ss1', setting_key: 'school_name', setting_value: 'Bright Star Academy', setting_type: 'string', description: 'School display name' });
     await mockDb('generated_documents').insert({ id: 'gd1', student_id: 'BPS-2451', document_type: 'Report Card', file_name: 'report_card.pdf', url: '/documents/BPS-2451/report_card.pdf', status: 'generated', generated_by: 'u1', created_at: new Date() });
     await mockDb('audit_logs').insert({ id: 'al1', admin_id: 'u1', admin_name: 'Jane', action: 'LOGIN', entity_type: 'user', entity_id: 'u1', description: 'Admin login', created_at: new Date() });
+    await mockDb('subjects').insert({ id: 'subj1', name: 'Mathematics', description: 'Core mathematics' });
+    await mockDb('subjects').insert({ id: 'subj2', name: 'Science', description: 'Physical sciences' });
+    await mockDb('applications').insert({ id: 'app1', student_id: 'BPS-2451', applicant_name: 'Tatenda', status: 'pending', created_at: new Date() });
+    await mockDb('users').insert({ id: 'teacher-1', email: 'teacher@example.com', password: '$2a$10$ABCDEFG', name: 'Mr. Mhlanga', role: 'teacher', subject: 'Mathematics' });
     await mockDb('users').insert({ id: 'admin-1', email: 'admin@example.com', password: '$2a$10$ABCDEFG', name: 'Admin User', role: 'admin' });
   });
 
@@ -337,6 +364,28 @@ describe('API routes', () => {
     expect(res2.body.length).to.be.greaterThan(0);
   });
 
+  it('serves teacher dashboard, stats, classes, and subjects endpoints', async () => {
+    const jwt = require('jsonwebtoken');
+    const teacherToken = jwt.sign({ id: 'teacher-1', email: 'teacher@example.com', role: 'teacher', name: 'Mr. Mhlanga' }, process.env.JWT_SECRET || 'your-secret-key');
+    const adminToken = jwt.sign({ id: 'admin-1', email: 'admin@example.com', role: 'admin', name: 'Admin User' }, process.env.JWT_SECRET || 'your-secret-key');
+
+    const dashboard = await request(app).get('/api/teachers/dashboard').set('Authorization', `Bearer ${teacherToken}`);
+    expect(dashboard.status).to.equal(200);
+    expect(dashboard.body).to.have.property('total_students');
+
+    const stats = await request(app).get('/api/teachers/stats').set('Authorization', `Bearer ${adminToken}`);
+    expect(stats.status).to.equal(200);
+    expect(stats.body).to.have.property('totalTeachers');
+
+    const classes = await request(app).get('/api/classes').set('Authorization', `Bearer ${adminToken}`);
+    expect(classes.status).to.equal(200);
+    expect(classes.body).to.be.an('array');
+
+    const subjects = await request(app).get('/api/subjects').set('Authorization', `Bearer ${adminToken}`);
+    expect(subjects.status).to.equal(200);
+    expect(subjects.body).to.be.an('array');
+  });
+
   it('serves the admin dashboard, fees, and attendance endpoints for an admin', async () => {
     const jwt = require('jsonwebtoken');
     const token = jwt.sign({ id: 'admin-1', email: 'admin@example.com', role: 'admin', name: 'Admin User' }, process.env.JWT_SECRET || 'your-secret-key');
@@ -364,6 +413,23 @@ describe('API routes', () => {
     const weeklyTrend = await request(app).get('/api/admin/attendance/weekly-trend').set('Authorization', `Bearer ${token}`);
     expect(weeklyTrend.status).to.equal(200);
     expect(weeklyTrend.body).to.be.an('array');
+  });
+
+  it('serves admissions, grades, and report-card endpoints for a student', async () => {
+    const jwt = require('jsonwebtoken');
+    const token = jwt.sign({ id: 'u1', email: 'student@example.com', role: 'student', name: 'Jane' }, process.env.JWT_SECRET || 'your-secret-key');
+
+    const applications = await request(app).get('/api/applications').set('Authorization', `Bearer ${token}`);
+    expect(applications.status).to.equal(200);
+    expect(applications.body).to.be.an('array');
+
+    const grades = await request(app).get('/api/grades/BPS-2451').set('Authorization', `Bearer ${token}`);
+    expect(grades.status).to.equal(200);
+    expect(grades.body).to.be.an('array');
+
+    const reportCards = await request(app).get('/api/report-cards').query({ studentId: 'BPS-2451' }).set('Authorization', `Bearer ${token}`);
+    expect(reportCards.status).to.equal(200);
+    expect(reportCards.body).to.be.an('array');
   });
 
   it('serves admin user, school profile, settings, document, and audit endpoints', async () => {

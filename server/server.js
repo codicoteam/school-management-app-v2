@@ -1773,10 +1773,11 @@ function createApp(db) {
 
   // seed helper
   const seedInitialData = async () => {
-    const teacherUser = await db('users').where({ email: 'teacher@example.com' }).first();
+    let teacherUser = await db('users').where({ email: 'teacher@example.com' }).first();
     if (!teacherUser) {
       const hashedPassword = await bcrypt.hash('password123', 10);
       await db('users').insert({ id: uuidv4(), email: 'teacher@example.com', password: hashedPassword, name: 'John Doe', role: 'teacher', subject: 'Mathematics' });
+      teacherUser = await db('users').where({ email: 'teacher@example.com' }).first();
     }
 
     const studentUser = await db('users').where({ email: 'student@example.com' }).first();
@@ -1785,10 +1786,11 @@ function createApp(db) {
       await db('users').insert({ id: uuidv4(), email: 'student@example.com', password: hashedPassword, name: 'Jane Smith', role: 'student', grade: '10th Grade' });
     }
 
-    const adminUser = await db('users').where({ email: 'admin@example.com' }).first();
+    let adminUser = await db('users').where({ email: 'admin@example.com' }).first();
     if (!adminUser) {
       const hashedPassword = await bcrypt.hash('password123', 10);
       await db('users').insert({ id: uuidv4(), email: 'admin@example.com', password: hashedPassword, name: 'Admin User', role: 'admin' });
+      adminUser = await db('users').where({ email: 'admin@example.com' }).first();
     }
 
     const parentUser = await db('users').where({ email: 'parent@example.com' }).first();
@@ -1864,7 +1866,26 @@ function createApp(db) {
 
     const feeExists = await db('fees').where({ student_id: 'BPS-2451' }).first();
     if (!feeExists) {
-      await db('fees').insert({ student_id: 'BPS-2451', amount: 760.0, item: 'Term 1 — Full', method: 'Bank Transfer', due_date: '2025-04-30', status: 'Pending' });
+      await db('fees').insert({
+        student_id: 'BPS-2451',
+        amount: 760.0,
+        item: 'Term 1 — Full',
+        method: 'Bank Transfer',
+        due_date: '2025-04-30',
+        paid_date: new Date().toISOString(),
+        status: 'paid',
+      });
+    }
+
+    const subjectsToSeed = [
+      { name: 'Mathematics', description: 'Core mathematics' },
+      { name: 'Science', description: 'Physical sciences' },
+    ];
+    for (const subject of subjectsToSeed) {
+      const existingSubject = await db('subjects').where({ name: subject.name }).first();
+      if (!existingSubject) {
+        await db('subjects').insert(subject);
+      }
     }
 
     const announcementCount = await db('announcements').count('* as cnt').first();
@@ -1917,6 +1938,15 @@ function createApp(db) {
         { student_id: 'BPS-2451', document_type: 'Report Card', file_name: 'report_card_BPS-2451_20250416.pdf', url: '/documents/BPS-2451/report_card_20250416.pdf', status: 'generated', generated_by: adminUser.id },
         { student_id: 'BPS-2451', document_type: 'Clearance Letter', file_name: 'clearance_BPS-2451_20250414.pdf', url: '/documents/BPS-2451/clearance_20250414.pdf', status: 'generated', generated_by: adminUser.id },
       ]);
+    }
+
+    const applicationsCount = await db('applications').count('* as cnt').first();
+    if (!applicationsCount || Number(applicationsCount.cnt || applicationsCount.count || 0) === 0) {
+      await db('applications').insert({
+        student_id: 'BPS-2451',
+        applicant_name: 'Tawanda Ndlovu',
+        status: 'pending',
+      });
     }
   };
 
@@ -2046,8 +2076,8 @@ function createApp(db) {
       if (req.user.role !== 'teacher') return res.status(403).json({ message: 'Permission denied' });
       const teacherId = req.user.id;
 
-      const classes = await db('classes').where({ teacher_id: teacherId }).select('*');
-      const classIds = classes.map((c) => c.id);
+      const classes = (await db('classes').where({ teacher_id: teacherId }).select('*')) || [];
+      const classIds = Array.isArray(classes) ? classes.map((c) => c.id).filter(Boolean) : [];
 
       const totalStudents = classIds.length
         ? await db('student_classes').whereIn('class_id', classIds).countDistinct('student_id as count').first()
@@ -2060,24 +2090,61 @@ function createApp(db) {
 
       const today = new Date().toISOString().split('T')[0];
       const attendanceRecords = classIds.length
-        ? await db('attendance').whereIn('class_id', classIds).andWhere('date', today).select('*')
+        ? (await db('attendance').whereIn('class_id', classIds).andWhere('date', today).select('*')) || []
         : [];
 
-      const attendanceRate = attendanceRecords.length
-        ? Math.round((attendanceRecords.filter((row) => row.status === 'present').length / attendanceRecords.length) * 100)
+      const normalizedAttendanceRecords = Array.isArray(attendanceRecords) ? attendanceRecords : [];
+      const attendanceRate = normalizedAttendanceRecords.length
+        ? Math.round((normalizedAttendanceRecords.filter((row) => row.status === 'present').length / normalizedAttendanceRecords.length) * 100)
         : 0;
 
-      const todaySchedule = await db('timetable')
-        .whereIn('class_id', classIds)
-        .andWhere('date', today)
-        .select('*');
+      const todaySchedule = classIds.length
+        ? (await db('timetable').whereIn('class_id', classIds).andWhere('date', today).select('*')) || []
+        : [];
 
       res.json({
-        total_students: Number(totalStudents.count || 0),
+        total_students: Number(totalStudents?.count || 0),
         assigned_classes: classes.length,
-        pending_assignments: Number(pendingAssignments.count || 0),
+        pending_assignments: Number(pendingAssignments?.count || 0),
         attendance_rate: attendanceRate,
-        today_schedule: todaySchedule,
+        today_schedule: Array.isArray(todaySchedule) ? todaySchedule : [],
+      });
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ message: 'Server error' });
+    }
+  });
+
+  app.get('/api/teachers/stats', authenticateToken, async (req, res) => {
+    try {
+      if (req.user.role !== 'admin') return res.status(403).json({ message: 'Permission denied' });
+
+      const totalTeachers = await db('users').where({ role: 'teacher' }).count('* as count').first();
+
+      const today = new Date().toISOString().split('T')[0];
+      const activeToday = await db('attendance')
+        .where(db.raw("DATE(date) = ?", [today]))
+        .distinct('teacher_id')
+        .count('* as count')
+        .first();
+
+      const subjects = await db('users')
+        .where({ role: 'teacher' })
+        .where(db.raw("subject IS NOT NULL"))
+        .distinct('subject')
+        .count('* as count')
+        .first();
+
+      const sickLeaves = await db('users')
+        .where({ role: 'teacher', status: 'On Leave' })
+        .count('* as count')
+        .first();
+
+      res.json({
+        totalTeachers: totalTeachers?.count || 0,
+        activeToday: activeToday?.count || 0,
+        totalSubjects: subjects?.count || 0,
+        sickLeaves: sickLeaves?.count || 0,
       });
     } catch (error) {
       console.error(error);
@@ -2545,46 +2612,6 @@ function createApp(db) {
     }
   });
 
-  // Get teacher statistics
-  app.get('/api/teachers/stats', authenticateToken, async (req, res) => {
-    try {
-      if (req.user.role !== 'admin') return res.status(403).json({ message: 'Permission denied' });
-      
-      const totalTeachers = await db('users').where({ role: 'teacher' }).count('* as count').first();
-      
-      // Active today (teachers with attendance records today)
-      const today = new Date().toISOString().split('T')[0];
-      const activeToday = await db('attendance')
-        .where(db.raw("DATE(date) = ?", [today]))
-        .distinct('teacher_id')
-        .count('* as count')
-        .first();
-      
-      // Count distinct subjects
-      const subjects = await db('users')
-        .where({ role: 'teacher' })
-        .where(db.raw("subject IS NOT NULL"))
-        .distinct('subject')
-        .count('* as count')
-        .first();
-      
-      // Sick leaves (teachers with 'On Leave' status)
-      const sickLeaves = await db('users')
-        .where({ role: 'teacher', status: 'On Leave' })
-        .count('* as count')
-        .first();
-      
-      res.json({
-        totalTeachers: totalTeachers?.count || 0,
-        activeToday: activeToday?.count || 0,
-        totalSubjects: subjects?.count || 0,
-        sickLeaves: sickLeaves?.count || 0,
-      });
-    } catch (error) {
-      console.error(error);
-      res.status(500).json({ message: 'Server error' });
-    }
-  });
 
   // Admin Dashboard Stats
   app.get('/api/admin/dashboard/stats', authenticateToken, async (req, res) => {
