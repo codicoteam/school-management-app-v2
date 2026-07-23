@@ -2861,7 +2861,26 @@ function createApp(db) {
 
   app.post('/api/students', authenticateToken, async (req, res) => {
     try {
-      const [created] = await db('students').insert(req.body).returning('*');
+      const insertQuery = db('students').insert(req.body);
+      let createdResult;
+      if (insertQuery && typeof insertQuery.returning === 'function') {
+        createdResult = await insertQuery.returning('*');
+      } else {
+        createdResult = await insertQuery;
+      }
+
+      let created;
+      if (Array.isArray(createdResult) && createdResult.length > 0 && typeof createdResult[0] === 'object') {
+        created = createdResult[0];
+      } else if (Array.isArray(createdResult) && createdResult.length > 0) {
+        const id = createdResult[0];
+        created = await db('students').where({ id }).first();
+      } else if (createdResult && typeof createdResult === 'object') {
+        created = createdResult;
+      } else {
+        created = null;
+      }
+
       res.status(201).json(created);
     } catch (error) {
       console.error(error);
