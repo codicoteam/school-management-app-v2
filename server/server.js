@@ -32,6 +32,8 @@ function createApp(db) {
   const upload = multer({ storage });
   app.use('/uploads', express.static(uploadsDir));
 
+  const isUuid = (value) => typeof value === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
+
   app.get('/', (req, res) => {
     res.send({
       status: 'ok',
@@ -1771,6 +1773,20 @@ function createApp(db) {
     });
   };
 
+  const findTeacherRecord = async (reqUser) => {
+    if (!reqUser) return null;
+
+    const byId = await db('users').where({ id: reqUser.id, role: 'teacher' }).first();
+    if (byId) return byId;
+
+    if (reqUser.email) {
+      const byEmail = await db('users').where({ email: reqUser.email, role: 'teacher' }).first();
+      if (byEmail) return byEmail;
+    }
+
+    return await db('users').where({ id: reqUser.id }).first();
+  };
+
   // seed helper
   const seedInitialData = async () => {
     let teacherUser = await db('users').where({ email: 'teacher@example.com' }).first();
@@ -2074,7 +2090,9 @@ function createApp(db) {
   app.get('/api/teachers/dashboard', authenticateToken, async (req, res) => {
     try {
       if (req.user.role !== 'teacher') return res.status(403).json({ message: 'Permission denied' });
-      const teacherId = req.user.id;
+
+      const teacherRecord = await findTeacherRecord(req.user);
+      const teacherId = teacherRecord?.id || req.user.id;
 
       const classes = (await db('classes').where({ teacher_id: teacherId }).select('*')) || [];
       const classIds = Array.isArray(classes) ? classes.map((c) => c.id).filter(Boolean) : [];
@@ -2098,8 +2116,9 @@ function createApp(db) {
         ? Math.round((normalizedAttendanceRecords.filter((row) => row.status === 'present').length / normalizedAttendanceRecords.length) * 100)
         : 0;
 
+      const todayName = new Date().toLocaleDateString('en-US', { weekday: 'long' });
       const todaySchedule = classIds.length
-        ? (await db('timetable').whereIn('class_id', classIds).andWhere('date', today).select('*')) || []
+        ? (await db('timetable').whereIn('class_id', classIds).andWhere('day_of_week', todayName).select('*')) || []
         : [];
 
       res.json({
@@ -2122,29 +2141,20 @@ function createApp(db) {
       const totalTeachers = await db('users').where({ role: 'teacher' }).count('* as count').first();
 
       const today = new Date().toISOString().split('T')[0];
-      const activeToday = await db('attendance')
-        .where(db.raw("DATE(date) = ?", [today]))
-        .distinct('teacher_id')
-        .count('* as count')
-        .first();
+      const activeTodayRows = await db('attendance').where({ date: today }).select('teacher_id').distinct();
 
-      const subjects = await db('users')
+      const subjectRows = await db('users')
         .where({ role: 'teacher' })
-        .where(db.raw("subject IS NOT NULL"))
-        .distinct('subject')
-        .count('* as count')
-        .first();
+        .select('subject')
+        .distinct();
 
-      const sickLeaves = await db('users')
-        .where({ role: 'teacher', status: 'On Leave' })
-        .count('* as count')
-        .first();
+      const subjects = Array.isArray(subjectRows) ? subjectRows.filter((row) => row && row.subject).map((row) => row.subject) : [];
 
       res.json({
         totalTeachers: totalTeachers?.count || 0,
-        activeToday: activeToday?.count || 0,
-        totalSubjects: subjects?.count || 0,
-        sickLeaves: sickLeaves?.count || 0,
+        activeToday: Array.isArray(activeTodayRows) ? new Set(activeTodayRows.map((row) => row.teacher_id)).size : 0,
+        totalSubjects: subjects.length,
+        sickLeaves: 0,
       });
     } catch (error) {
       console.error(error);
@@ -2566,27 +2576,25 @@ function createApp(db) {
   app.get('/api/subjects', authenticateToken, async (req, res) => {
     try {
       const subjects = await db('subjects').select('*');
-      
-      // Enrich with teacher and class counts
+
       const enriched = await Promise.all(subjects.map(async (subject) => {
         const teacherCount = await db('users')
-          .where({ role: 'teacher' })
-          .where(db.raw("classes ILIKE ?", [`%${subject.name}%`]))
+          .where({ role: 'teacher', subject: subject.name })
           .count('* as count')
           .first();
-        
+
         const classCount = await db('classes')
           .where({ subject: subject.name })
           .count('* as count')
           .first();
-        
+
         return {
           ...subject,
           teachersCount: teacherCount?.count || 0,
           classesCount: classCount?.count || 0,
         };
       }));
-      
+
       res.json(enriched);
     } catch (error) {
       console.error(error);
@@ -2861,24 +2869,56 @@ function createApp(db) {
 
   app.post('/api/students', authenticateToken, async (req, res) => {
     try {
-      const insertQuery = db('students').insert(req.body);
-      let createdResult;
-      if (insertQuery && typeof insertQuery.returning === 'function') {
-        createdResult = await insertQuery.returning('*');
-      } else {
-        createdResult = await insertQuery;
+      const payload = { ...req.body };
+      const guardianEmail = typeof payload.guardian_email === 'string' ? payload.guardian_email.trim().toLowerCase() : '';
+
+      if (guardianEmail && (!payload.guardian_user_id || !isUuid(payload.guardian_user_id))) {
+        const parentUser = await db('users').where({ email: guardianEmail }).first();
+        if (parentUser && parentUser.id && isUuid(parentUser.id)) {
+          payload.guardian_user_id = parentUser.id;
+        }
       }
 
+      if (payload.guardian_user_id && !isUuid(payload.guardian_user_id)) {
+        delete payload.guardian_user_id;
+      }
+
+      const persistStudent = async (studentPayload) => {
+        const insertQuery = db('students').insert(studentPayload);
+        let createdResult;
+        if (insertQuery && typeof insertQuery.returning === 'function') {
+          createdResult = await insertQuery.returning('*');
+        } else {
+          createdResult = await insertQuery;
+        }
+
+        let created;
+        if (Array.isArray(createdResult) && createdResult.length > 0 && typeof createdResult[0] === 'object') {
+          created = createdResult[0];
+        } else if (Array.isArray(createdResult) && createdResult.length > 0) {
+          const id = createdResult[0];
+          created = await db('students').where({ id }).first();
+        } else if (createdResult && typeof createdResult === 'object') {
+          created = createdResult;
+        } else {
+          created = null;
+        }
+
+        return created;
+      };
+
       let created;
-      if (Array.isArray(createdResult) && createdResult.length > 0 && typeof createdResult[0] === 'object') {
-        created = createdResult[0];
-      } else if (Array.isArray(createdResult) && createdResult.length > 0) {
-        const id = createdResult[0];
-        created = await db('students').where({ id }).first();
-      } else if (createdResult && typeof createdResult === 'object') {
-        created = createdResult;
-      } else {
-        created = null;
+      try {
+        created = await persistStudent(payload);
+      } catch (error) {
+        const isUnknownColumn = error && (error.code === '42703' || /column .* does not exist/i.test(error.message));
+        if (isUnknownColumn && payload.guardian_user_id) {
+          const fallbackPayload = { ...payload };
+          delete fallbackPayload.guardian_user_id;
+          created = await persistStudent(fallbackPayload);
+        } else {
+          throw error;
+        }
       }
 
       res.status(201).json(created);

@@ -225,6 +225,26 @@ describe('API routes', () => {
     expect(res.body).to.have.property('id', 'BPS-2451');
   });
 
+  it('creates a student when guardian email is provided and guardian_user_id is invalid', async () => {
+    const jwt = require('jsonwebtoken');
+    const token = jwt.sign({ id: 'admin-1', email: 'admin@example.com', role: 'admin' }, process.env.JWT_SECRET || 'your-secret-key');
+
+    const res = await request(app)
+      .post('/api/students')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        id: 'student-create-regression-1',
+        name: 'Regression Student',
+        class: 'Form 1B',
+        guardian_email: 'parent@example.com',
+        guardian_user_id: 'p1'
+      });
+
+    expect(res.status).to.equal(201);
+    expect(res.body).to.have.property('id', 'student-create-regression-1');
+    expect(res.body).to.have.property('guardian_email', 'parent@example.com');
+  });
+
   it('returns student results', async () => {
     const jwt = require('jsonwebtoken');
     const token = jwt.sign({ id: 'u1', email: 'student@example.com', role: 'student' }, process.env.JWT_SECRET || 'your-secret-key');
