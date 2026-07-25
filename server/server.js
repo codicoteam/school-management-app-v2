@@ -3791,7 +3791,12 @@ if (require.main === module) {
 
   ensureSchema()
     .then(() => app._seedInitialData())
-    .catch(err => console.error('Database initialisation failed:', err.message));
+    .catch(err => {
+      console.error('Database initialisation failed:', err);
+      if (err && err.message) {
+        console.error('Database error message:', err.message);
+      }
+    });
 
   app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
