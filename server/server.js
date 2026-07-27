@@ -3779,9 +3779,31 @@ if (require.main === module) {
   // On a fresh database (e.g. first deploy), create tables before seeding.
   // schema.sql only uses CREATE ... IF NOT EXISTS, so this is idempotent.
   const ensureSchema = async () => {
-    const hasUsers = await db.schema.hasTable('users');
-    if (hasUsers) return;
-    console.log('users table missing — applying schema.sql...');
+    const requiredTables = ['users', 'students', 'applications', 'library_items'];
+    const hasRequiredTables = await Promise.all(requiredTables.map(tableName => db.schema.hasTable(tableName)));
+    const needsInitialSchema = hasRequiredTables.some(hasTable => !hasTable);
+
+    let needsSchemaUpdates = needsInitialSchema;
+    if (!needsSchemaUpdates) {
+      try {
+        const applicationColumns = await db('applications').columnInfo();
+        const missingApplicationColumns = ['student_id', 'created_at'].filter(columnName => !applicationColumns[columnName]);
+        if (missingApplicationColumns.length > 0) {
+          console.log(`applications table missing columns: ${missingApplicationColumns.join(', ')} — applying schema.sql...`);
+          needsSchemaUpdates = true;
+        }
+      } catch (error) {
+        console.warn('Unable to inspect applications columns, applying schema.sql...', error.message);
+        needsSchemaUpdates = true;
+      }
+    }
+
+    if (!needsSchemaUpdates) {
+      console.log('Database schema already present.');
+      return;
+    }
+
+    console.log('Applying schema.sql...');
     const schemaSQL = fs.readFileSync(path.join(__dirname, 'schema.sql'), 'utf-8');
     for (const statement of schemaSQL.split(';')) {
       if (statement.trim()) await db.raw(statement);
