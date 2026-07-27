@@ -192,7 +192,7 @@ mockDb('messages').insert({ id: 'm1', sender_id: 'teacher-1', sender_name: 'Mr. 
 mockDb('documents').insert({ id: 'd1', student_id: 'BPS-2451', name: 'Term 1 2025 Report Card', type: 'Report Card', size: '320 KB', url: '/docs/term1-2025-report-card.pdf', created_at: new Date() });
 mockDb('subjects').insert({ id: 'subj1', name: 'Mathematics', description: 'Core mathematics' });
 mockDb('subjects').insert({ id: 'subj2', name: 'Science', description: 'Physical sciences' });
-mockDb('applications').insert({ id: 'app1', student_id: 'BPS-2451', applicant_name: 'Tatenda', status: 'pending', created_at: new Date() });
+  await mockDb('applications').insert({ id: 'app1', student_id: 'BPS-2451', full_name: 'Tatenda', status: 'pending', created_at: new Date() });
 
 const app = createApp(mockDb);
 

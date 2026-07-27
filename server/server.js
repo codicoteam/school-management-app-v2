@@ -1960,7 +1960,7 @@ function createApp(db) {
     if (!applicationsCount || Number(applicationsCount.cnt || applicationsCount.count || 0) === 0) {
       await db('applications').insert({
         student_id: 'BPS-2451',
-        applicant_name: 'Tawanda Ndlovu',
+        full_name: 'Tawanda Ndlovu',
         status: 'pending',
       });
     }

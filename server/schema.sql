@@ -36,16 +36,6 @@ CREATE TABLE IF NOT EXISTS bookmarks (
   UNIQUE(user_id, item_id)
 );
 
-CREATE TABLE IF NOT EXISTS borrowings (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  student_id VARCHAR(50) REFERENCES students(id),
-  item_id UUID REFERENCES library_items(id),
-  borrowed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  due_date DATE,
-  returned_at TIMESTAMP NULL,
-  status VARCHAR(20) DEFAULT 'borrowed'
-);
-
 CREATE TABLE IF NOT EXISTS students (
   id VARCHAR(50) PRIMARY KEY,
   name VARCHAR(255) NOT NULL,
@@ -64,6 +54,16 @@ CREATE TABLE IF NOT EXISTS students (
   guardian_user_id UUID REFERENCES users(id),
   current_gpa NUMERIC(3,2),
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS borrowings (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  student_id VARCHAR(50) REFERENCES students(id),
+  item_id UUID REFERENCES library_items(id),
+  borrowed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  due_date DATE,
+  returned_at TIMESTAMP NULL,
+  status VARCHAR(20) DEFAULT 'borrowed'
 );
 
 CREATE TABLE IF NOT EXISTS teachers (

@@ -210,7 +210,7 @@ describe('API routes', () => {
     await mockDb('audit_logs').insert({ id: 'al1', admin_id: 'u1', admin_name: 'Jane', action: 'LOGIN', entity_type: 'user', entity_id: 'u1', description: 'Admin login', created_at: new Date() });
     await mockDb('subjects').insert({ id: 'subj1', name: 'Mathematics', description: 'Core mathematics' });
     await mockDb('subjects').insert({ id: 'subj2', name: 'Science', description: 'Physical sciences' });
-    await mockDb('applications').insert({ id: 'app1', student_id: 'BPS-2451', applicant_name: 'Tatenda', status: 'pending', created_at: new Date() });
+    await mockDb('applications').insert({ id: 'app1', student_id: 'BPS-2451', full_name: 'Tatenda', status: 'pending', created_at: new Date() });
     await mockDb('users').insert({ id: 'teacher-1', email: 'teacher@example.com', password: '$2a$10$ABCDEFG', name: 'Mr. Mhlanga', role: 'teacher', subject: 'Mathematics' });
     await mockDb('users').insert({ id: 'admin-1', email: 'admin@example.com', password: '$2a$10$ABCDEFG', name: 'Admin User', role: 'admin' });
   });
