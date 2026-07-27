@@ -384,6 +384,24 @@ describe('API routes', () => {
     expect(res2.body.length).to.be.greaterThan(0);
   });
 
+  it('allows demo access to teacher, class, and subject endpoints without a token', async () => {
+    const dashboard = await request(app).get('/api/teachers/dashboard');
+    expect(dashboard.status).to.equal(200);
+    expect(dashboard.body).to.have.property('total_students');
+
+    const stats = await request(app).get('/api/teachers/stats');
+    expect(stats.status).to.equal(200);
+    expect(stats.body).to.have.property('totalTeachers');
+
+    const classes = await request(app).get('/api/classes');
+    expect(classes.status).to.equal(200);
+    expect(classes.body).to.be.an('array');
+
+    const subjects = await request(app).get('/api/subjects');
+    expect(subjects.status).to.equal(200);
+    expect(subjects.body).to.be.an('array');
+  });
+
   it('serves teacher dashboard, stats, classes, and subjects endpoints', async () => {
     const jwt = require('jsonwebtoken');
     const teacherToken = jwt.sign({ id: 'teacher-1', email: 'teacher@example.com', role: 'teacher', name: 'Mr. Mhlanga' }, process.env.JWT_SECRET || 'your-secret-key');
