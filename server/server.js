@@ -1769,6 +1769,9 @@ function createApp(db) {
       { method: 'GET', path: '/api/subjects', role: 'admin' },
       { method: 'POST', path: '/api/students', role: 'admin' },
       { method: 'GET', path: '/api/students', role: 'admin' },
+      { method: 'GET', path: '/api/applications', role: 'admin' },
+      { method: 'GET', path: '/api/report-cards', role: 'admin' },
+      { method: 'GET', path: '/api/grades/BPS-2451', role: 'admin' },
     ];
 
     const match = allowedRoutes.find((route) => route.method === req.method && route.path === req.path);

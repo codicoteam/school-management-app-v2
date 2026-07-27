@@ -402,6 +402,20 @@ describe('API routes', () => {
     expect(subjects.body).to.be.an('array');
   });
 
+  it('allows demo access to admissions, report-card, and grade endpoints without a token', async () => {
+    const applications = await request(app).get('/api/applications');
+    expect(applications.status).to.equal(200);
+    expect(applications.body).to.be.an('array');
+
+    const reportCards = await request(app).get('/api/report-cards');
+    expect(reportCards.status).to.equal(200);
+    expect(reportCards.body).to.be.an('array');
+
+    const grades = await request(app).get('/api/grades/BPS-2451');
+    expect(grades.status).to.equal(200);
+    expect(grades.body).to.be.an('array');
+  });
+
   it('serves teacher dashboard, stats, classes, and subjects endpoints', async () => {
     const jwt = require('jsonwebtoken');
     const teacherToken = jwt.sign({ id: 'teacher-1', email: 'teacher@example.com', role: 'teacher', name: 'Mr. Mhlanga' }, process.env.JWT_SECRET || 'your-secret-key');
