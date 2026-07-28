@@ -1761,30 +1761,58 @@ function createApp(db) {
   });
 
   const getDemoUserForRequest = async (req) => {
-    const allowedRoutes = [
-      { method: 'GET', path: '/api/teachers/dashboard', role: 'teacher' },
-      { method: 'GET', path: '/api/teachers/stats', role: 'admin' },
-      { method: 'GET', path: '/api/classes', role: 'admin' },
-      { method: 'POST', path: '/api/classes', role: 'admin' },
-      { method: 'GET', path: '/api/subjects', role: 'admin' },
-      { method: 'POST', path: '/api/students', role: 'admin' },
-      { method: 'GET', path: '/api/students', role: 'admin' },
-      { method: 'GET', path: '/api/applications', role: 'admin' },
-      { method: 'GET', path: '/api/report-cards', role: 'admin' },
-      { method: 'GET', path: '/api/grades/BPS-2451', role: 'admin' },
-    ];
+    const path = req.path || '';
+    const method = req.method || 'GET';
 
-    const match = allowedRoutes.find((route) => route.method === req.method && route.path === req.path);
-    if (!match) return null;
+    let role = null;
 
-    const existingUser = await db('users').where({ role: match.role }).orderBy('created_at', 'asc').first();
+    if (path.startsWith('/api/admin')) {
+      role = 'admin';
+    } else if (path.startsWith('/api/teachers')) {
+      role = path === '/api/teachers/stats' ? 'admin' : 'teacher';
+    } else if (path.startsWith('/api/parents')) {
+      role = 'parent';
+    } else if (path.startsWith('/api/students')) {
+      role = method === 'POST' && path === '/api/students' ? 'admin' : 'student';
+    } else if (
+      path.startsWith('/api/classes') ||
+      path.startsWith('/api/subjects') ||
+      path.startsWith('/api/applications') ||
+      path.startsWith('/api/report-cards') ||
+      path.startsWith('/api/grades') ||
+      path.startsWith('/api/announcements') ||
+      path.startsWith('/api/documents') ||
+      path.startsWith('/api/messages') ||
+      path.startsWith('/api/fees') ||
+      path.startsWith('/api/resources') ||
+      path.startsWith('/api/inventory') ||
+      path.startsWith('/api/calendar-events') ||
+      path.startsWith('/api/timetable') ||
+      path.startsWith('/api/exams') ||
+      path.startsWith('/api/library') ||
+      path.startsWith('/api/borrowings')
+    ) {
+      role = 'admin';
+    }
+
+    if (!role) return null;
+
+    const existingUser = await db('users').where({ role }).orderBy('created_at', 'asc').first();
     if (existingUser) return existingUser;
+
+    const fallbackEmail = role === 'teacher'
+      ? 'teacher@example.com'
+      : role === 'parent'
+        ? 'parent@example.com'
+        : role === 'student'
+          ? 'student@example.com'
+          : 'admin@example.com';
 
     return {
       id: uuidv4(),
-      email: match.role === 'teacher' ? 'teacher@example.com' : 'admin@example.com',
-      role: match.role,
-      name: match.role === 'teacher' ? 'Demo Teacher' : 'Demo Admin',
+      email: fallbackEmail,
+      role,
+      name: role === 'teacher' ? 'Demo Teacher' : role === 'parent' ? 'Demo Parent' : role === 'student' ? 'Demo Student' : 'Demo Admin',
     };
   };
 

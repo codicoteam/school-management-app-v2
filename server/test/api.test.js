@@ -402,7 +402,39 @@ describe('API routes', () => {
     expect(subjects.body).to.be.an('array');
   });
 
-  it('allows demo access to admissions, report-card, and grade endpoints without a token', async () => {
+  it('allows demo access to admin, teacher, student, admissions, report-card, and grade endpoints without a token', async () => {
+    const adminUsers = await request(app).get('/api/admin/users');
+    expect(adminUsers.status).to.equal(200);
+    expect(adminUsers.body).to.be.an('array');
+
+    const adminFees = await request(app).get('/api/admin/fees/stats');
+    expect(adminFees.status).to.equal(200);
+    expect(adminFees.body).to.have.property('collected');
+
+    const adminAttendance = await request(app).get('/api/admin/attendance/stats');
+    expect(adminAttendance.status).to.equal(200);
+    expect(adminAttendance.body).to.have.property('present');
+
+    const dashboard = await request(app).get('/api/teachers/dashboard');
+    expect(dashboard.status).to.equal(200);
+    expect(dashboard.body).to.have.property('total_students');
+
+    const stats = await request(app).get('/api/teachers/stats');
+    expect(stats.status).to.equal(200);
+    expect(stats.body).to.have.property('totalTeachers');
+
+    const classes = await request(app).get('/api/classes');
+    expect(classes.status).to.equal(200);
+    expect(classes.body).to.be.an('array');
+
+    const subjects = await request(app).get('/api/subjects');
+    expect(subjects.status).to.equal(200);
+    expect(subjects.body).to.be.an('array');
+
+    const students = await request(app).get('/api/students');
+    expect(students.status).to.equal(200);
+    expect(students.body).to.be.an('array');
+
     const applications = await request(app).get('/api/applications');
     expect(applications.status).to.equal(200);
     expect(applications.body).to.be.an('array');
