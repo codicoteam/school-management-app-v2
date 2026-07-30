@@ -303,6 +303,19 @@ function createApp(db) {
             details: { type: 'string' },
           },
         },
+        AttendanceRecord: {
+          type: 'object',
+          required: ['class_id', 'student_id', 'date', 'status'],
+          properties: {
+            id: { type: 'string' },
+            class_id: { type: 'string', example: 'class1' },
+            student_id: { type: 'string', example: 'BPS-2451' },
+            teacher_id: { type: 'string', example: 'teacher-1' },
+            date: { type: 'string', format: 'date', example: '2025-04-21' },
+            status: { type: 'string', example: 'present', enum: ['present', 'absent', 'late'] },
+            created_at: { type: 'string', format: 'date-time', example: '2025-04-21T08:00:00Z' },
+          },
+        },
         AttendanceSummary: {
           type: 'object',
           properties: {
@@ -856,14 +869,34 @@ function createApp(db) {
         post: {
           tags: ['Attendance'],
           summary: 'Create attendance records',
+          description: 'Create one or more attendance records. If a single object is provided, it will be normalized to an array.',
           security: [{ bearerAuth: [] }],
           requestBody: {
             required: true,
             content: {
-              'application/json': { schema: { type: 'array', items: { type: 'object' } } },
+              'application/json': {
+                schema: {
+                  oneOf: [
+                    { $ref: '#/components/schemas/AttendanceRecord' },
+                    { type: 'array', items: { $ref: '#/components/schemas/AttendanceRecord' } },
+                  ],
+                },
+              },
             },
           },
-          responses: { '201': { description: 'Attendance records created' } },
+          responses: {
+            '201': {
+              description: 'Attendance records created',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'array',
+                    items: { $ref: '#/components/schemas/AttendanceRecord' },
+                  },
+                },
+              },
+            },
+          },
         },
       },
       '/api/assignments/{classId}': {

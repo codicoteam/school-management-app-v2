@@ -294,6 +294,27 @@ describe('API routes', () => {
     expect(res.body.length).to.equal(3);
   });
 
+  it('creates attendance records for a teacher', async () => {
+    const jwt = require('jsonwebtoken');
+    const token = jwt.sign({ id: 'teacher-1', email: 'teacher@example.com', role: 'teacher', name: 'Mr. Mhlanga' }, process.env.JWT_SECRET || 'your-secret-key');
+
+    const payload = {
+      class_id: 'class1',
+      student_id: 'BPS-2451',
+      date: '2025-05-01',
+      status: 'present',
+    };
+
+    const res = await request(app)
+      .post('/api/attendance')
+      .set('Authorization', `Bearer ${token}`)
+      .send(payload);
+
+    expect(res.status).to.equal(201);
+    expect(res.body).to.be.an('array');
+    expect(res.body[0]).to.include({ class_id: 'class1', student_id: 'BPS-2451', date: '2025-05-01', status: 'present', teacher_id: 'teacher-1' });
+  });
+
   it('returns parent children list', async () => {
     const jwt = require('jsonwebtoken');
     const token = jwt.sign({ id: 'p1', email: 'parent@example.com', role: 'parent' }, process.env.JWT_SECRET || 'your-secret-key');
