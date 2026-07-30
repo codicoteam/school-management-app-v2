@@ -20,6 +20,7 @@ function createMockDb() {
   const messages = [];
   const classes = [];
   const inventory_items = [];
+  const resources = [];
   const school_profile = [];
   const system_settings = [];
   const generated_documents = [];
@@ -30,7 +31,7 @@ function createMockDb() {
   const applications = [];
 
   function table(name) {
-    const rows = { users, students, grades, student_classes, exams, attendance, library_items, bookmarks, borrowings, announcements, fees, documents, messages, classes, inventory_items, school_profile, system_settings, generated_documents, audit_logs, subjects, assignments, timetable, applications }[name];
+    const rows = { users, students, grades, student_classes, exams, attendance, library_items, bookmarks, borrowings, announcements, fees, documents, messages, classes, inventory_items, resources, school_profile, system_settings, generated_documents, audit_logs, subjects, assignments, timetable, applications }[name];
 
     function makeQb(filtered) {
       let _filtered = filtered || rows;
@@ -211,6 +212,8 @@ describe('API routes', () => {
     await mockDb('subjects').insert({ id: 'subj1', name: 'Mathematics', description: 'Core mathematics' });
     await mockDb('subjects').insert({ id: 'subj2', name: 'Science', description: 'Physical sciences' });
     await mockDb('applications').insert({ id: 'app1', student_id: 'BPS-2451', full_name: 'Tatenda', status: 'pending', created_at: new Date() });
+    await mockDb('resources').insert({ id: 'res1', title: 'Algebra notes', url: '/uploads/algebra.pdf', uploaded_by: 'teacher-1', material_type: 'document', filename: 'algebra.pdf' });
+    await mockDb('timetable').insert({ id: 'tt1', class_id: 'class1', date: '2025-05-01', period: '1', subject: 'Mathematics', teacher_id: 'teacher-1' });
     await mockDb('users').insert({ id: 'teacher-1', email: 'teacher@example.com', password: '$2a$10$ABCDEFG', name: 'Mr. Mhlanga', role: 'teacher', subject: 'Mathematics' });
     await mockDb('users').insert({ id: 'admin-1', email: 'admin@example.com', password: '$2a$10$ABCDEFG', name: 'Admin User', role: 'admin' });
   });
@@ -313,6 +316,50 @@ describe('API routes', () => {
     expect(res.status).to.equal(201);
     expect(res.body).to.be.an('array');
     expect(res.body[0]).to.include({ class_id: 'class1', student_id: 'BPS-2451', date: '2025-05-01', status: 'present', teacher_id: 'teacher-1' });
+  });
+
+  it('serves resources, inventory, and timetable endpoints for a teacher', async () => {
+    const jwt = require('jsonwebtoken');
+    const token = jwt.sign({ id: 'teacher-1', email: 'teacher@example.com', role: 'teacher', name: 'Mr. Mhlanga' }, process.env.JWT_SECRET || 'your-secret-key');
+
+    const resourcesRes = await request(app).get('/api/resources').set('Authorization', `Bearer ${token}`);
+    expect(resourcesRes.status).to.equal(200);
+    expect(resourcesRes.body).to.be.an('array');
+    expect(resourcesRes.body[0]).to.have.property('title', 'Algebra notes');
+
+    const createResourceRes = await request(app)
+      .post('/api/resources')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ title: 'Geometry worksheet', url: '/uploads/geometry.pdf', uploaded_by: 'teacher-1', material_type: 'worksheet', filename: 'geometry.pdf' });
+    expect(createResourceRes.status).to.equal(201);
+    expect(createResourceRes.body).to.have.property('title', 'Geometry worksheet');
+
+    const inventoryRes = await request(app).get('/api/inventory').set('Authorization', `Bearer ${token}`);
+    expect(inventoryRes.status).to.equal(200);
+    expect(inventoryRes.body).to.be.an('array');
+    expect(inventoryRes.body[0]).to.have.property('name', 'Chalk');
+
+    const createInventoryRes = await request(app)
+      .post('/api/inventory')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ name: 'Markers', category: 'Stationery', qty: 12, assigned: 2, status: 'In Stock' });
+    expect(createInventoryRes.status).to.equal(201);
+    expect(createInventoryRes.body).to.have.property('name', 'Markers');
+
+    const deleteInventoryRes = await request(app).delete('/api/inventory/inv1').set('Authorization', `Bearer ${token}`);
+    expect(deleteInventoryRes.status).to.equal(204);
+
+    const timetableRes = await request(app).get('/api/timetable/class1').set('Authorization', `Bearer ${token}`);
+    expect(timetableRes.status).to.equal(200);
+    expect(timetableRes.body).to.be.an('array');
+    expect(timetableRes.body[0]).to.have.property('class_id', 'class1');
+
+    const createTimetableRes = await request(app)
+      .post('/api/timetable')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ class_id: 'class1', date: '2025-05-02', period: '2', subject: 'Science', teacher_id: 'teacher-1' });
+    expect(createTimetableRes.status).to.equal(201);
+    expect(createTimetableRes.body).to.have.property('subject', 'Science');
   });
 
   it('returns parent children list', async () => {
