@@ -173,6 +173,9 @@ CREATE TABLE IF NOT EXISTS resources (
   filename VARCHAR(255)
 );
 
+ALTER TABLE resources ADD COLUMN IF NOT EXISTS material_type VARCHAR(100);
+ALTER TABLE resources ADD COLUMN IF NOT EXISTS filename VARCHAR(255);
+
 CREATE TABLE IF NOT EXISTS inventory_items (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name VARCHAR(255) NOT NULL,
