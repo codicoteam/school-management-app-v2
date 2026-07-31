@@ -262,13 +262,20 @@ CREATE TABLE IF NOT EXISTS fees (
 CREATE TABLE IF NOT EXISTS timetable (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   class_id UUID REFERENCES classes(id),
+  date DATE,
+  period VARCHAR(50),
+  subject VARCHAR(255),
+  teacher_id UUID REFERENCES users(id),
   day_of_week VARCHAR(10),
   start_time TIME,
   end_time TIME,
-  subject VARCHAR(255),
   room VARCHAR(50),
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+ALTER TABLE timetable ADD COLUMN IF NOT EXISTS date DATE;
+ALTER TABLE timetable ADD COLUMN IF NOT EXISTS period VARCHAR(50);
+ALTER TABLE timetable ADD COLUMN IF NOT EXISTS teacher_id UUID REFERENCES users(id);
 
 -- Subjects/Courses
 CREATE TABLE IF NOT EXISTS subjects (
