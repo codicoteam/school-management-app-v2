@@ -4099,8 +4099,15 @@ if (require.main === module) {
           console.log(`resources table missing columns: ${missingResourceColumns.join(', ')} — applying schema.sql...`);
           needsSchemaUpdates = true;
         }
+
+        const timetableColumns = await db('timetable').columnInfo();
+        const missingTimetableColumns = ['date', 'period', 'teacher_id'].filter(columnName => !timetableColumns[columnName]);
+        if (missingTimetableColumns.length > 0) {
+          console.log(`timetable table missing columns: ${missingTimetableColumns.join(', ')} — applying schema.sql...`);
+          needsSchemaUpdates = true;
+        }
       } catch (error) {
-        console.warn('Unable to inspect application or resources columns, applying schema.sql...', error.message);
+        console.warn('Unable to inspect application, resources, or timetable columns, applying schema.sql...', error.message);
         needsSchemaUpdates = true;
       }
     }
