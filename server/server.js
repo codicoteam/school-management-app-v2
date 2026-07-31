@@ -34,6 +34,11 @@ function createApp(db) {
 
   const isUuid = (value) => typeof value === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
 
+  const sendServerError = (res, error, label = 'Server error') => {
+    console.error(label, error);
+    res.status(500).json({ message: error?.message || label });
+  };
+
   app.get('/', (req, res) => {
     res.send({
       status: 'ok',
@@ -2313,8 +2318,7 @@ function createApp(db) {
       const token = jwt.sign({ id: user.id, email: user.email, role: user.role, name: user.name }, JWT_SECRET, { expiresIn: '24h' });
       res.json({ token, user: mapUserRow(user) });
     } catch (error) {
-      console.error(error);
-      res.status(500).json({ message: 'Server error' });
+      sendServerError(res, error);
     }
   });
 
@@ -2343,8 +2347,7 @@ function createApp(db) {
 
       res.status(201).json(mapUserRow(newUser));
     } catch (error) {
-      console.error(error);
-      res.status(500).json({ message: 'Server error' });
+      sendServerError(res, error);
     }
   });
 
@@ -2352,8 +2355,7 @@ function createApp(db) {
     try {
       res.json({ message: 'Logged out successfully' });
     } catch (error) {
-      console.error(error);
-      res.status(500).json({ message: 'Server error' });
+      sendServerError(res, error);
     }
   });
 
@@ -2366,8 +2368,7 @@ function createApp(db) {
       const token = jwt.sign({ id: user.id, email: user.email, role: user.role, name: user.name }, JWT_SECRET, { expiresIn: '24h' });
       res.json({ token, user: mapUserRow(user) });
     } catch (error) {
-      console.error(error);
-      res.status(500).json({ message: 'Server error' });
+      sendServerError(res, error);
     }
   });
 
@@ -2392,8 +2393,7 @@ function createApp(db) {
 
       res.json({ message: 'Password changed successfully' });
     } catch (error) {
-      console.error(error);
-      res.status(500).json({ message: 'Server error' });
+      sendServerError(res, error);
     }
   });
 
@@ -2403,8 +2403,7 @@ function createApp(db) {
       if (!user) return res.status(404).json({ message: 'User not found' });
       res.json(mapUserRow(user));
     } catch (error) {
-      console.error(error);
-      res.status(500).json({ message: 'Server error' });
+      sendServerError(res, error);
     }
   });
 
@@ -2414,8 +2413,7 @@ function createApp(db) {
       if (!user) return res.status(404).json({ message: 'Teacher not found' });
       res.json(mapUserRow(user));
     } catch (error) {
-      console.error(error);
-      res.status(500).json({ message: 'Server error' });
+      sendServerError(res, error);
     }
   });
 
@@ -2461,8 +2459,7 @@ function createApp(db) {
         today_schedule: Array.isArray(todaySchedule) ? todaySchedule : [],
       });
     } catch (error) {
-      console.error(error);
-      res.status(500).json({ message: 'Server error' });
+      sendServerError(res, error);
     }
   });
 
@@ -2489,8 +2486,7 @@ function createApp(db) {
         sickLeaves: 0,
       });
     } catch (error) {
-      console.error(error);
-      res.status(500).json({ message: 'Server error' });
+      sendServerError(res, error);
     }
   });
 
@@ -2500,8 +2496,7 @@ function createApp(db) {
       if (!teacher) return res.status(404).json({ message: 'Teacher not found' });
       res.json(mapUserRow(teacher));
     } catch (error) {
-      console.error(error);
-      res.status(500).json({ message: 'Server error' });
+      sendServerError(res, error);
     }
   });
 
@@ -2524,8 +2519,7 @@ function createApp(db) {
       if (!updated[0]) return res.status(404).json({ message: 'Teacher not found' });
       res.json(mapUserRow(updated[0]));
     } catch (error) {
-      console.error(error);
-      res.status(500).json({ message: 'Server error' });
+      sendServerError(res, error);
     }
   });
 
@@ -2545,8 +2539,7 @@ function createApp(db) {
 
       res.json({ student, classes });
     } catch (error) {
-      console.error(error);
-      res.status(500).json({ message: 'Server error' });
+      sendServerError(res, error);
     }
   });
 
@@ -2556,8 +2549,7 @@ function createApp(db) {
       if (!student) return res.status(404).json({ message: 'Student not found' });
       res.json(student);
     } catch (error) {
-      console.error(error);
-      res.status(500).json({ message: 'Server error' });
+      sendServerError(res, error);
     }
   });
 
@@ -2575,8 +2567,7 @@ function createApp(db) {
 
       res.json({ student, classes });
     } catch (error) {
-      console.error(error);
-      res.status(500).json({ message: 'Server error' });
+      sendServerError(res, error);
     }
   });
 
@@ -2586,8 +2577,7 @@ function createApp(db) {
       const grades = await db('grades').where({ student_id: studentId }).orderBy('created_at', 'desc').select('*');
       res.json(grades);
     } catch (error) {
-      console.error(error);
-      res.status(500).json({ message: 'Server error' });
+      sendServerError(res, error);
     }
   });
 
@@ -2600,8 +2590,7 @@ function createApp(db) {
       const upcoming = exams.filter(e => new Date(e.date) >= new Date());
       res.json({ exams, upcoming });
     } catch (error) {
-      console.error(error);
-      res.status(500).json({ message: 'Server error' });
+      sendServerError(res, error);
     }
   });
 
@@ -2619,8 +2608,7 @@ function createApp(db) {
       const rows = await query.select('*');
       res.json(rows);
     } catch (error) {
-      console.error(error);
-      res.status(500).json({ message: 'Server error' });
+      sendServerError(res, error);
     }
   });
 
@@ -2640,8 +2628,7 @@ function createApp(db) {
       const [created] = await db('library_items').insert(payload).returning('*');
       res.status(201).json(created);
     } catch (error) {
-      console.error(error);
-      res.status(500).json({ message: 'Server error' });
+      sendServerError(res, error);
     }
   });
 
@@ -2652,8 +2639,7 @@ function createApp(db) {
       const [created] = await db('bookmarks').insert({ user_id: userId, item_id: itemId }).returning('*');
       res.status(201).json(created);
     } catch (error) {
-      console.error(error);
-      res.status(500).json({ message: 'Server error' });
+      sendServerError(res, error);
     }
   });
 
@@ -2663,8 +2649,7 @@ function createApp(db) {
       const rows = await db('bookmarks').where({ user_id: userId }).select('*');
       res.json(rows);
     } catch (error) {
-      console.error(error);
-      res.status(500).json({ message: 'Server error' });
+      sendServerError(res, error);
     }
   });
 
@@ -2676,8 +2661,7 @@ function createApp(db) {
       const [created] = await db('borrowings').insert({ student_id: studentId, item_id: itemId, due_date: due }).returning('*');
       res.status(201).json(created);
     } catch (error) {
-      console.error(error);
-      res.status(500).json({ message: 'Server error' });
+      sendServerError(res, error);
     }
   });
 
@@ -2687,8 +2671,7 @@ function createApp(db) {
       const rows = await db('borrowings').where({ student_id: sid }).select('*');
       res.json(rows);
     } catch (error) {
-      console.error(error);
-      res.status(500).json({ message: 'Server error' });
+      sendServerError(res, error);
     }
   });
 
@@ -2697,8 +2680,7 @@ function createApp(db) {
       const classes = await db('classes').select('*');
       res.json(classes);
     } catch (error) {
-      console.error(error);
-      res.status(500).json({ message: 'Server error' });
+      sendServerError(res, error);
     }
   });
 
@@ -2708,8 +2690,7 @@ function createApp(db) {
       if (!cls) return res.status(404).json({ message: 'Class not found' });
       res.json(cls);
     } catch (error) {
-      console.error(error);
-      res.status(500).json({ message: 'Server error' });
+      sendServerError(res, error);
     }
   });
 
@@ -2721,8 +2702,7 @@ function createApp(db) {
       const students = await db('students').whereIn('id', studentIds.map(s => s.student_id)).select('*');
       res.json(students);
     } catch (error) {
-      console.error(error);
-      res.status(500).json({ message: 'Server error' });
+      sendServerError(res, error);
     }
   });
 
@@ -2742,8 +2722,7 @@ function createApp(db) {
       }).returning('*');
       res.status(201).json(created);
     } catch (error) {
-      console.error(error);
-      res.status(500).json({ message: 'Server error' });
+      sendServerError(res, error);
     }
   });
 
@@ -2754,8 +2733,7 @@ function createApp(db) {
       if (!deleted) return res.status(404).json({ message: 'Class not found' });
       res.status(204).send();
     } catch (error) {
-      console.error(error);
-      res.status(500).json({ message: 'Server error' });
+      sendServerError(res, error);
     }
   });
 
@@ -2764,8 +2742,7 @@ function createApp(db) {
       const rows = await db('attendance').where({ class_id: req.params.classId }).select('*');
       res.json(rows);
     } catch (error) {
-      console.error(error);
-      res.status(500).json({ message: 'Server error' });
+      sendServerError(res, error);
     }
   });
 
@@ -2791,8 +2768,7 @@ function createApp(db) {
       }
       res.status(201).json(Array.isArray(createdResult) ? createdResult : [createdResult]);
     } catch (error) {
-      console.error(error);
-      res.status(500).json({ message: 'Server error' });
+      sendServerError(res, error);
     }
   });
 
@@ -2801,8 +2777,7 @@ function createApp(db) {
       const rows = await db('assignments').whereRaw('class_id::text = ?', [req.params.classId]).select('*');
       res.json(rows);
     } catch (error) {
-      console.error(error);
-      res.status(500).json({ message: 'Server error' });
+      sendServerError(res, error);
     }
   });
 
@@ -2826,8 +2801,7 @@ function createApp(db) {
       }).returning('*');
       res.status(201).json(created);
     } catch (error) {
-      console.error(error);
-      res.status(500).json({ message: 'Server error' });
+      sendServerError(res, error);
     }
   });
 
@@ -2842,8 +2816,7 @@ function createApp(db) {
       const rows = await db('exams').whereRaw('class_id::text = ?', [id]).select('*');
       res.json(rows);
     } catch (error) {
-      console.error(error);
-      res.status(500).json({ message: 'Server error' });
+      sendServerError(res, error);
     }
   });
 
@@ -2867,8 +2840,7 @@ function createApp(db) {
       }).returning('*');
       res.status(201).json(created);
     } catch (error) {
-      console.error(error);
-      res.status(500).json({ message: 'Server error' });
+      sendServerError(res, error);
     }
   });
 
@@ -2879,8 +2851,7 @@ function createApp(db) {
       if (!deleted) return res.status(404).json({ message: 'Exam not found' });
       res.status(204).send();
     } catch (error) {
-      console.error(error);
-      res.status(500).json({ message: 'Server error' });
+      sendServerError(res, error);
     }
   });
 
@@ -2889,8 +2860,7 @@ function createApp(db) {
       const rows = await db('users').where({ role: 'teacher' }).select('*');
       res.json(rows.map(mapUserRow));
     } catch (error) {
-      console.error(error);
-      res.status(500).json({ message: 'Server error' });
+      sendServerError(res, error);
     }
   });
 
@@ -2914,8 +2884,7 @@ function createApp(db) {
       }).returning('*');
       res.status(201).json(mapUserRow(created));
     } catch (error) {
-      console.error(error);
-      res.status(500).json({ message: 'Server error' });
+      sendServerError(res, error);
     }
   });
 
@@ -2933,8 +2902,7 @@ function createApp(db) {
       const updated = await db('users').where({ id: req.params.id, role: 'teacher' }).update(updates).returning('*');
       res.json(updated[0] ? mapUserRow(updated[0]) : null);
     } catch (error) {
-      console.error(error);
-      res.status(500).json({ message: 'Server error' });
+      sendServerError(res, error);
     }
   });
 
@@ -2944,8 +2912,7 @@ function createApp(db) {
       await db('users').where({ id: req.params.id, role: 'teacher' }).del();
       res.status(204).send();
     } catch (error) {
-      console.error(error);
-      res.status(500).json({ message: 'Server error' });
+      sendServerError(res, error);
     }
   });
 
@@ -2974,8 +2941,7 @@ function createApp(db) {
 
       res.json(enriched);
     } catch (error) {
-      console.error(error);
-      res.status(500).json({ message: 'Server error' });
+      sendServerError(res, error);
     }
   });
 
@@ -2992,8 +2958,7 @@ function createApp(db) {
       }).returning('*');
       res.status(201).json(created);
     } catch (error) {
-      console.error(error);
-      res.status(500).json({ message: 'Server error' });
+      sendServerError(res, error);
     }
   });
 
@@ -3065,8 +3030,7 @@ function createApp(db) {
         revenueChange,
       });
     } catch (error) {
-      console.error(error);
-      res.status(500).json({ message: 'Server error' });
+      sendServerError(res, error);
     }
   });
 
@@ -3093,8 +3057,7 @@ function createApp(db) {
       }
       res.json(data);
     } catch (error) {
-      console.error(error);
-      res.status(500).json({ message: 'Server error' });
+      sendServerError(res, error);
     }
   });
 
@@ -3122,8 +3085,7 @@ function createApp(db) {
       }
       res.json(data);
     } catch (error) {
-      console.error(error);
-      res.status(500).json({ message: 'Server error' });
+      sendServerError(res, error);
     }
   });
 
@@ -3132,8 +3094,7 @@ function createApp(db) {
       const rows = await db('resources').select('*');
       res.json(rows);
     } catch (error) {
-      console.error(error);
-      res.status(500).json({ message: 'Server error' });
+      sendServerError(res, error);
     }
   });
 
@@ -3196,8 +3157,7 @@ function createApp(db) {
       await db('resources').where({ id: req.params.id }).del();
       res.status(204).send();
     } catch (error) {
-      console.error(error);
-      res.status(500).json({ message: 'Server error' });
+      sendServerError(res, error);
     }
   });
 
@@ -3206,8 +3166,7 @@ function createApp(db) {
       const rows = await db('inventory_items').select('*').orderBy('name', 'asc');
       res.json(rows);
     } catch (error) {
-      console.error(error);
-      res.status(500).json({ message: 'Server error' });
+      sendServerError(res, error);
     }
   });
 
@@ -3230,8 +3189,7 @@ function createApp(db) {
       }).returning('*');
       res.status(201).json(created);
     } catch (error) {
-      console.error(error);
-      res.status(500).json({ message: 'Server error' });
+      sendServerError(res, error);
     }
   });
 
@@ -3242,8 +3200,7 @@ function createApp(db) {
       await db('inventory_items').where({ id: req.params.id }).del();
       res.status(204).send();
     } catch (error) {
-      console.error(error);
-      res.status(500).json({ message: 'Server error' });
+      sendServerError(res, error);
     }
   });
 
@@ -3252,8 +3209,7 @@ function createApp(db) {
       const rows = await db('students').select('*');
       res.json(rows);
     } catch (error) {
-      console.error(error);
-      res.status(500).json({ message: 'Server error' });
+      sendServerError(res, error);
     }
   });
 
@@ -3313,8 +3269,7 @@ function createApp(db) {
 
       res.status(201).json(created);
     } catch (error) {
-      console.error(error);
-      res.status(500).json({ message: 'Server error' });
+      sendServerError(res, error);
     }
   });
 
@@ -3323,8 +3278,7 @@ function createApp(db) {
       const updated = await db('students').where({ id: req.params.id }).update(req.body).returning('*');
       res.json(updated[0] || null);
     } catch (error) {
-      console.error(error);
-      res.status(500).json({ message: 'Server error' });
+      sendServerError(res, error);
     }
   });
 
@@ -3333,8 +3287,7 @@ function createApp(db) {
       await db('students').where({ id: req.params.id }).del();
       res.status(204).send();
     } catch (error) {
-      console.error(error);
-      res.status(500).json({ message: 'Server error' });
+      sendServerError(res, error);
     }
   });
 
@@ -3343,8 +3296,7 @@ function createApp(db) {
       const rows = await db('grades').where({ student_id: req.params.id }).distinct('subject');
       res.json(rows.map(r => r.subject));
     } catch (error) {
-      console.error(error);
-      res.status(500).json({ message: 'Server error' });
+      sendServerError(res, error);
     }
   });
 
@@ -3354,8 +3306,7 @@ function createApp(db) {
       const average = await db('grades').where({ student_id: req.params.id }).avg('score as avg').first();
       res.json({ totalGrades: totalGrades?.count || 0, average: Math.round(parseFloat(average?.avg || 0) * 100) / 100 });
     } catch (error) {
-      console.error(error);
-      res.status(500).json({ message: 'Server error' });
+      sendServerError(res, error);
     }
   });
 
@@ -3371,8 +3322,7 @@ function createApp(db) {
 
       res.json(rows);
     } catch (error) {
-      console.error(error);
-      res.status(500).json({ message: 'Server error' });
+      sendServerError(res, error);
     }
   });
 
@@ -3381,8 +3331,7 @@ function createApp(db) {
       const rows = await db('applications').select('*');
       res.json(rows);
     } catch (error) {
-      console.error(error);
-      res.status(500).json({ message: 'Server error' });
+      sendServerError(res, error);
     }
   });
 
@@ -3391,8 +3340,7 @@ function createApp(db) {
       const [created] = await db('applications').insert(req.body).returning('*');
       res.status(201).json(created);
     } catch (error) {
-      console.error(error);
-      res.status(500).json({ message: 'Server error' });
+      sendServerError(res, error);
     }
   });
 
@@ -3401,8 +3349,7 @@ function createApp(db) {
       const updated = await db('applications').where({ id: req.params.id }).update(req.body).returning('*');
       res.json(updated[0] || null);
     } catch (error) {
-      console.error(error);
-      res.status(500).json({ message: 'Server error' });
+      sendServerError(res, error);
     }
   });
 
@@ -3411,8 +3358,7 @@ function createApp(db) {
       const rows = await db('grades').where({ student_id: req.params.studentId }).select('*');
       res.json(rows);
     } catch (error) {
-      console.error(error);
-      res.status(500).json({ message: 'Server error' });
+      sendServerError(res, error);
     }
   });
 
@@ -3421,8 +3367,7 @@ function createApp(db) {
       const [created] = await db('grades').insert(req.body).returning('*');
       res.status(201).json(created);
     } catch (error) {
-      console.error(error);
-      res.status(500).json({ message: 'Server error' });
+      sendServerError(res, error);
     }
   });
 
@@ -3431,8 +3376,7 @@ function createApp(db) {
       const rows = await db('announcements').select('*').orderBy('created_at', 'desc');
       res.json(rows.map((row) => ({ ...row, body: row.message })));
     } catch (error) {
-      console.error(error);
-      res.status(500).json({ message: 'Server error' });
+      sendServerError(res, error);
     }
   });
 
@@ -3456,8 +3400,7 @@ function createApp(db) {
       const [created] = await db('announcements').insert(payload).returning('*');
       res.status(201).json(created);
     } catch (error) {
-      console.error(error);
-      res.status(500).json({ message: 'Server error' });
+      sendServerError(res, error);
     }
   });
 
@@ -3468,8 +3411,7 @@ function createApp(db) {
       await db('announcements').where({ id: req.params.id }).del();
       res.status(204).send();
     } catch (error) {
-      console.error(error);
-      res.status(500).json({ message: 'Server error' });
+      sendServerError(res, error);
     }
   });
 
@@ -3479,8 +3421,7 @@ function createApp(db) {
       const rows = await db('calendar_events').select('*').orderBy('event_date', 'asc');
       res.json(rows);
     } catch (error) {
-      console.error(error);
-      res.status(500).json({ message: 'Server error' });
+      sendServerError(res, error);
     }
   });
 
@@ -3506,8 +3447,7 @@ function createApp(db) {
       }).returning('*');
       res.status(201).json(created);
     } catch (error) {
-      console.error(error);
-      res.status(500).json({ message: 'Server error' });
+      sendServerError(res, error);
     }
   });
 
@@ -3523,8 +3463,7 @@ function createApp(db) {
       const rows = await db('documents').where({ student_id: studentId }).orderBy('created_at', 'desc');
       res.json(rows);
     } catch (error) {
-      console.error(error);
-      res.status(500).json({ message: 'Server error' });
+      sendServerError(res, error);
     }
   });
 
@@ -3537,8 +3476,7 @@ function createApp(db) {
         .orderBy('created_at', 'asc');
       res.json(rows);
     } catch (error) {
-      console.error(error);
-      res.status(500).json({ message: 'Server error' });
+      sendServerError(res, error);
     }
   });
 
@@ -3563,8 +3501,7 @@ function createApp(db) {
       }
       res.status(201).json(created);
     } catch (error) {
-      console.error(error);
-      res.status(500).json({ message: 'Server error' });
+      sendServerError(res, error);
     }
   });
 
@@ -3576,8 +3513,7 @@ function createApp(db) {
       const rows = await query;
       res.json(rows);
     } catch (error) {
-      console.error(error);
-      res.status(500).json({ message: 'Server error' });
+      sendServerError(res, error);
     }
   });
 
@@ -3586,8 +3522,7 @@ function createApp(db) {
       const rows = await db('fees').where({ student_id: req.params.studentId }).select('*');
       res.json(rows);
     } catch (error) {
-      console.error(error);
-      res.status(500).json({ message: 'Server error' });
+      sendServerError(res, error);
     }
   });
 
@@ -3603,8 +3538,7 @@ function createApp(db) {
       const created = Array.isArray(createdResult) ? createdResult[0] : createdResult;
       res.status(201).json(created);
     } catch (error) {
-      console.error(error);
-      res.status(500).json({ message: 'Server error' });
+      sendServerError(res, error);
     }
   });
 
@@ -3613,8 +3547,7 @@ function createApp(db) {
       const updated = await db('fees').where({ id: req.params.id }).update(req.body).returning('*');
       res.json(updated[0] || null);
     } catch (error) {
-      console.error(error);
-      res.status(500).json({ message: 'Server error' });
+      sendServerError(res, error);
     }
   });
 
@@ -3679,8 +3612,7 @@ function createApp(db) {
         .select('*');
       res.json(transactions);
     } catch (error) {
-      console.error(error);
-      res.status(500).json({ message: 'Server error' });
+      sendServerError(res, error);
     }
   });
 
@@ -3689,8 +3621,7 @@ function createApp(db) {
       const rows = await db('timetable').whereRaw('class_id::text = ?', [req.params.classId]).select('*');
       res.json(rows);
     } catch (error) {
-      console.error(error);
-      res.status(500).json({ message: 'Server error' });
+      sendServerError(res, error);
     }
   });
 
@@ -3701,8 +3632,7 @@ function createApp(db) {
       const [created] = await db('timetable').insert(req.body).returning('*');
       res.status(201).json(created);
     } catch (error) {
-      console.error(error);
-      res.status(500).json({ message: 'Server error' });
+      sendServerError(res, error);
     }
   });
 
@@ -3716,8 +3646,7 @@ function createApp(db) {
         : rows;
       res.json(sorted);
     } catch (error) {
-      console.error(error);
-      res.status(500).json({ message: 'Server error' });
+      sendServerError(res, error);
     }
   });
 
@@ -3731,8 +3660,7 @@ function createApp(db) {
       const rate = total > 0 ? Math.round(((present?.cnt || 0) / total) * 100) : 0;
       res.json({ present: present?.cnt || 0, absent: absent?.cnt || 0, late: late?.cnt || 0, rate });
     } catch (error) {
-      console.error(error);
-      res.status(500).json({ message: 'Server error' });
+      sendServerError(res, error);
     }
   });
 
@@ -3752,8 +3680,7 @@ function createApp(db) {
         .map(exam => ({ examName: exam, average: Math.round(grouped[exam].sum / grouped[exam].count) }));
       res.json(trend);
     } catch (error) {
-      console.error(error);
-      res.status(500).json({ message: 'Server error' });
+      sendServerError(res, error);
     }
   });
 
@@ -3766,8 +3693,7 @@ function createApp(db) {
       const grades = await db('grades').where({ student_id: studentId }).select('*');
       res.json({ student, averageScore: stats?.average || 0, grades });
     } catch (error) {
-      console.error(error);
-      res.status(500).json({ message: 'Server error' });
+      sendServerError(res, error);
     }
   });
 
@@ -3789,8 +3715,7 @@ function createApp(db) {
         available,
       });
     } catch (error) {
-      console.error(error);
-      res.status(500).json({ message: 'Server error' });
+      sendServerError(res, error);
     }
   });
 
@@ -3814,8 +3739,7 @@ function createApp(db) {
         'growth%': growth,
       });
     } catch (error) {
-      console.error(error);
-      res.status(500).json({ message: 'Server error' });
+      sendServerError(res, error);
     }
   });
 
@@ -3831,8 +3755,7 @@ function createApp(db) {
         .limit(10);
       res.json(recentFees);
     } catch (error) {
-      console.error(error);
-      res.status(500).json({ message: 'Server error' });
+      sendServerError(res, error);
     }
   });
 
@@ -3856,8 +3779,7 @@ function createApp(db) {
         'classAvg%': classAvg,
       });
     } catch (error) {
-      console.error(error);
-      res.status(500).json({ message: 'Server error' });
+      sendServerError(res, error);
     }
   });
 
@@ -3887,8 +3809,7 @@ function createApp(db) {
 
       res.json(trend);
     } catch (error) {
-      console.error(error);
-      res.status(500).json({ message: 'Server error' });
+      sendServerError(res, error);
     }
   });
 
@@ -3901,8 +3822,7 @@ function createApp(db) {
         .orderBy('exams.date', 'asc');
       res.json(allExams);
     } catch (error) {
-      console.error(error);
-      res.status(500).json({ message: 'Server error' });
+      sendServerError(res, error);
     }
   });
 
@@ -3916,8 +3836,7 @@ function createApp(db) {
         .orderBy('students.name', 'asc');
       res.json(marks);
     } catch (error) {
-      console.error(error);
-      res.status(500).json({ message: 'Server error' });
+      sendServerError(res, error);
     }
   });
 
@@ -3936,8 +3855,7 @@ function createApp(db) {
 
       res.json(reportCards);
     } catch (error) {
-      console.error(error);
-      res.status(500).json({ message: 'Server error' });
+      sendServerError(res, error);
     }
   });
 
@@ -3952,8 +3870,7 @@ function createApp(db) {
         .orderBy('created_at', 'desc');
       res.json(users);
     } catch (error) {
-      console.error(error);
-      res.status(500).json({ message: 'Server error' });
+      sendServerError(res, error);
     }
   });
 
@@ -3976,8 +3893,7 @@ function createApp(db) {
       }
       res.json(profile);
     } catch (error) {
-      console.error(error);
-      res.status(500).json({ message: 'Server error' });
+      sendServerError(res, error);
     }
   });
 
@@ -4014,8 +3930,7 @@ function createApp(db) {
       }
       res.json(result);
     } catch (error) {
-      console.error(error);
-      res.status(500).json({ message: 'Server error' });
+      sendServerError(res, error);
     }
   });
 
@@ -4036,8 +3951,7 @@ function createApp(db) {
       });
       res.json(settingsMap);
     } catch (error) {
-      console.error(error);
-      res.status(500).json({ message: 'Server error' });
+      sendServerError(res, error);
     }
   });
 
@@ -4069,8 +3983,7 @@ function createApp(db) {
       }
       res.json(result);
     } catch (error) {
-      console.error(error);
-      res.status(500).json({ message: 'Server error' });
+      sendServerError(res, error);
     }
   });
 
@@ -4115,8 +4028,7 @@ function createApp(db) {
 
       res.status(201).json(generated);
     } catch (error) {
-      console.error(error);
-      res.status(500).json({ message: 'Server error' });
+      sendServerError(res, error);
     }
   });
 
@@ -4132,8 +4044,7 @@ function createApp(db) {
         .limit(20);
       res.json(recentDocs);
     } catch (error) {
-      console.error(error);
-      res.status(500).json({ message: 'Server error' });
+      sendServerError(res, error);
     }
   });
 
@@ -4150,8 +4061,7 @@ function createApp(db) {
         .limit(parseInt(limit));
       res.json(logs);
     } catch (error) {
-      console.error(error);
-      res.status(500).json({ message: 'Server error' });
+      sendServerError(res, error);
     }
   });
 
