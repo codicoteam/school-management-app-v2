@@ -3155,8 +3155,8 @@ function createApp(db) {
       const [created] = await db('resources').insert(payload).returning('*');
       res.status(201).json(created);
     } catch (error) {
-      console.error(error);
-      res.status(500).json({ message: 'Server error' });
+      console.error('POST /api/resources error', error);
+      res.status(500).json({ message: error.message || 'Server error' });
     }
   });
 
@@ -3184,8 +3184,8 @@ function createApp(db) {
 
       res.status(201).json(created);
     } catch (error) {
-      console.error(error);
-      res.status(500).json({ message: 'Server error' });
+      console.error('POST /api/resources/upload error', error);
+      res.status(500).json({ message: error.message || 'Server error' });
     }
   });
 
