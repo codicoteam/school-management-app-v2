@@ -720,6 +720,24 @@ function createApp(db) {
           responses: { '204': { description: 'Student deleted' } },
         },
       },
+      '/api/students/profile': {
+        get: {
+          tags: ['Students'],
+          summary: 'Get logged-in student profile',
+          description: 'Returns the profile of the currently authenticated student without requiring an ID parameter.',
+          security: [{ bearerAuth: [] }],
+          responses: {
+            '200': {
+              description: 'Student profile returned',
+              content: {
+                'application/json': { schema: { $ref: '#/components/schemas/StudentProfile' } },
+              },
+            },
+            '403': { description: 'Forbidden: not a student' },
+            '404': { description: 'Student not found' },
+          },
+        },
+      },
       '/api/students/{id}/profile': {
         get: {
           tags: ['Students'],
@@ -2501,6 +2519,26 @@ function createApp(db) {
   });
 
   // simple students endpoints used by UI/tests
+  app.get('/api/students/profile', authenticateToken, async (req, res) => {
+    try {
+      if (req.user.role !== 'student') return res.status(403).json({ message: 'Forbidden: only students can access their profile' });
+      const studentId = req.user.id;
+      const student = await db('students').where({ id: studentId }).first();
+      if (!student) return res.status(404).json({ message: 'Student not found' });
+
+      const studentClassRows = await db('student_classes').where({ student_id: studentId }).select('class_id');
+      const classIds = (studentClassRows || []).map(row => row.class_id).filter(Boolean);
+      const classes = classIds.length
+        ? await db('classes').whereIn('id', classIds).select('id', 'name', 'subject', 'subject_code', 'grade')
+        : [];
+
+      res.json({ student, classes });
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ message: 'Server error' });
+    }
+  });
+
   app.get('/api/students/:id', authenticateToken, async (req, res) => {
     try {
       const student = await db('students').where({ id: req.params.id }).first();
