@@ -192,6 +192,25 @@ function createApp(db) {
             classesCount: { type: 'integer' },
           },
         },
+        StudentProfile: {
+          type: 'object',
+          properties: {
+            student: { $ref: '#/components/schemas/Student' },
+            classes: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  id: { type: 'string' },
+                  name: { type: 'string' },
+                  subject: { type: 'string' },
+                  subject_code: { type: 'string' },
+                  grade: { type: 'string' },
+                },
+              },
+            },
+          },
+        },
         TeacherStats: {
           type: 'object',
           properties: {
@@ -699,6 +718,24 @@ function createApp(db) {
           security: [{ bearerAuth: [] }],
           parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
           responses: { '204': { description: 'Student deleted' } },
+        },
+      },
+      '/api/students/{id}/profile': {
+        get: {
+          tags: ['Students'],
+          summary: 'Get student profile',
+          description: 'Returns a student profile with basic student details and enrolled classes.',
+          security: [{ bearerAuth: [] }],
+          parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
+          responses: {
+            '200': {
+              description: 'Student profile returned',
+              content: {
+                'application/json': { schema: { $ref: '#/components/schemas/StudentProfile' } },
+              },
+            },
+            '404': { description: 'Student not found' },
+          },
         },
       },
       '/api/students/{id}/results': {
@@ -2469,6 +2506,25 @@ function createApp(db) {
       const student = await db('students').where({ id: req.params.id }).first();
       if (!student) return res.status(404).json({ message: 'Student not found' });
       res.json(student);
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ message: 'Server error' });
+    }
+  });
+
+  app.get('/api/students/:id/profile', authenticateToken, async (req, res) => {
+    try {
+      const studentId = req.params.id;
+      const student = await db('students').where({ id: studentId }).first();
+      if (!student) return res.status(404).json({ message: 'Student not found' });
+
+      const studentClassRows = await db('student_classes').where({ student_id: studentId }).select('class_id');
+      const classIds = (studentClassRows || []).map(row => row.class_id).filter(Boolean);
+      const classes = classIds.length
+        ? await db('classes').whereIn('id', classIds).select('id', 'name', 'subject', 'subject_code', 'grade')
+        : [];
+
+      res.json({ student, classes });
     } catch (error) {
       console.error(error);
       res.status(500).json({ message: 'Server error' });

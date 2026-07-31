@@ -280,6 +280,19 @@ describe('API routes', () => {
     expect(res.body).to.have.property('upcoming');
   });
 
+  it('returns student profile with enrolled classes', async () => {
+    const jwt = require('jsonwebtoken');
+    const token = jwt.sign({ id: 'u1', email: 'student@example.com', role: 'student' }, process.env.JWT_SECRET || 'your-secret-key');
+
+    const res = await request(app).get('/api/students/BPS-2451/profile').set('Authorization', `Bearer ${token}`);
+    expect(res.status).to.equal(200);
+    expect(res.body).to.have.property('student');
+    expect(res.body).to.have.property('classes');
+    expect(res.body.student).to.have.property('id', 'BPS-2451');
+    expect(res.body.classes).to.be.an('array');
+    expect(res.body.classes[0]).to.have.property('id', 'class1');
+  });
+
   it('returns grades trend', async () => {
     const jwt = require('jsonwebtoken');
     const token = jwt.sign({ id: 'u1', email: 'student@example.com', role: 'student' }, process.env.JWT_SECRET || 'your-secret-key');
