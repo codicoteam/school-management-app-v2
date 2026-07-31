@@ -4120,8 +4120,15 @@ if (require.main === module) {
           console.log(`applications table missing columns: ${missingApplicationColumns.join(', ')} — applying schema.sql...`);
           needsSchemaUpdates = true;
         }
+
+        const resourcesColumns = await db('resources').columnInfo();
+        const missingResourceColumns = ['material_type', 'filename'].filter(columnName => !resourcesColumns[columnName]);
+        if (missingResourceColumns.length > 0) {
+          console.log(`resources table missing columns: ${missingResourceColumns.join(', ')} — applying schema.sql...`);
+          needsSchemaUpdates = true;
+        }
       } catch (error) {
-        console.warn('Unable to inspect applications columns, applying schema.sql...', error.message);
+        console.warn('Unable to inspect application or resources columns, applying schema.sql...', error.message);
         needsSchemaUpdates = true;
       }
     }

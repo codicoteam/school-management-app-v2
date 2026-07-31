@@ -168,7 +168,9 @@ CREATE TABLE IF NOT EXISTS resources (
   title VARCHAR(255),
   url VARCHAR(500),
   uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  downloads INTEGER DEFAULT 0
+  downloads INTEGER DEFAULT 0,
+  material_type VARCHAR(100),
+  filename VARCHAR(255)
 );
 
 CREATE TABLE IF NOT EXISTS inventory_items (
