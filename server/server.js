@@ -210,6 +210,175 @@ function createApp(db) {
             created_by: { type: 'string' },
           },
         },
+        MessageInput: {
+          type: 'object',
+          required: ['receiverId', 'receiverName', 'subject', 'text'],
+          properties: {
+            receiverId: { type: 'string', example: 'teacher-1' },
+            receiverName: { type: 'string', example: 'Mr. Mhlanga' },
+            subject: { type: 'string', example: 'Homework update' },
+            text: { type: 'string', example: 'Please confirm the homework due date.' },
+          },
+        },
+        AssignmentInput: {
+          type: 'object',
+          required: ['class_id', 'title'],
+          properties: {
+            class_id: { type: 'string', example: 'class-1' },
+            title: { type: 'string', example: 'Math Homework' },
+            subject: { type: 'string', example: 'Mathematics' },
+            description: { type: 'string', example: 'Complete problems 1-10.' },
+            due_date: { type: 'string', format: 'date', example: '2025-06-12' },
+          },
+        },
+        ExamInput: {
+          type: 'object',
+          required: ['class_id', 'name', 'date'],
+          properties: {
+            class_id: { type: 'string', example: 'class-1' },
+            name: { type: 'string', example: 'Midterm Exam' },
+            subject: { type: 'string', example: 'Science' },
+            date: { type: 'string', example: '2025-05-20' },
+            total_marks: { type: 'number', nullable: true, example: 100 },
+          },
+        },
+        TeacherInput: {
+          type: 'object',
+          required: ['name', 'email'],
+          properties: {
+            name: { type: 'string', example: 'Jane Doe' },
+            email: { type: 'string', format: 'email', example: 'jane.doe@example.com' },
+            subject: { type: 'string', example: 'Biology' },
+            classes: { type: ['array', 'null'], items: { type: 'string' } },
+            status: { type: ['string', 'null'], example: 'Active' },
+            qualification: { type: ['string', 'null'], example: 'MSc' },
+          },
+        },
+        AnnouncementInput: {
+          type: 'object',
+          required: ['title', 'message'],
+          properties: {
+            title: { type: 'string', example: 'School Closure' },
+            message: { type: 'string', example: 'School will be closed tomorrow due to weather.' },
+            audience: { type: 'string', example: 'general' },
+            type: {
+              type: 'string',
+              enum: ['general', 'parents', 'students', 'teachers'],
+              example: 'general',
+            },
+          },
+        },
+        CalendarEventInput: {
+          type: 'object',
+          required: ['title', 'event_date'],
+          properties: {
+            title: { type: 'string', example: 'Exam Revision' },
+            description: { type: 'string', example: 'Revision session for Grade 9 exams.' },
+            event_date: { type: 'string', format: 'date', example: '2025-05-15' },
+            event_time: { type: 'string', example: '10:00' },
+            event_type: { type: 'string', example: 'revision' },
+            class: { type: 'string', example: 'class-1' },
+            location: { type: 'string', example: 'Room 101' },
+          },
+        },
+        StudentInput: {
+          type: 'object',
+          required: ['name'],
+          properties: {
+            name: { type: 'string', example: 'John Doe' },
+            class: { type: 'string', example: 'Grade 10' },
+            stream: { type: 'string', example: 'Science' },
+            gender: { type: 'string', example: 'male' },
+            date_of_birth: { type: 'string', example: '2008-03-15' },
+            blood_group: { type: 'string', example: 'O+' },
+            address: { type: 'string', example: '123 School Lane' },
+            status: { type: 'string', example: 'Active' },
+            email: { type: 'string', example: 'student@example.com' },
+            phone: { type: 'string', example: '+263771234567' },
+            guardian_name: { type: 'string', example: 'Jane Doe' },
+            guardian_email: { type: 'string', example: 'guardian@example.com' },
+            guardian_phone: { type: 'string', example: '+263771234568' },
+            guardian_user_id: { type: 'string', example: 'parent-1' },
+            current_gpa: { type: 'number', example: 3.7 },
+          },
+        },
+        ClassInput: {
+          type: 'object',
+          required: ['name'],
+          properties: {
+            teacher_id: { type: 'string', example: 'teacher-1' },
+            name: { type: 'string', example: 'Mathematics 101' },
+            subject: { type: 'string', example: 'Mathematics' },
+            subject_code: { type: 'string', example: 'MATH101' },
+            grade: { type: 'string', example: '10' },
+            room: { type: 'string', example: 'Room 201' },
+            max_students: { type: 'number', example: 30 },
+          },
+        },
+        SubjectInput: {
+          type: 'object',
+          required: ['name'],
+          properties: {
+            name: { type: 'string', example: 'Science' },
+            description: { type: 'string', example: 'Science classes for grades 9-12' },
+          },
+        },
+        ApplicationInput: {
+          type: 'object',
+          required: ['student_id', 'status'],
+          properties: {
+            student_id: { type: 'string', example: 'student-1' },
+            status: { type: 'string', example: 'pending' },
+            details: { type: 'string', example: 'Application for late enrollment.' },
+          },
+        },
+        GradeInput: {
+          type: 'object',
+          required: ['student_id', 'subject', 'exam_name', 'score', 'grade'],
+          properties: {
+            student_id: { type: 'string', example: 'student-1' },
+            subject: { type: 'string', example: 'Mathematics' },
+            exam_name: { type: 'string', example: 'Midterm Exam' },
+            score: { type: 'number', example: 85 },
+            grade: { type: 'string', example: 'A' },
+          },
+        },
+        TimetableInput: {
+          type: 'object',
+          required: ['class_id', 'date', 'period', 'subject'],
+          properties: {
+            class_id: { type: 'string', example: 'class-1' },
+            date: { type: 'string', example: '2025-06-01' },
+            period: { type: 'string', example: 'Period 1' },
+            subject: { type: 'string', example: 'Mathematics' },
+            teacher_id: { type: 'string', example: 'teacher-1' },
+          },
+        },
+        InventoryInput: {
+          type: 'object',
+          required: ['name', 'qty'],
+          properties: {
+            name: { type: 'string', example: 'Textbooks' },
+            category: { type: 'string', example: 'Stationery' },
+            qty: { type: 'number', example: 50 },
+            assigned: { type: 'number', example: 5 },
+            status: { type: 'string', example: 'In Stock' },
+          },
+        },
+
+        ResourceInput: {
+          type: 'object',
+          required: ['title', 'url'],
+          properties: {
+            title: { type: 'string', example: 'Lesson Plan' },
+            url: { type: 'string', example: 'https://example.com/resource.pdf' },
+            uploaded_by: { type: 'string', example: 'teacher-1' },
+            uploaded_at: { type: 'string', format: 'date-time', example: '2025-04-10T12:00:00Z' },
+            downloads: { type: 'number', example: 0 },
+            material_type: { type: 'string', example: 'document' },
+            filename: { type: 'string', example: 'lesson-plan.pdf' },
+          },
+        },
         Message: {
           type: 'object',
           properties: {
@@ -489,7 +658,7 @@ function createApp(db) {
             required: true,
             content: {
               'application/json': {
-                schema: { $ref: '#/components/schemas/Student' },
+                schema: { $ref: '#/components/schemas/StudentInput' },
               },
             },
           },
@@ -519,7 +688,7 @@ function createApp(db) {
           requestBody: {
             required: true,
             content: {
-              'application/json': { schema: { $ref: '#/components/schemas/Student' } },
+              'application/json': { schema: { $ref: '#/components/schemas/StudentInput' } },
             },
           },
           responses: { '200': { description: 'Student updated' } },
@@ -627,7 +796,7 @@ function createApp(db) {
           requestBody: {
             required: true,
             content: {
-              'application/json': { schema: { $ref: '#/components/schemas/User' } },
+              'application/json': { schema: { $ref: '#/components/schemas/TeacherInput' } },
             },
           },
           responses: { '201': { description: 'Teacher created' } },
@@ -667,7 +836,7 @@ function createApp(db) {
           requestBody: {
             required: true,
             content: {
-              'application/json': { schema: { $ref: '#/components/schemas/User' } },
+              'application/json': { schema: { $ref: '#/components/schemas/TeacherInput' } },
             },
           },
           responses: { '200': { description: 'Teacher updated' } },
@@ -756,7 +925,7 @@ function createApp(db) {
           requestBody: {
             required: true,
             content: {
-              'application/json': { schema: { $ref: '#/components/schemas/Class' } },
+              'application/json': { schema: { $ref: '#/components/schemas/ClassInput' } },
             },
           },
           responses: { '201': { description: 'Class created' } },
@@ -810,7 +979,7 @@ function createApp(db) {
           requestBody: {
             required: true,
             content: {
-              'application/json': { schema: { $ref: '#/components/schemas/Subject' } },
+              'application/json': { schema: { $ref: '#/components/schemas/SubjectInput' } },
             },
           },
           responses: { '201': { description: 'Subject created' } },
@@ -916,19 +1085,10 @@ function createApp(db) {
           requestBody: {
             required: true,
             content: {
-              'application/json': { schema: { $ref: '#/components/schemas/Assignment' } },
+              'application/json': { schema: { $ref: '#/components/schemas/AssignmentInput' } },
             },
           },
           responses: { '201': { description: 'Assignment created' } },
-        },
-      },
-      '/api/exams/{classId}': {
-        get: {
-          tags: ['Exams'],
-          summary: 'Get exams for a class',
-          security: [{ bearerAuth: [] }],
-          parameters: [{ name: 'classId', in: 'path', required: true, schema: { type: 'string' } }],
-          responses: { '200': { description: 'Exams returned' } },
         },
       },
       '/api/exams': {
@@ -950,13 +1110,21 @@ function createApp(db) {
           requestBody: {
             required: true,
             content: {
-              'application/json': { schema: { $ref: '#/components/schemas/Exam' } },
+              'application/json': { schema: { $ref: '#/components/schemas/ExamInput' } },
             },
           },
           responses: { '201': { description: 'Exam created' } },
         },
       },
       '/api/exams/{id}': {
+        get: {
+          tags: ['Exams'],
+          summary: 'Get an exam or exams by ID',
+          description: 'Returns a single exam if the path parameter is an exam ID, or all exams for a class if the parameter is a class ID.',
+          security: [{ bearerAuth: [] }],
+          parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' }, description: 'Exam ID or class ID' }],
+          responses: { '200': { description: 'Exam(s) returned' } },
+        },
         delete: {
           tags: ['Exams'],
           summary: 'Delete an exam',
@@ -979,7 +1147,7 @@ function createApp(db) {
           requestBody: {
             required: true,
             content: {
-              'application/json': { schema: { $ref: '#/components/schemas/Resource' } },
+              'application/json': { schema: { $ref: '#/components/schemas/ResourceInput' } },
             },
           },
           responses: { '201': { description: 'Resource created' } },
@@ -1032,7 +1200,7 @@ function createApp(db) {
           requestBody: {
             required: true,
             content: {
-              'application/json': { schema: { type: 'object' } },
+              'application/json': { schema: { $ref: '#/components/schemas/InventoryInput' } },
             },
           },
           responses: { '201': { description: 'Inventory item created' } },
@@ -1061,7 +1229,7 @@ function createApp(db) {
           requestBody: {
             required: true,
             content: {
-              'application/json': { schema: { $ref: '#/components/schemas/Application' } },
+              'application/json': { schema: { $ref: '#/components/schemas/ApplicationInput' } },
             },
           },
           responses: { '201': { description: 'Application created' } },
@@ -1076,7 +1244,7 @@ function createApp(db) {
           requestBody: {
             required: true,
             content: {
-              'application/json': { schema: { $ref: '#/components/schemas/Application' } },
+              'application/json': { schema: { $ref: '#/components/schemas/ApplicationInput' } },
             },
           },
           responses: { '200': { description: 'Application updated' } },
@@ -1090,7 +1258,7 @@ function createApp(db) {
           requestBody: {
             required: true,
             content: {
-              'application/json': { schema: { $ref: '#/components/schemas/Grade' } },
+              'application/json': { schema: { $ref: '#/components/schemas/GradeInput' } },
             },
           },
           responses: { '201': { description: 'Grade created' } },
@@ -1119,7 +1287,7 @@ function createApp(db) {
           requestBody: {
             required: true,
             content: {
-              'application/json': { schema: { $ref: '#/components/schemas/Announcement' } },
+              'application/json': { schema: { $ref: '#/components/schemas/AnnouncementInput' } },
             },
           },
           responses: { '201': { description: 'Announcement created' } },
@@ -1148,7 +1316,7 @@ function createApp(db) {
           requestBody: {
             required: true,
             content: {
-              'application/json': { schema: { $ref: '#/components/schemas/CalendarEvent' } },
+              'application/json': { schema: { $ref: '#/components/schemas/CalendarEventInput' } },
             },
           },
           responses: { '201': { description: 'Event created' } },
@@ -1176,7 +1344,7 @@ function createApp(db) {
           requestBody: {
             required: true,
             content: {
-              'application/json': { schema: { $ref: '#/components/schemas/Message' } },
+              'application/json': { schema: { $ref: '#/components/schemas/MessageInput' } },
             },
           },
           responses: { '201': { description: 'Message sent' } },
@@ -1756,7 +1924,7 @@ function createApp(db) {
           requestBody: {
             required: true,
             content: {
-              'application/json': { schema: { $ref: '#/components/schemas/Timetable' } },
+              'application/json': { schema: { $ref: '#/components/schemas/TimetableInput' } },
             },
           },
           responses: { '201': { description: 'Timetable entry created' } },
