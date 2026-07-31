@@ -2525,7 +2525,7 @@ function createApp(db) {
 
   app.get('/api/assignments/:classId', authenticateToken, async (req, res) => {
     try {
-      const rows = await db('assignments').where({ class_id: req.params.classId }).select('*');
+      const rows = await db('assignments').whereRaw('class_id::text = ?', [req.params.classId]).select('*');
       res.json(rows);
     } catch (error) {
       console.error(error);
@@ -2558,9 +2558,15 @@ function createApp(db) {
     }
   });
 
-  app.get('/api/exams/:classId', authenticateToken, async (req, res) => {
+  app.get('/api/exams/:id', authenticateToken, async (req, res) => {
     try {
-      const rows = await db('exams').where({ class_id: req.params.classId }).select('*');
+      const { id } = req.params;
+      const exam = await db('exams').whereRaw('id::text = ?', [id]).first();
+      if (exam) {
+        return res.json(exam);
+      }
+
+      const rows = await db('exams').whereRaw('class_id::text = ?', [id]).select('*');
       res.json(rows);
     } catch (error) {
       console.error(error);
@@ -3394,7 +3400,7 @@ function createApp(db) {
 
   app.get('/api/timetable/:classId', authenticateToken, async (req, res) => {
     try {
-      const rows = await db('timetable').where({ class_id: req.params.classId }).select('*');
+      const rows = await db('timetable').whereRaw('class_id::text = ?', [req.params.classId]).select('*');
       res.json(rows);
     } catch (error) {
       console.error(error);
@@ -3618,7 +3624,7 @@ function createApp(db) {
     try {
       const examId = req.params.examId;
       const marks = await db('exam_grades')
-        .where({ exam_id: examId })
+        .whereRaw('exam_id::text = ?', [examId])
         .join('students', 'exam_grades.student_id', '=', 'students.id')
         .select('exam_grades.*', 'students.name as student_name')
         .orderBy('students.name', 'asc');

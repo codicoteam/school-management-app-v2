@@ -65,6 +65,18 @@ function createMockDb() {
           }
           return this.where(fieldOrCond);
         },
+        whereRaw: function (raw, bindings) {
+          if (typeof raw !== 'string' || !Array.isArray(bindings) || bindings.length === 0) {
+            return this;
+          }
+          const match = raw.match(/([a-zA-Z_][a-zA-Z0-9_]*)::text\s*=\s*\?/);
+          if (match) {
+            const field = match[1];
+            const value = bindings[0];
+            _filtered = _filtered.filter(r => String(r[field]) === String(value));
+          }
+          return this;
+        },
         whereIn: function (field, values) {
           const valuesSet = new Set(values || []);
           _filtered = _filtered.filter(r => valuesSet.has(r[field]));
