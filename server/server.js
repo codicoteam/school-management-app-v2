@@ -2060,13 +2060,27 @@ function createApp(db) {
         : role === 'student'
           ? 'student@example.com'
           : 'admin@example.com';
+    const fallbackName = role === 'teacher'
+      ? 'Demo Teacher'
+      : role === 'parent'
+        ? 'Demo Parent'
+        : role === 'student'
+          ? 'Demo Student'
+          : 'Demo Admin';
 
-    return {
+    const [created] = await db('users').insert({
       id: uuidv4(),
       email: fallbackEmail,
+      password: await bcrypt.hash('demo-password', 10),
+      name: fallbackName,
       role,
-      name: role === 'teacher' ? 'Demo Teacher' : role === 'parent' ? 'Demo Parent' : role === 'student' ? 'Demo Student' : 'Demo Admin',
-    };
+      subject: role === 'teacher' ? 'Demo Subject' : null,
+      grade: role === 'student' ? 'Demo Grade' : null,
+      status: 'Active',
+      created_at: new Date(),
+    }).returning('*');
+
+    return created;
   };
 
   const authenticateToken = async (req, res, next) => {
@@ -4189,7 +4203,17 @@ if (require.main === module) {
     console.log('Applying schema.sql...');
     const schemaSQL = fs.readFileSync(path.join(__dirname, 'schema.sql'), 'utf-8');
     for (const statement of schemaSQL.split(';')) {
-      if (statement.trim()) await db.raw(statement);
+      const trimmed = statement.trim();
+      if (!trimmed) continue;
+      try {
+        await db.raw(trimmed);
+      } catch (error) {
+        if (trimmed.toUpperCase().startsWith('CREATE EXTENSION')) {
+          console.warn('Skipping extension creation during schema apply:', error.message);
+          continue;
+        }
+        throw error;
+      }
     }
     console.log('Schema applied successfully.');
   };
