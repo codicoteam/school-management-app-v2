@@ -391,9 +391,6 @@ function createApp(db) {
           properties: {
             title: { type: 'string', example: 'Lesson Plan' },
             url: { type: 'string', example: 'https://example.com/resource.pdf' },
-            uploaded_by: { type: 'string', example: 'teacher-1' },
-            uploaded_at: { type: 'string', format: 'date-time', example: '2025-04-10T12:00:00Z' },
-            downloads: { type: 'number', example: 0 },
             material_type: { type: 'string', example: 'document' },
             filename: { type: 'string', example: 'lesson-plan.pdf' },
           },
@@ -3130,7 +3127,18 @@ function createApp(db) {
     try {
       const allowed = ['teacher', 'admin'];
       if (!allowed.includes(req.user.role)) return res.status(403).json({ message: 'Permission denied' });
-      const [created] = await db('resources').insert(req.body).returning('*');
+
+      const payload = {
+        title: req.body.title,
+        url: req.body.url,
+        uploaded_by: req.user.id,
+        uploaded_at: new Date(),
+        downloads: 0,
+        material_type: req.body.material_type || req.body.type || null,
+        filename: req.body.filename || null,
+      };
+
+      const [created] = await db('resources').insert(payload).returning('*');
       res.status(201).json(created);
     } catch (error) {
       console.error(error);
@@ -3144,8 +3152,10 @@ function createApp(db) {
       if (!allowed.includes(req.user.role)) return res.status(403).json({ message: 'Permission denied' });
       if (!req.file) return res.status(400).json({ message: 'File upload is required' });
 
-      const title = req.body.title || req.file.originalname;
+      const originalName = req.file.originalname || req.file.filename;
+      const title = (req.body.title || originalName || '').trim();
       const materialType = req.body.material_type || req.body.type || 'document';
+      const filename = originalName || req.file.filename;
       const url = `/uploads/${req.file.filename}`;
 
       const [created] = await db('resources').insert({
@@ -3155,7 +3165,7 @@ function createApp(db) {
         uploaded_at: new Date(),
         downloads: 0,
         material_type: materialType,
-        filename: req.file.originalname,
+        filename,
       }).returning('*');
 
       res.status(201).json(created);

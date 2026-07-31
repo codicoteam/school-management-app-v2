@@ -367,9 +367,10 @@ describe('API routes', () => {
     const createResourceRes = await request(app)
       .post('/api/resources')
       .set('Authorization', `Bearer ${token}`)
-      .send({ title: 'Geometry worksheet', url: '/uploads/geometry.pdf', uploaded_by: 'teacher-1', material_type: 'worksheet', filename: 'geometry.pdf' });
+      .send({ title: 'Geometry worksheet', url: '/uploads/geometry.pdf', material_type: 'worksheet', filename: 'geometry.pdf' });
     expect(createResourceRes.status).to.equal(201);
     expect(createResourceRes.body).to.have.property('title', 'Geometry worksheet');
+    expect(createResourceRes.body).to.have.property('uploaded_by', 'teacher-1');
 
     const inventoryRes = await request(app).get('/api/inventory').set('Authorization', `Bearer ${token}`);
     expect(inventoryRes.status).to.equal(200);
@@ -385,6 +386,18 @@ describe('API routes', () => {
 
     const deleteInventoryRes = await request(app).delete('/api/inventory/inv1').set('Authorization', `Bearer ${token}`);
     expect(deleteInventoryRes.status).to.equal(204);
+
+    const uploadResourceRes = await request(app)
+      .post('/api/resources/upload')
+      .set('Authorization', `Bearer ${token}`)
+      .field('title', 'Uploaded worksheet')
+      .field('material_type', 'worksheet')
+      .attach('file', Buffer.from('test content'), 'worksheet.pdf');
+    expect(uploadResourceRes.status).to.equal(201);
+    expect(uploadResourceRes.body).to.have.property('title', 'Uploaded worksheet');
+    expect(uploadResourceRes.body).to.have.property('uploaded_by', 'teacher-1');
+    expect(uploadResourceRes.body).to.have.property('filename', 'worksheet.pdf');
+    expect(uploadResourceRes.body.url).to.match(/^\/uploads\//);
 
     const timetableRes = await request(app).get('/api/timetable/class1').set('Authorization', `Bearer ${token}`);
     expect(timetableRes.status).to.equal(200);
