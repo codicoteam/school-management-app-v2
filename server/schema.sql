@@ -263,11 +263,11 @@ CREATE TABLE IF NOT EXISTS fees (
 -- Timetable for class schedules
 CREATE TABLE IF NOT EXISTS timetable (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  class_id UUID REFERENCES classes(id),
+  class_id VARCHAR(50),
   date DATE,
   period VARCHAR(50),
   subject VARCHAR(255),
-  teacher_id UUID REFERENCES users(id),
+  teacher_id VARCHAR(50),
   day_of_week VARCHAR(10),
   start_time TIME,
   end_time TIME,
@@ -275,9 +275,11 @@ CREATE TABLE IF NOT EXISTS timetable (
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+ALTER TABLE timetable ALTER COLUMN class_id TYPE VARCHAR(50) USING class_id::text;
+ALTER TABLE timetable ALTER COLUMN teacher_id TYPE VARCHAR(50) USING teacher_id::text;
 ALTER TABLE timetable ADD COLUMN IF NOT EXISTS date DATE;
 ALTER TABLE timetable ADD COLUMN IF NOT EXISTS period VARCHAR(50);
-ALTER TABLE timetable ADD COLUMN IF NOT EXISTS teacher_id UUID REFERENCES users(id);
+ALTER TABLE timetable ADD COLUMN IF NOT EXISTS teacher_id VARCHAR(50);
 
 -- Subjects/Courses
 CREATE TABLE IF NOT EXISTS subjects (

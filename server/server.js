@@ -3696,7 +3696,7 @@ function createApp(db) {
       if (!class_id || !date || !period || !subject) {
         return res.status(400).json({ message: 'class_id, date, period, and subject are required' });
       }
-      const [created] = await db('timetable').insert({
+      const payload = {
         class_id,
         date,
         period,
@@ -3706,7 +3706,16 @@ function createApp(db) {
         room: room || null,
         start_time: start_time || null,
         end_time: end_time || null,
-      }).returning('*');
+      };
+
+      if (payload.class_id && typeof payload.class_id !== 'string') {
+        payload.class_id = String(payload.class_id);
+      }
+      if (payload.teacher_id && typeof payload.teacher_id !== 'string') {
+        payload.teacher_id = String(payload.teacher_id);
+      }
+
+      const [created] = await db('timetable').insert(payload).returning('*');
       res.status(201).json(created);
     } catch (error) {
       sendServerError(res, error);
