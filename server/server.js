@@ -4254,8 +4254,16 @@ if (require.main === module) {
 
         const timetableColumns = await db('timetable').columnInfo();
         const missingTimetableColumns = ['date', 'period', 'teacher_id'].filter(columnName => !timetableColumns[columnName]);
-        if (missingTimetableColumns.length > 0) {
-          console.log(`timetable table missing columns: ${missingTimetableColumns.join(', ')} — applying schema.sql...`);
+        const classIdType = timetableColumns.class_id && (timetableColumns.class_id.type || '').toLowerCase();
+        const teacherIdType = timetableColumns.teacher_id && (timetableColumns.teacher_id.type || '').toLowerCase();
+        const classIdWrongType = classIdType && classIdType !== 'character varying' && classIdType !== 'varchar' && classIdType !== 'text';
+        const teacherIdWrongType = teacherIdType && teacherIdType !== 'character varying' && teacherIdType !== 'varchar' && teacherIdType !== 'text';
+        if (missingTimetableColumns.length > 0 || classIdWrongType || teacherIdWrongType) {
+          const issues = [];
+          if (missingTimetableColumns.length > 0) issues.push(`missing columns: ${missingTimetableColumns.join(', ')}`);
+          if (classIdWrongType) issues.push('class_id column type incompatible with string IDs');
+          if (teacherIdWrongType) issues.push('teacher_id column type incompatible with string IDs');
+          console.log(`timetable table schema issue detected (${issues.join('; ')}) — applying schema.sql...`);
           needsSchemaUpdates = true;
         }
       } catch (error) {
