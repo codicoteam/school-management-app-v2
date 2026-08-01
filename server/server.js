@@ -3312,8 +3312,34 @@ function createApp(db) {
 
   app.put('/api/students/:id', authenticateToken, async (req, res) => {
     try {
-      const updated = await db('students').where({ id: req.params.id }).update(req.body).returning('*');
-      res.json(updated[0] || null);
+      const payload = { ...req.body };
+      delete payload.id;
+
+      const guardianEmail = typeof payload.guardian_email === 'string' ? payload.guardian_email.trim().toLowerCase() : '';
+      if (guardianEmail && (!payload.guardian_user_id || !isUuid(payload.guardian_user_id))) {
+        const parentUser = await db('users').where({ email: guardianEmail }).first();
+        if (parentUser && parentUser.id && isUuid(parentUser.id)) {
+          payload.guardian_user_id = parentUser.id;
+        } else {
+          delete payload.guardian_user_id;
+        }
+      }
+
+      if (payload.guardian_user_id && !isUuid(payload.guardian_user_id)) {
+        delete payload.guardian_user_id;
+      }
+
+      const updatedQuery = await db('students').where({ id: req.params.id }).update(payload).returning('*');
+      let updated = null;
+      if (Array.isArray(updatedQuery) && updatedQuery.length > 0) {
+        updated = updatedQuery[0];
+      } else if (updatedQuery && typeof updatedQuery === 'object' && !Array.isArray(updatedQuery)) {
+        updated = updatedQuery;
+      }
+      if (!updated) {
+        updated = await db('students').where({ id: req.params.id }).first();
+      }
+      res.json(updated || null);
     } catch (error) {
       sendServerError(res, error);
     }
