@@ -3939,10 +3939,23 @@ function createApp(db) {
   // --- Exams Management Endpoints ---
   app.get('/api/exams', authenticateToken, async (req, res) => {
     try {
-      const allExams = await db('exams')
-        .join('classes', 'exams.class_id', '=', 'classes.id')
-        .select('exams.*', 'classes.name as class_name', 'classes.subject')
-        .orderBy('exams.date', 'asc');
+      const exams = await db('exams').select('*').orderBy('date', 'asc');
+      const classIds = Array.from(new Set(exams.map((exam) => (exam.class_id != null ? String(exam.class_id) : null)).filter(Boolean)));
+      const classes = classIds.length > 0
+        ? await db('classes').whereIn('id', classIds).select('id', 'name', 'subject')
+        : [];
+      const classById = classes.reduce((map, cls) => {
+        map[String(cls.id)] = cls;
+        return map;
+      }, {});
+      const allExams = exams.map((exam) => {
+        const classMeta = classById[String(exam.class_id)] || {};
+        return {
+          ...exam,
+          class_name: classMeta.name || null,
+          subject: classMeta.subject || null,
+        };
+      });
       res.json(allExams);
     } catch (error) {
       sendServerError(res, error);

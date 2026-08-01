@@ -329,6 +329,20 @@ describe('API routes', () => {
     expect(res.body).to.have.property('name', 'Midterm Exam');
   });
 
+  it('returns all exams with class metadata', async () => {
+    const jwt = require('jsonwebtoken');
+    const token = jwt.sign({ id: 'teacher-1', email: 'teacher@example.com', role: 'teacher', name: 'Mr. Mhlanga' }, process.env.JWT_SECRET || 'your-secret-key');
+
+    const res = await request(app)
+      .get('/api/exams')
+      .set('Authorization', `Bearer ${token}`);
+
+    expect(res.status).to.equal(200);
+    expect(res.body).to.be.an('array');
+    expect(res.body[0]).to.have.property('class_name', 'Form 4A');
+    expect(res.body[0]).to.have.property('subject', 'Mathematics');
+  });
+
   it('returns student profile with enrolled classes', async () => {
     const jwt = require('jsonwebtoken');
     const token = jwt.sign({ id: 'u1', email: 'student@example.com', role: 'student' }, process.env.JWT_SECRET || 'your-secret-key');
