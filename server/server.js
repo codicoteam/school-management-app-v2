@@ -4100,6 +4100,18 @@ if (require.main === module) {
           needsSchemaUpdates = true;
         }
 
+        const studentsColumns = await db('students').columnInfo();
+        const missingStudentColumns = ['guardian_user_id'].filter(columnName => !studentsColumns[columnName]);
+        const genderColumn = studentsColumns.gender || {};
+        const needsGenderTypeUpdate = genderColumn.maxLength === 1 && /character|char/i.test(genderColumn.type || '');
+        if (missingStudentColumns.length > 0 || needsGenderTypeUpdate) {
+          const studentIssues = [];
+          if (missingStudentColumns.length > 0) studentIssues.push(`missing columns: ${missingStudentColumns.join(', ')}`);
+          if (needsGenderTypeUpdate) studentIssues.push('gender column too narrow for full values');
+          console.log(`students table schema issue detected (${studentIssues.join('; ')}) — applying schema.sql...`);
+          needsSchemaUpdates = true;
+        }
+
         const timetableColumns = await db('timetable').columnInfo();
         const missingTimetableColumns = ['date', 'period', 'teacher_id'].filter(columnName => !timetableColumns[columnName]);
         if (missingTimetableColumns.length > 0) {

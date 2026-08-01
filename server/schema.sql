@@ -56,6 +56,8 @@ CREATE TABLE IF NOT EXISTS students (
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+ALTER TABLE students ALTER COLUMN gender TYPE VARCHAR(50);
+
 CREATE TABLE IF NOT EXISTS borrowings (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   student_id VARCHAR(50) REFERENCES students(id),
