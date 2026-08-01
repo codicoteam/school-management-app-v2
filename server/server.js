@@ -2304,12 +2304,14 @@ function createApp(db) {
   };
 
   // minimal auth routes
-  app.post('/api/auth/login', async (req, res) => {
+  const authLoginHandler = async (req, res) => {
     try {
       const { email, password, role } = req.body;
-      if (!email || !password || !role) return res.status(400).json({ message: 'Email, password and role are required' });
+      if (!email || !password) return res.status(400).json({ message: 'Email and password are required' });
 
-      const user = await db('users').where({ email, role }).first();
+      let query = db('users').where({ email });
+      if (role) query = query.andWhere({ role });
+      const user = await query.first();
       if (!user) return res.status(400).json({ message: 'Invalid credentials' });
 
       const validPassword = await bcrypt.compare(password, user.password);
@@ -2320,7 +2322,12 @@ function createApp(db) {
     } catch (error) {
       sendServerError(res, error);
     }
-  });
+  };
+
+  app.post('/api/auth/login', authLoginHandler);
+  app.post('/api/login', authLoginHandler);
+  app.post('/api/students/login', authLoginHandler);
+  app.post('/api/teachers/login', authLoginHandler);
 
   app.post('/api/auth/register', async (req, res) => {
     try {
@@ -3193,6 +3200,33 @@ function createApp(db) {
     }
   });
 
+  app.put('/api/inventory/:id', authenticateToken, async (req, res) => {
+    try {
+      const allowed = ['teacher', 'admin'];
+      if (!allowed.includes(req.user.role)) return res.status(403).json({ message: 'Permission denied' });
+      const updates = {
+        name: req.body.name,
+        category: req.body.category,
+        qty: req.body.qty,
+        assigned: req.body.assigned,
+        status: req.body.status,
+      };
+      const result = await db('inventory_items').where({ id: req.params.id }).update(updates).returning('*');
+      let updated = null;
+      if (Array.isArray(result) && result.length > 0) {
+        updated = result[0];
+      } else if (result && typeof result === 'object' && !Array.isArray(result)) {
+        updated = result;
+      }
+      if (!updated) {
+        updated = await db('inventory_items').where({ id: req.params.id }).first();
+      }
+      res.json(updated || null);
+    } catch (error) {
+      sendServerError(res, error);
+    }
+  });
+
   app.delete('/api/inventory/:id', authenticateToken, async (req, res) => {
     try {
       const allowed = ['teacher', 'admin'];
@@ -3216,6 +3250,9 @@ function createApp(db) {
   app.post('/api/students', authenticateToken, async (req, res) => {
     try {
       const payload = { ...req.body };
+      if (!payload.id) {
+        payload.id = uuidv4();
+      }
       const guardianEmail = typeof payload.guardian_email === 'string' ? payload.guardian_email.trim().toLowerCase() : '';
 
       if (guardianEmail && (!payload.guardian_user_id || !isUuid(payload.guardian_user_id))) {
@@ -3629,8 +3666,56 @@ function createApp(db) {
     try {
       const allowed = ['teacher', 'admin'];
       if (!allowed.includes(req.user.role)) return res.status(403).json({ message: 'Permission denied' });
-      const [created] = await db('timetable').insert(req.body).returning('*');
+      const { class_id, date, period, subject, teacher_id, day_of_week, room, start_time, end_time } = req.body;
+      if (!class_id || !date || !period || !subject) {
+        return res.status(400).json({ message: 'class_id, date, period, and subject are required' });
+      }
+      const [created] = await db('timetable').insert({
+        class_id,
+        date,
+        period,
+        subject,
+        teacher_id: teacher_id || req.user.id,
+        day_of_week: day_of_week || new Date(date).toLocaleDateString('en-US', { weekday: 'long' }),
+        room: room || null,
+        start_time: start_time || null,
+        end_time: end_time || null,
+      }).returning('*');
       res.status(201).json(created);
+    } catch (error) {
+      sendServerError(res, error);
+    }
+  });
+
+  app.put('/api/timetable/:id', authenticateToken, async (req, res) => {
+    try {
+      const allowed = ['teacher', 'admin'];
+      if (!allowed.includes(req.user.role)) return res.status(403).json({ message: 'Permission denied' });
+      const updates = {
+        class_id: req.body.class_id,
+        date: req.body.date,
+        period: req.body.period,
+        subject: req.body.subject,
+        teacher_id: req.body.teacher_id,
+        day_of_week: req.body.day_of_week,
+        room: req.body.room,
+        start_time: req.body.start_time,
+        end_time: req.body.end_time,
+      };
+      const updated = await db('timetable').where({ id: req.params.id }).update(updates).returning('*');
+      res.json(updated[0] || null);
+    } catch (error) {
+      sendServerError(res, error);
+    }
+  });
+
+  app.delete('/api/timetable/:id', authenticateToken, async (req, res) => {
+    try {
+      const allowed = ['teacher', 'admin'];
+      if (!allowed.includes(req.user.role)) return res.status(403).json({ message: 'Permission denied' });
+      const deleted = await db('timetable').where({ id: req.params.id }).del();
+      if (!deleted) return res.status(404).json({ message: 'Timetable entry not found' });
+      res.status(204).send();
     } catch (error) {
       sendServerError(res, error);
     }
@@ -3835,6 +3920,26 @@ function createApp(db) {
         .select('exam_grades.*', 'students.name as student_name')
         .orderBy('students.name', 'asc');
       res.json(marks);
+    } catch (error) {
+      sendServerError(res, error);
+    }
+  });
+
+  app.post('/api/exam-marks', authenticateToken, async (req, res) => {
+    try {
+      const allowed = ['teacher', 'admin'];
+      if (!allowed.includes(req.user.role)) return res.status(403).json({ message: 'Permission denied' });
+      const { exam_id, student_id, marks_obtained, grade } = req.body;
+      if (!exam_id || !student_id || typeof marks_obtained !== 'number') {
+        return res.status(400).json({ message: 'exam_id, student_id, and marks_obtained are required' });
+      }
+      const [created] = await db('exam_grades').insert({
+        exam_id,
+        student_id,
+        marks_obtained,
+        grade: grade || null,
+      }).returning('*');
+      res.status(201).json(created);
     } catch (error) {
       sendServerError(res, error);
     }

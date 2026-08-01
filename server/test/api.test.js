@@ -1,6 +1,7 @@
 const { expect } = require('chai');
 const request = require('supertest');
 const sinon = require('sinon');
+const bcrypt = require('bcryptjs');
 const { createApp } = require('../server');
 
 // create a fake in-memory db using simple arrays and functions
@@ -10,6 +11,7 @@ function createMockDb() {
   const grades = [];
   const student_classes = [];
   const exams = [];
+  const exam_grades = [];
   const attendance = [];
   const library_items = [];
   const bookmarks = [];
@@ -29,9 +31,10 @@ function createMockDb() {
   const assignments = [];
   const timetable = [];
   const applications = [];
+  const payment_transactions = [];
 
   function table(name) {
-    const rows = { users, students, grades, student_classes, exams, attendance, library_items, bookmarks, borrowings, announcements, fees, documents, messages, classes, inventory_items, resources, school_profile, system_settings, generated_documents, audit_logs, subjects, assignments, timetable, applications }[name];
+    const rows = { users, students, grades, student_classes, exams, exam_grades, attendance, library_items, bookmarks, borrowings, announcements, fees, documents, messages, classes, inventory_items, resources, school_profile, system_settings, generated_documents, audit_logs, subjects, assignments, timetable, applications, payment_transactions }[name] || [];
 
     function makeQb(filtered) {
       let _filtered = filtered || rows;
@@ -140,7 +143,18 @@ function createMockDb() {
             then: (resolve) => Promise.resolve(_filtered.length).then(resolve),
           };
         },
-        del: async () => 0,
+        del: async () => {
+          const deletedCount = _filtered.length;
+          if (deletedCount > 0) {
+            for (const row of _filtered) {
+              const index = rows.indexOf(row);
+              if (index !== -1) {
+                rows.splice(index, 1);
+              }
+            }
+          }
+          return deletedCount;
+        },
         join: function () { return this; },
         avg: function () { avgCalled = true; return this; },
         groupBy: function () { return this; },
@@ -203,8 +217,8 @@ describe('API routes', () => {
     app = createApp(mockDb);
     // seed some mock data
     await mockDb('students').insert({ id: 'BPS-2451', name: 'Tatenda', class: 'Form 4A', guardian_email: 'parent@example.com', guardian_user_id: 'p1' });
-    await mockDb('users').insert({ id: 'u1', email: 'student@example.com', password: '$2a$10$ABCDEFG', name: 'Jane', role: 'student' });
-    await mockDb('users').insert({ id: 'p1', email: 'parent@example.com', password: '$2a$10$ABCDEFG', name: 'Mrs. Ndlovu', role: 'parent' });
+    await mockDb('users').insert({ id: 'u1', email: 'student@example.com', password: await bcrypt.hash('password', 10), name: 'Jane', role: 'student' });
+    await mockDb('users').insert({ id: 'p1', email: 'parent@example.com', password: await bcrypt.hash('password', 10), name: 'Mrs. Ndlovu', role: 'parent' });
     await mockDb('grades').insert({ id: 'g1', student_id: 'BPS-2451', subject: 'Mathematics', exam_name: 'Term 1', score: 78, grade: 'A', created_at: new Date() });
     await mockDb('student_classes').insert({ id: 'sc1', student_id: 'BPS-2451', class_id: 'class1' });
     await mockDb('exams').insert({ id: 'e1', class_id: 'class1', name: 'Math Midterm', date: new Date() });
@@ -226,8 +240,8 @@ describe('API routes', () => {
     await mockDb('applications').insert({ id: 'app1', student_id: 'BPS-2451', full_name: 'Tatenda', status: 'pending', created_at: new Date() });
     await mockDb('resources').insert({ id: 'res1', title: 'Algebra notes', url: '/uploads/algebra.pdf', uploaded_by: 'teacher-1', material_type: 'document', filename: 'algebra.pdf' });
     await mockDb('timetable').insert({ id: 'tt1', class_id: 'class1', date: '2025-05-01', period: '1', subject: 'Mathematics', teacher_id: 'teacher-1' });
-    await mockDb('users').insert({ id: 'teacher-1', email: 'teacher@example.com', password: '$2a$10$ABCDEFG', name: 'Mr. Mhlanga', role: 'teacher', subject: 'Mathematics' });
-    await mockDb('users').insert({ id: 'admin-1', email: 'admin@example.com', password: '$2a$10$ABCDEFG', name: 'Admin User', role: 'admin' });
+    await mockDb('users').insert({ id: 'teacher-1', email: 'teacher@example.com', password: await bcrypt.hash('password', 10), name: 'Mr. Mhlanga', role: 'teacher', subject: 'Mathematics' });
+    await mockDb('users').insert({ id: 'admin-1', email: 'admin@example.com', password: await bcrypt.hash('password', 10), name: 'Admin User', role: 'admin' });
   });
 
   it('returns student data with valid auth', async () => {
@@ -257,6 +271,26 @@ describe('API routes', () => {
 
     expect(res.status).to.equal(201);
     expect(res.body).to.have.property('id', 'student-create-regression-1');
+    expect(res.body).to.have.property('guardian_email', 'parent@example.com');
+  });
+
+  it('creates a student when no id is provided', async () => {
+    const jwt = require('jsonwebtoken');
+    const token = jwt.sign({ id: 'admin-1', email: 'admin@example.com', role: 'admin' }, process.env.JWT_SECRET || 'your-secret-key');
+
+    const res = await request(app)
+      .post('/api/students')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        name: 'Auto ID Student',
+        class: 'Form 2A',
+        guardian_email: 'parent@example.com',
+        guardian_user_id: 'p1'
+      });
+
+    expect(res.status).to.equal(201);
+    expect(res.body).to.have.property('id').that.is.a('string');
+    expect(res.body.id).to.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i);
     expect(res.body).to.have.property('guardian_email', 'parent@example.com');
   });
 
@@ -410,6 +444,66 @@ describe('API routes', () => {
       .send({ class_id: 'class1', date: '2025-05-02', period: '2', subject: 'Science', teacher_id: 'teacher-1' });
     expect(createTimetableRes.status).to.equal(201);
     expect(createTimetableRes.body).to.have.property('subject', 'Science');
+  });
+
+  it('updates and deletes timetable entries for a teacher', async () => {
+    const jwt = require('jsonwebtoken');
+    const token = jwt.sign({ id: 'teacher-1', email: 'teacher@example.com', role: 'teacher', name: 'Mr. Mhlanga' }, process.env.JWT_SECRET || 'your-secret-key');
+
+    const updateRes = await request(app)
+      .put('/api/timetable/tt1')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ subject: 'Advanced Mathematics', period: '3' });
+
+    expect(updateRes.status).to.equal(200);
+    expect(updateRes.body).to.have.property('subject', 'Advanced Mathematics');
+
+    const deleteRes = await request(app)
+      .delete('/api/timetable/tt1')
+      .set('Authorization', `Bearer ${token}`);
+
+    expect(deleteRes.status).to.equal(204);
+  });
+
+  it('updates inventory items for a teacher', async () => {
+    const jwt = require('jsonwebtoken');
+    const token = jwt.sign({ id: 'teacher-1', email: 'teacher@example.com', role: 'teacher', name: 'Mr. Mhlanga' }, process.env.JWT_SECRET || 'your-secret-key');
+
+    const updateRes = await request(app)
+      .put('/api/inventory/inv1')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ qty: 12, assigned: 1, status: 'In Stock' });
+
+    expect(updateRes.status).to.equal(200);
+    expect(updateRes.body).to.have.property('qty', 12);
+    expect(updateRes.body).to.have.property('assigned', 1);
+  });
+
+  it('creates exam marks for an exam', async () => {
+    const jwt = require('jsonwebtoken');
+    const token = jwt.sign({ id: 'teacher-1', email: 'teacher@example.com', role: 'teacher', name: 'Mr. Mhlanga' }, process.env.JWT_SECRET || 'your-secret-key');
+
+    const res = await request(app)
+      .post('/api/exam-marks')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ exam_id: 'e1', student_id: 'BPS-2451', marks_obtained: 88, grade: 'A' });
+
+    expect(res.status).to.equal(201);
+    expect(res.body).to.have.property('exam_id', 'e1');
+    expect(res.body).to.have.property('student_id', 'BPS-2451');
+  });
+
+  it('supports auth login alias endpoints', async () => {
+    const jwt = require('jsonwebtoken');
+    const loginPayload = { email: 'teacher@example.com', password: 'password', role: 'teacher' };
+
+    const res = await request(app)
+      .post('/api/login')
+      .send(loginPayload);
+
+    expect(res.status).to.equal(200);
+    expect(res.body).to.have.property('token');
+    expect(res.body.user).to.have.property('role', 'teacher');
   });
 
   it('returns parent children list', async () => {
