@@ -2837,9 +2837,12 @@ function createApp(db) {
         return res.status(400).json({ message: 'class_id, name, and date are required' });
       }
 
+      const examClassId = typeof class_id !== 'string' ? String(class_id) : class_id;
+      const teacherId = typeof req.user.id !== 'string' ? String(req.user.id) : req.user.id;
+
       const [created] = await db('exams').insert({
-        class_id,
-        teacher_id: req.user.id,
+        class_id: examClassId,
+        teacher_id: teacherId,
         name,
         subject: subject || null,
         date,
@@ -4219,28 +4222,46 @@ if (require.main === module) {
   // On a fresh database (e.g. first deploy), create tables before seeding.
   // schema.sql only uses CREATE ... IF NOT EXISTS, so this is idempotent.
   const ensureSchema = async () => {
+    const columnInfoSafe = async (tableName) => {
+      if (!db || typeof db(tableName).columnInfo !== 'function') return {};
+      try {
+        return await db(tableName).columnInfo();
+      } catch (err) {
+        return {};
+      }
+    };
+
+    const hasTableSafe = async (tableName) => {
+      if (!db || !db.schema || typeof db.schema.hasTable !== 'function') return false;
+      try {
+        return await db.schema.hasTable(tableName);
+      } catch (err) {
+        return false;
+      }
+    };
+
     const requiredTables = ['users', 'students', 'applications', 'library_items'];
-    const hasRequiredTables = await Promise.all(requiredTables.map(tableName => db.schema.hasTable(tableName)));
+    const hasRequiredTables = await Promise.all(requiredTables.map(tableName => hasTableSafe(tableName)));
     const needsInitialSchema = hasRequiredTables.some(hasTable => !hasTable);
 
     let needsSchemaUpdates = needsInitialSchema;
     if (!needsSchemaUpdates) {
       try {
-        const applicationColumns = await db('applications').columnInfo();
+        const applicationColumns = await columnInfoSafe('applications');
         const missingApplicationColumns = ['student_id', 'created_at'].filter(columnName => !applicationColumns[columnName]);
         if (missingApplicationColumns.length > 0) {
           console.log(`applications table missing columns: ${missingApplicationColumns.join(', ')} — applying schema.sql...`);
           needsSchemaUpdates = true;
         }
 
-        const resourcesColumns = await db('resources').columnInfo();
+        const resourcesColumns = await columnInfoSafe('resources');
         const missingResourceColumns = ['material_type', 'filename'].filter(columnName => !resourcesColumns[columnName]);
         if (missingResourceColumns.length > 0) {
           console.log(`resources table missing columns: ${missingResourceColumns.join(', ')} — applying schema.sql...`);
           needsSchemaUpdates = true;
         }
 
-        const studentsColumns = await db('students').columnInfo();
+        const studentsColumns = await columnInfoSafe('students');
         const missingStudentColumns = ['guardian_user_id'].filter(columnName => !studentsColumns[columnName]);
         const genderColumn = studentsColumns.gender || {};
         const needsGenderTypeUpdate = genderColumn.maxLength === 1 && /character|char/i.test(genderColumn.type || '');
@@ -4252,7 +4273,7 @@ if (require.main === module) {
           needsSchemaUpdates = true;
         }
 
-        const timetableColumns = await db('timetable').columnInfo();
+        const timetableColumns = await columnInfoSafe('timetable');
         const missingTimetableColumns = ['date', 'period', 'teacher_id'].filter(columnName => !timetableColumns[columnName]);
         const classIdType = timetableColumns.class_id && (timetableColumns.class_id.type || '').toLowerCase();
         const teacherIdType = timetableColumns.teacher_id && (timetableColumns.teacher_id.type || '').toLowerCase();
@@ -4266,8 +4287,23 @@ if (require.main === module) {
           console.log(`timetable table schema issue detected (${issues.join('; ')}) — applying schema.sql...`);
           needsSchemaUpdates = true;
         }
+
+        const examColumns = await columnInfoSafe('exams');
+        const missingExamColumns = ['class_id', 'teacher_id', 'name', 'date'].filter(columnName => !examColumns[columnName]);
+        const examClassIdType = examColumns.class_id && (examColumns.class_id.type || '').toLowerCase();
+        const examTeacherIdType = examColumns.teacher_id && (examColumns.teacher_id.type || '').toLowerCase();
+        const examClassIdWrongType = examClassIdType && examClassIdType !== 'character varying' && examClassIdType !== 'varchar' && examClassIdType !== 'text';
+        const examTeacherIdWrongType = examTeacherIdType && examTeacherIdType !== 'character varying' && examTeacherIdType !== 'varchar' && examTeacherIdType !== 'text';
+        if (missingExamColumns.length > 0 || examClassIdWrongType || examTeacherIdWrongType) {
+          const examIssues = [];
+          if (missingExamColumns.length > 0) examIssues.push(`missing columns: ${missingExamColumns.join(', ')}`);
+          if (examClassIdWrongType) examIssues.push('class_id column incompatible with string IDs');
+          if (examTeacherIdWrongType) examIssues.push('teacher_id column incompatible with string IDs');
+          console.log(`exams table schema issue detected (${examIssues.join('; ')}) — applying schema.sql...`);
+          needsSchemaUpdates = true;
+        }
       } catch (error) {
-        console.warn('Unable to inspect application, resources, or timetable columns, applying schema.sql...', error.message);
+        console.warn('Unable to inspect application, resources, timetable, or exams columns, applying schema.sql...', error.message);
         needsSchemaUpdates = true;
       }
     }

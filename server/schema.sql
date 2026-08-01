@@ -144,14 +144,21 @@ CREATE TABLE IF NOT EXISTS assignment_submissions (
 
 CREATE TABLE IF NOT EXISTS exams (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  class_id UUID REFERENCES classes(id),
-  teacher_id UUID REFERENCES users(id),
+  class_id VARCHAR(50),
+  teacher_id VARCHAR(50),
   name VARCHAR(255),
   subject VARCHAR(255),
   date DATE,
   total_marks NUMERIC(5,2),
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+ALTER TABLE exams DROP CONSTRAINT IF EXISTS exams_class_id_fkey;
+ALTER TABLE exams DROP CONSTRAINT IF EXISTS exams_teacher_id_fkey;
+ALTER TABLE exams ADD COLUMN IF NOT EXISTS class_id VARCHAR(50);
+ALTER TABLE exams ADD COLUMN IF NOT EXISTS teacher_id VARCHAR(50);
+ALTER TABLE exams ALTER COLUMN class_id TYPE VARCHAR(50) USING class_id::text;
+ALTER TABLE exams ALTER COLUMN teacher_id TYPE VARCHAR(50) USING teacher_id::text;
 
 -- Track exam grades/marks for students
 CREATE TABLE IF NOT EXISTS exam_grades (
@@ -277,6 +284,8 @@ CREATE TABLE IF NOT EXISTS timetable (
 
 ALTER TABLE timetable DROP CONSTRAINT IF EXISTS timetable_class_id_fkey;
 ALTER TABLE timetable DROP CONSTRAINT IF EXISTS timetable_teacher_id_fkey;
+ALTER TABLE timetable ADD COLUMN IF NOT EXISTS class_id VARCHAR(50);
+ALTER TABLE timetable ADD COLUMN IF NOT EXISTS teacher_id VARCHAR(50);
 ALTER TABLE timetable ALTER COLUMN class_id TYPE VARCHAR(50) USING class_id::text;
 ALTER TABLE timetable ALTER COLUMN teacher_id TYPE VARCHAR(50) USING teacher_id::text;
 ALTER TABLE timetable ADD COLUMN IF NOT EXISTS date DATE;

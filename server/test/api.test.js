@@ -314,6 +314,21 @@ describe('API routes', () => {
     expect(res.body).to.have.property('upcoming');
   });
 
+  it('creates exam entries for a class', async () => {
+    const jwt = require('jsonwebtoken');
+    const token = jwt.sign({ id: 'teacher-1', email: 'teacher@example.com', role: 'teacher', name: 'Mr. Mhlanga' }, process.env.JWT_SECRET || 'your-secret-key');
+
+    const res = await request(app)
+      .post('/api/exams')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ class_id: 'class1', name: 'Midterm Exam', subject: 'Science', date: '2025-05-20', total_marks: 100 });
+
+    expect(res.status).to.equal(201);
+    expect(res.body).to.have.property('class_id', 'class1');
+    expect(res.body).to.have.property('teacher_id', 'teacher-1');
+    expect(res.body).to.have.property('name', 'Midterm Exam');
+  });
+
   it('returns student profile with enrolled classes', async () => {
     const jwt = require('jsonwebtoken');
     const token = jwt.sign({ id: 'u1', email: 'student@example.com', role: 'student' }, process.env.JWT_SECRET || 'your-secret-key');
@@ -468,6 +483,9 @@ describe('API routes', () => {
   it('updates inventory items for a teacher', async () => {
     const jwt = require('jsonwebtoken');
     const token = jwt.sign({ id: 'teacher-1', email: 'teacher@example.com', role: 'teacher', name: 'Mr. Mhlanga' }, process.env.JWT_SECRET || 'your-secret-key');
+
+    // Ensure the inventory item exists even if a prior test removed it.
+    await mockDb('inventory_items').insert({ id: 'inv1', name: 'Chalk', category: 'Stationery', qty: 5, status: 'Low Stock' });
 
     const updateRes = await request(app)
       .put('/api/inventory/inv1')
