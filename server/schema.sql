@@ -275,6 +275,8 @@ CREATE TABLE IF NOT EXISTS timetable (
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+ALTER TABLE timetable DROP CONSTRAINT IF EXISTS timetable_class_id_fkey;
+ALTER TABLE timetable DROP CONSTRAINT IF EXISTS timetable_teacher_id_fkey;
 ALTER TABLE timetable ALTER COLUMN class_id TYPE VARCHAR(50) USING class_id::text;
 ALTER TABLE timetable ALTER COLUMN teacher_id TYPE VARCHAR(50) USING teacher_id::text;
 ALTER TABLE timetable ADD COLUMN IF NOT EXISTS date DATE;
