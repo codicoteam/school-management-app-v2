@@ -216,7 +216,7 @@ describe('API routes', () => {
     mockDb = createMockDb();
     app = createApp(mockDb);
     // seed some mock data
-    await mockDb('students').insert({ id: 'BPS-2451', name: 'Tatenda', class: 'Form 4A', guardian_email: 'parent@example.com', guardian_user_id: 'p1' });
+    await mockDb('students').insert({ id: 'BPS-2451', name: 'Tatenda', class: 'Form 4A', email: 'student@example.com', guardian_email: 'parent@example.com', guardian_user_id: 'p1' });
     await mockDb('users').insert({ id: 'u1', email: 'student@example.com', password: await bcrypt.hash('password', 10), name: 'Jane', role: 'student' });
     await mockDb('users').insert({ id: 'p1', email: 'parent@example.com', password: await bcrypt.hash('password', 10), name: 'Mrs. Ndlovu', role: 'parent' });
     await mockDb('grades').insert({ id: 'g1', student_id: 'BPS-2451', subject: 'Mathematics', exam_name: 'Term 1', score: 78, grade: 'A', created_at: new Date() });
@@ -359,6 +359,18 @@ describe('API routes', () => {
   it('returns logged in student profile without id', async () => {
     const jwt = require('jsonwebtoken');
     const token = jwt.sign({ id: 'BPS-2451', email: 'student@example.com', role: 'student' }, process.env.JWT_SECRET || 'your-secret-key');
+
+    const res = await request(app).get('/api/students/profile').set('Authorization', `Bearer ${token}`);
+    expect(res.status).to.equal(200);
+    expect(res.body).to.have.property('student');
+    expect(res.body.student).to.have.property('id', 'BPS-2451');
+    expect(res.body).to.have.property('classes');
+    expect(res.body.classes).to.be.an('array');
+  });
+
+  it('returns logged in student profile by email when user id differs', async () => {
+    const jwt = require('jsonwebtoken');
+    const token = jwt.sign({ id: 'u1', email: 'student@example.com', role: 'student' }, process.env.JWT_SECRET || 'your-secret-key');
 
     const res = await request(app).get('/api/students/profile').set('Authorization', `Bearer ${token}`);
     expect(res.status).to.equal(200);

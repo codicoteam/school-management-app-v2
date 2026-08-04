@@ -2535,10 +2535,13 @@ function createApp(db) {
     try {
       if (req.user.role !== 'student') return res.status(403).json({ message: 'Forbidden: only students can access their profile' });
       const studentId = req.user.id;
-      const student = await db('students').where({ id: studentId }).first();
+      let student = await db('students').where({ id: studentId }).first();
+      if (!student && req.user.email) {
+        student = await db('students').where({ email: req.user.email }).first();
+      }
       if (!student) return res.status(404).json({ message: 'Student not found' });
 
-      const studentClassRows = await db('student_classes').where({ student_id: studentId }).select('class_id');
+      const studentClassRows = await db('student_classes').where({ student_id: student.id }).select('class_id');
       const classIds = (studentClassRows || []).map(row => row.class_id).filter(Boolean);
       const classes = classIds.length
         ? await db('classes').whereIn('id', classIds).select('id', 'name', 'subject', 'subject_code', 'grade')
