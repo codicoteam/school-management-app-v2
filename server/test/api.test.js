@@ -627,6 +627,29 @@ describe('API routes', () => {
     expect(res.body).to.include({ student_id: 'BPS-2451', amount: 120.0, item: 'Term 2 — Partial', method: 'EcoCash', status: 'Paid' });
   });
 
+  it('creates a library item from a form payload', async () => {
+    const jwt = require('jsonwebtoken');
+    const token = jwt.sign({ id: 'teacher-1', email: 'teacher@example.com', role: 'teacher', name: 'Mr. Mhlanga' }, process.env.JWT_SECRET || 'your-secret-key');
+
+    const res = await request(app)
+      .post('/api/library')
+      .set('Authorization', `Bearer ${token}`)
+      .type('form')
+      .send({
+        title: 'Physics Essentials',
+        author: 'Ada Lovelace',
+        subject: 'Science',
+        description: 'A practical guide',
+        isPhysical: 'false',
+        copies: '2',
+      });
+
+    expect(res.status).to.equal(201);
+    expect(res.body).to.have.property('title', 'Physics Essentials');
+    expect(res.body).to.have.property('author', 'Ada Lovelace');
+    expect(res.body).to.have.property('is_physical', false);
+  });
+
   it('returns library list and search', async () => {
     const jwt = require('jsonwebtoken');
     const token = jwt.sign({ id: 'u1', email: 'student@example.com', role: 'student' }, process.env.JWT_SECRET || 'your-secret-key');

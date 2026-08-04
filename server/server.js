@@ -15,7 +15,8 @@ const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 function createApp(db) {
   const app = express();
   app.use(cors());
-  app.use(express.json());
+  app.use(express.json({ limit: '10mb' }));
+  app.use(express.urlencoded({ extended: true }));
 
   const uploadsDir = path.join(__dirname, 'uploads');
   if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
@@ -2622,19 +2623,38 @@ function createApp(db) {
     }
   });
 
-  app.post('/api/library', authenticateToken, async (req, res) => {
+  app.post('/api/library', authenticateToken, upload.none(), async (req, res) => {
     try {
       if (req.user.role !== 'teacher' && req.user.role !== 'admin') return res.status(403).json({ message: 'Only staff can add library items' });
-      const payload = {
-        title: req.body.title,
-        author: req.body.author,
-        subject: req.body.subject,
-        isbn: req.body.isbn || null,
-        description: req.body.description || null,
-        digital_url: req.body.digitalUrl || null,
-        is_physical: req.body.isPhysical !== false,
-        copies: req.body.copies || 1,
+
+      const rawBody = req.body && typeof req.body === 'object' ? req.body : {};
+      const body = rawBody.payload && typeof rawBody.payload === 'object'
+        ? rawBody.payload
+        : rawBody.data && typeof rawBody.data === 'object'
+          ? rawBody.data
+          : rawBody;
+
+      const toBoolean = (value, fallback = true) => {
+        if (typeof value === 'boolean') return value;
+        if (typeof value === 'string') {
+          const normalized = value.trim().toLowerCase();
+          if (['true', '1', 'yes', 'on'].includes(normalized)) return true;
+          if (['false', '0', 'no', 'off'].includes(normalized)) return false;
+        }
+        return fallback;
       };
+
+      const payload = {
+        title: body.title ?? req.query.title ?? null,
+        author: body.author ?? req.query.author ?? null,
+        subject: body.subject ?? req.query.subject ?? null,
+        isbn: body.isbn ?? body.isbnNumber ?? req.query.isbn ?? null,
+        description: body.description ?? req.query.description ?? null,
+        digital_url: body.digitalUrl ?? body.digital_url ?? req.query.digitalUrl ?? req.query.digital_url ?? null,
+        is_physical: toBoolean(body.isPhysical ?? body.is_physical ?? req.query.isPhysical ?? req.query.is_physical, true),
+        copies: Number(body.copies ?? req.query.copies ?? 1) || 1,
+      };
+
       const [created] = await db('library_items').insert(payload).returning('*');
       res.status(201).json(created);
     } catch (error) {
