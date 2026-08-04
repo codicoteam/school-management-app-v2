@@ -921,7 +921,38 @@ function createApp(db) {
           requestBody: {
             required: true,
             content: {
-              'application/json': { schema: { type: 'object' } },
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    title: { type: 'string' },
+                    author: { type: 'string' },
+                    subject: { type: 'string' },
+                    isbn: { type: 'string' },
+                    description: { type: 'string' },
+                    digitalUrl: { type: 'string' },
+                    isPhysical: { type: 'boolean' },
+                    copies: { type: 'integer' },
+                  },
+                  required: ['title', 'author'],
+                },
+              },
+              'application/x-www-form-urlencoded': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    title: { type: 'string' },
+                    author: { type: 'string' },
+                    subject: { type: 'string' },
+                    isbn: { type: 'string' },
+                    description: { type: 'string' },
+                    digitalUrl: { type: 'string' },
+                    isPhysical: { type: 'string' },
+                    copies: { type: 'string' },
+                  },
+                  required: ['title', 'author'],
+                },
+              },
             },
           },
           responses: { '201': { description: 'Library item created' } },
@@ -2623,7 +2654,7 @@ function createApp(db) {
     }
   });
 
-  app.post('/api/library', authenticateToken, upload.none(), async (req, res) => {
+  app.post('/api/library', authenticateToken, async (req, res) => {
     try {
       if (req.user.role !== 'teacher' && req.user.role !== 'admin') return res.status(403).json({ message: 'Only staff can add library items' });
 
