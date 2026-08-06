@@ -2725,10 +2725,24 @@ function createApp(db) {
     try {
       const studentId = req.user.role === 'student' ? req.user.id : (req.body.studentId || req.body.student_id || req.user.id);
       const itemId = req.params.id;
-      const due = req.body.dueDate || req.body.due_date || null;
+      
+      // Parse and validate due date
+      let dueDate = req.body.dueDate || req.body.due_date || null;
+      if (dueDate && typeof dueDate === 'string' && dueDate.toLowerCase() !== 'string') {
+        const parsed = new Date(dueDate);
+        if (!isNaN(parsed.getTime())) {
+          dueDate = parsed.toISOString().split('T')[0];
+        } else {
+          return res.status(400).json({ message: 'Invalid due_date format. Use YYYY-MM-DD' });
+        }
+      } else {
+        dueDate = null;
+      }
+      
       const item = await db('library_items').where({ id: itemId }).first();
       if (!item) return res.status(404).json({ message: 'Library item not found' });
-      const [created] = await db('borrowings').insert({ student_id: studentId, item_id: itemId, due_date: due }).returning('*');
+      
+      const [created] = await db('borrowings').insert({ student_id: studentId, item_id: itemId, due_date: dueDate }).returning('*');
       res.status(201).json({ borrowing: created, item });
     } catch (error) {
       sendServerError(res, error);

@@ -691,6 +691,19 @@ describe('API routes', () => {
     expect(res.body.item).to.have.property('title', 'Quantum Physics for Beginners');
   });
 
+  it('rejects borrowing with invalid date format', async () => {
+    const jwt = require('jsonwebtoken');
+    const token = jwt.sign({ id: 'u1', email: 'student@example.com', role: 'student' }, process.env.JWT_SECRET || 'your-secret-key');
+
+    const res = await request(app)
+      .post('/api/library/li1/borrow')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ student_id: 'BPS-2451', due_date: 'invalid-date' });
+
+    expect(res.status).to.equal(400);
+    expect(res.body).to.have.property('message').that.includes('Invalid due_date format');
+  });
+
   it('returns bookmark entries with item details', async () => {
     const jwt = require('jsonwebtoken');
     const token = jwt.sign({ id: 'u1', email: 'student@example.com', role: 'student' }, process.env.JWT_SECRET || 'your-secret-key');
