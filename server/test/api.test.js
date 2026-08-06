@@ -227,6 +227,7 @@ describe('API routes', () => {
     await mockDb('attendance').insert({ id: 'a3', class_id: 'class1', student_id: 'BPS-2451', teacher_id: 'u1', date: '2025-04-18', status: 'late' });
     await mockDb('fees').insert({ id: 'f1', student_id: 'BPS-2451', amount: 760.0, item: 'Term 1 — Full', method: 'Bank Transfer', due_date: '2025-04-30', status: 'Paid' });
     await mockDb('library_items').insert({ id: 'li1', title: 'Quantum Physics for Beginners', author: 'Jason Stephenson', subject: 'Science', digital_url: 'http://example.com/quantum' });
+    await mockDb('bookmarks').insert({ id: 'bm1', user_id: 'u1', item_id: 'li1' });
     await mockDb('documents').insert({ id: 'd1', student_id: 'BPS-2451', name: 'Term 1 2025 Report Card', type: 'Report Card', size: '320 KB', url: '/docs/term1-2025-report-card.pdf', created_at: new Date() });
     await mockDb('messages').insert({ id: 'm1', sender_id: 'teacher-1', sender_name: 'Mr. Mhlanga', receiver_id: 'p1', receiver_name: 'Mrs. Ndlovu', subject: 'Attendance follow-up', text: 'Please sign the permission slip.', is_new: true, created_at: new Date() });
     await mockDb('classes').insert({ id: 'class1', name: 'Form 4A', subject: 'Mathematics', teacher_id: 'teacher-1' });
@@ -672,6 +673,34 @@ describe('API routes', () => {
     expect(res.body).to.have.property('title', 'Physics Essentials');
     expect(res.body).to.have.property('author', 'Ada Lovelace');
     expect(res.body).to.have.property('is_physical', false);
+  });
+
+  it('borrows a library item and returns item details', async () => {
+    const jwt = require('jsonwebtoken');
+    const token = jwt.sign({ id: 'u1', email: 'student@example.com', role: 'student' }, process.env.JWT_SECRET || 'your-secret-key');
+
+    const res = await request(app)
+      .post('/api/library/li1/borrow')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ student_id: 'BPS-2451', due_date: '2025-05-20' });
+
+    expect(res.status).to.equal(201);
+    expect(res.body).to.have.property('borrowing');
+    expect(res.body).to.have.property('item');
+    expect(res.body.item).to.have.property('id', 'li1');
+    expect(res.body.item).to.have.property('title', 'Quantum Physics for Beginners');
+  });
+
+  it('returns bookmark entries with item details', async () => {
+    const jwt = require('jsonwebtoken');
+    const token = jwt.sign({ id: 'u1', email: 'student@example.com', role: 'student' }, process.env.JWT_SECRET || 'your-secret-key');
+
+    const res = await request(app).get('/api/library/li1/bookmarks').set('Authorization', `Bearer ${token}`);
+    expect(res.status).to.equal(200);
+    expect(res.body).to.be.an('array');
+    expect(res.body[0]).to.have.property('item');
+    expect(res.body[0].item).to.have.property('id', 'li1');
+    expect(res.body[0].item).to.have.property('title', 'Quantum Physics for Beginners');
   });
 
   it('returns library list and search', async () => {

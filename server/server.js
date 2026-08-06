@@ -2697,6 +2697,10 @@ function createApp(db) {
     try {
       const itemId = req.params.id;
       const userId = req.user.id;
+      const existing = await db('bookmarks').where({ user_id: userId, item_id: itemId }).first();
+      if (existing) {
+        return res.status(200).json({ message: 'Already bookmarked', bookmark: existing });
+      }
       const [created] = await db('bookmarks').insert({ user_id: userId, item_id: itemId }).returning('*');
       res.status(201).json(created);
     } catch (error) {
@@ -2707,8 +2711,11 @@ function createApp(db) {
   app.get('/api/library/:id/bookmarks', authenticateToken, async (req, res) => {
     try {
       const userId = req.user.id;
-      const rows = await db('bookmarks').where({ user_id: userId }).select('*');
-      res.json(rows);
+      const itemId = req.params.id;
+      const rows = await db('bookmarks').where({ user_id: userId, item_id: itemId }).select('*');
+      const item = await db('library_items').where({ id: itemId }).first();
+      const payload = rows.map(row => ({ ...row, item }));
+      res.json(payload);
     } catch (error) {
       sendServerError(res, error);
     }
@@ -2716,11 +2723,13 @@ function createApp(db) {
 
   app.post('/api/library/:id/borrow', authenticateToken, async (req, res) => {
     try {
-      const studentId = req.user.role === 'student' ? req.user.id : req.body.studentId;
+      const studentId = req.user.role === 'student' ? req.user.id : (req.body.studentId || req.body.student_id || req.user.id);
       const itemId = req.params.id;
-      const due = req.body.dueDate || null;
+      const due = req.body.dueDate || req.body.due_date || null;
+      const item = await db('library_items').where({ id: itemId }).first();
+      if (!item) return res.status(404).json({ message: 'Library item not found' });
       const [created] = await db('borrowings').insert({ student_id: studentId, item_id: itemId, due_date: due }).returning('*');
-      res.status(201).json(created);
+      res.status(201).json({ borrowing: created, item });
     } catch (error) {
       sendServerError(res, error);
     }
