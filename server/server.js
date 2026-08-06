@@ -971,15 +971,33 @@ function createApp(db) {
         post: {
           tags: ['Library'],
           summary: 'Borrow a library item',
+          description: 'Borrow a library item by item ID. The frontend retrieves item IDs from the library list, then uses this endpoint to create a borrowing record.',
           security: [{ bearerAuth: [] }],
-          parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
+          parameters: [
+            { 
+              name: 'id', 
+              in: 'path', 
+              required: true, 
+              schema: { type: 'string' },
+              description: 'The ID of the library item to borrow (retrieved from GET /api/library)'
+            }
+          ],
           requestBody: {
             required: true,
             content: {
-              'application/json': { schema: { type: 'object', properties: { dueDate: { type: 'string' } } } },
+              'application/json': { 
+                schema: { 
+                  type: 'object', 
+                  properties: { 
+                    student_id: { type: 'string', description: 'Student ID (optional, defaults to authenticated user)' },
+                    due_date: { type: 'string', format: 'date', description: 'Due date in YYYY-MM-DD format (optional)' }
+                  },
+                  example: { student_id: 'BPS-2451', due_date: '2025-06-20' }
+                } 
+              },
             },
           },
-          responses: { '201': { description: 'Borrowing created' } },
+          responses: { '201': { description: 'Borrowing created with item details', content: { 'application/json': { schema: { type: 'object', properties: { borrowing: { type: 'object' }, item: { type: 'object' } } } } } } },
         },
       },
       '/api/library/{id}/bookmarks': {
