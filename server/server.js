@@ -2255,16 +2255,6 @@ function createApp(db) {
         .returning('*');
     }
 
-    const existingExamGrade = await db('exam_grades').where({ exam_id: examRow.id, student_id: 'BPS-2451' }).first();
-    if (!existingExamGrade) {
-      await db('exam_grades').insert({
-        exam_id: examRow.id,
-        student_id: 'BPS-2451',
-        marks_obtained: 88,
-        grade: 'A',
-      });
-    }
-
     const existingGrade = await db('grades').where({ student_id: 'BPS-2451', subject: 'Mathematics', exam_name: 'Term 1' }).first();
     if (!existingGrade) {
       await db('grades').insert({ student_id: 'BPS-2451', subject: 'Mathematics', exam_name: 'Term 1', score: 78, grade: 'B+' });
