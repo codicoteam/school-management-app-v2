@@ -2248,9 +2248,21 @@ function createApp(db) {
       await db('student_classes').insert({ student_id: 'BPS-2451', class_id: classId });
     }
 
-    const existingExam = await db('exams').where({ class_id: classId, name: 'Math Midterm' }).first();
-    if (!existingExam) {
-      await db('exams').insert({ class_id: classId, teacher_id: teacherUser.id, name: 'Math Midterm', date: '2025-05-15' });
+    let examRow = await db('exams').where({ class_id: classId, name: 'Math Midterm' }).first();
+    if (!examRow) {
+      [examRow] = await db('exams')
+        .insert({ class_id: classId, teacher_id: teacherUser.id, name: 'Math Midterm', date: '2025-05-15' })
+        .returning('*');
+    }
+
+    const existingExamGrade = await db('exam_grades').where({ exam_id: examRow.id, student_id: 'BPS-2451' }).first();
+    if (!existingExamGrade) {
+      await db('exam_grades').insert({
+        exam_id: examRow.id,
+        student_id: 'BPS-2451',
+        marks_obtained: 88,
+        grade: 'A',
+      });
     }
 
     const existingGrade = await db('grades').where({ student_id: 'BPS-2451', subject: 'Mathematics', exam_name: 'Term 1' }).first();
