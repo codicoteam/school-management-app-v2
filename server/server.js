@@ -1713,6 +1713,55 @@ function createApp(db) {
           },
         },
       },
+      '/api/exam-marks': {
+        post: {
+          tags: ['Exams'],
+          summary: 'Create exam marks for a student',
+          security: [{ bearerAuth: [] }],
+          requestBody: {
+            required: true,
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  required: ['exam_id', 'student_id', 'marks_obtained'],
+                  properties: {
+                    exam_id: { type: 'string', description: 'Exam ID (UUID)', example: 'cb29b82f-5bc6-4ddf-b8bd-bdd9da36b153' },
+                    student_id: { type: 'string', description: 'Student ID', example: 'BPS-2451' },
+                    marks_obtained: { type: 'number', description: 'Marks obtained', example: 88 },
+                    grade: { type: 'string', description: 'Grade letter (optional)', example: 'A' },
+                  },
+                },
+              },
+            },
+          },
+          responses: {
+            '201': {
+              description: 'Exam mark created successfully',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      id: { type: 'string' },
+                      exam_id: { type: 'string' },
+                      student_id: { type: 'string' },
+                      marks_obtained: { type: 'number' },
+                      grade: { type: 'string' },
+                    },
+                  },
+                },
+              },
+            },
+            '403': {
+              description: 'Permission denied - only teachers and admins can create marks',
+            },
+            '400': {
+              description: 'Missing required fields',
+            },
+          },
+        },
+      },
       '/api/report-cards': {
         get: {
           tags: ['Grades & Results'],
