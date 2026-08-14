@@ -1360,8 +1360,8 @@ function createApp(db) {
       '/api/grades': {
         post: {
           tags: ['Grades & Results'],
-          summary: 'Create a general academic result or summary record',
-          description: 'Use this endpoint for a general academic result, term summary, or aggregate result entry. This is not tied to a single exam object. Example: overall term grade, class average, or summary result record.',
+          summary: 'Create a grade',
+          description: 'Retrieve the overall academic history, cumulative GPAs, and final course grades for students.',
           security: [{ bearerAuth: [] }],
           requestBody: {
             required: true,
