@@ -2762,6 +2762,9 @@ function createApp(db) {
       const item = await db('library_items').where({ id: itemId }).first();
       if (!item) return res.status(404).json({ message: 'Library item not found' });
       
+      const student = await db('students').where({ id: studentId }).first();
+      if (!student) return res.status(404).json({ message: 'Student not found' });
+      
       const [created] = await db('borrowings').insert({ student_id: studentId, item_id: itemId, due_date: dueDate }).returning('*');
       res.status(201).json({ borrowing: created, item });
     } catch (error) {
