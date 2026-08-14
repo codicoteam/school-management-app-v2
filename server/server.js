@@ -1360,7 +1360,8 @@ function createApp(db) {
       '/api/grades': {
         post: {
           tags: ['Grades & Results'],
-          summary: 'Create a grade',
+          summary: 'Create a general academic result or summary record',
+          description: 'Use this endpoint for a general academic result, term summary, or aggregate result entry. This is not tied to a single exam object. Example: overall term grade, class average, or summary result record.',
           security: [{ bearerAuth: [] }],
           requestBody: {
             required: true,
@@ -1685,7 +1686,8 @@ function createApp(db) {
       '/api/exam-marks/{examId}': {
         get: {
           tags: ['Exams'],
-          summary: 'Get marks for a specific exam',
+          summary: 'Get a student’s scores for one specific exam',
+          description: 'Returns the score entries for a single exam across students. Use this when you want to see marks for one specific exam, such as a Mathematics Midterm.',
           security: [{ bearerAuth: [] }],
           parameters: [{ name: 'examId', in: 'path', required: true, schema: { type: 'string' } }],
           responses: {
@@ -1716,7 +1718,8 @@ function createApp(db) {
       '/api/exam-marks': {
         post: {
           tags: ['Exams'],
-          summary: 'Create exam marks for a student',
+          summary: 'Create one student’s score in one specific exam',
+          description: 'Use this endpoint when recording a single student result for a specific exam. Example: Alice scored 82 in the Mathematics Midterm. This is different from a general academic summary record.',
           security: [{ bearerAuth: [] }],
           requestBody: {
             required: true,
