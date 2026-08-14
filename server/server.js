@@ -4091,7 +4091,7 @@ function createApp(db) {
       const exams = await db('exams').select('*').orderBy('date', 'asc');
       const classIds = Array.from(new Set(exams.map((exam) => (exam.class_id != null ? String(exam.class_id) : null)).filter(Boolean)));
       const classes = classIds.length > 0
-        ? await db('classes').whereIn('id', classIds).select('id', 'name', 'subject')
+        ? await db('classes').whereRaw('id::text = any(?)', [JSON.stringify(classIds)]).select('id', 'name', 'subject')
         : [];
       const classById = classes.reduce((map, cls) => {
         map[String(cls.id)] = cls;
