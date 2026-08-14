@@ -4090,9 +4090,11 @@ function createApp(db) {
     try {
       const exams = await db('exams').select('*').orderBy('date', 'asc');
       const classIds = Array.from(new Set(exams.map((exam) => (exam.class_id != null ? String(exam.class_id) : null)).filter(Boolean)));
-      const classes = classIds.length > 0
-        ? await db('classes').whereRaw('id::text = any(?)', [JSON.stringify(classIds)]).select('id', 'name', 'subject')
-        : [];
+      
+      // Fetch all classes and filter in memory to avoid UUID type issues
+      const allClasses = await db('classes').select('id', 'name', 'subject');
+      const classes = allClasses.filter(cls => classIds.includes(String(cls.id)));
+      
       const classById = classes.reduce((map, cls) => {
         map[String(cls.id)] = cls;
         return map;
