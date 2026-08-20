@@ -2456,6 +2456,15 @@ function createApp(db) {
         })
         .returning('*');
 
+      if (role === 'student') {
+        await db('students').insert({
+          id: newUser.id,
+          name: newUser.name,
+          email: newUser.email,
+          status: 'Active',
+        });
+      }
+
       res.status(201).json(mapUserRow(newUser));
     } catch (error) {
       sendServerError(res, error);

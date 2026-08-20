@@ -255,6 +255,43 @@ describe('API routes', () => {
     expect(res.body).to.have.property('id', 'BPS-2451');
   });
 
+  it('creates a student profile when a student registers', async () => {
+    const registration = await request(app)
+      .post('/api/auth/register')
+      .send({
+        email: 'new-student@example.com',
+        password: 'password123',
+        name: 'New Student',
+        role: 'student'
+      });
+
+    expect(registration.status).to.equal(201);
+
+    const login = await request(app)
+      .post('/api/auth/login')
+      .send({ email: 'new-student@example.com', password: 'password123', role: 'student' });
+
+    expect(login.status).to.equal(200);
+
+    const profile = await request(app)
+      .get('/api/students/profile')
+      .set('Authorization', `Bearer ${login.body.token}`);
+
+    expect(profile.status).to.equal(200);
+    expect(profile.body.student).to.include({
+      id: login.body.user.id,
+      name: 'New Student',
+      email: 'new-student@example.com'
+    });
+
+    const students = await request(app)
+      .get('/api/students')
+      .set('Authorization', `Bearer ${login.body.token}`);
+
+    expect(students.status).to.equal(200);
+    expect(students.body).to.deep.include(profile.body.student);
+  });
+
   it('creates a student when guardian email is provided and guardian_user_id is invalid', async () => {
     const jwt = require('jsonwebtoken');
     const token = jwt.sign({ id: 'admin-1', email: 'admin@example.com', role: 'admin' }, process.env.JWT_SECRET || 'your-secret-key');
