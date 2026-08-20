@@ -566,13 +566,16 @@ describe('API routes', () => {
     const token = jwt.sign({ id: 'teacher-1', email: 'teacher@example.com', role: 'teacher', name: 'Mr. Mhlanga' }, process.env.JWT_SECRET || 'your-secret-key');
 
     const res = await request(app)
-      .post('/api/exam-marks')
+      .post('/api/exam-marks/e1')
       .set('Authorization', `Bearer ${token}`)
-      .send({ exam_id: 'e1', student_id: 'BPS-2451', marks_obtained: 88, grade: 'A' });
+      .send({ student_id: 'BPS-2451', marks_obtained: 88, grade: 'A' });
 
     expect(res.status).to.equal(201);
     expect(res.body).to.have.property('exam_id', 'e1');
     expect(res.body).to.have.property('student_id', 'BPS-2451');
+    expect(res.body).to.have.property('exam_name', 'Math Midterm');
+    expect(res.body).to.have.property('student_name', 'Tatenda');
+    expect(res.body).to.have.property('record_type', 'exam_mark');
   });
 
   it('supports auth login alias endpoints', async () => {
@@ -723,6 +726,7 @@ describe('API routes', () => {
 
     expect(res.status).to.equal(201);
     expect(res.body).to.have.property('borrowing');
+    expect(res.body.borrowing).to.have.property('student_name', 'Tatenda');
     expect(res.body).to.have.property('item');
     expect(res.body.item).to.have.property('id', 'li1');
     expect(res.body.item).to.have.property('title', 'Quantum Physics for Beginners');
@@ -828,6 +832,7 @@ describe('API routes', () => {
     const grades = await request(app).get('/api/grades/BPS-2451');
     expect(grades.status).to.equal(200);
     expect(grades.body).to.be.an('array');
+    expect(grades.body[0]).to.have.property('record_type', 'academic_grade');
   });
 
   it('serves teacher dashboard, stats, classes, and subjects endpoints', async () => {

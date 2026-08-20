@@ -997,7 +997,7 @@ function createApp(db) {
               },
             },
           },
-          responses: { '201': { description: 'Borrowing created with item details', content: { 'application/json': { schema: { type: 'object', properties: { borrowing: { type: 'object' }, item: { type: 'object' } } } } } } },
+          responses: { '201': { description: 'Borrowing created with item and student details', content: { 'application/json': { schema: { type: 'object', properties: { borrowing: { type: 'object', properties: { student_name: { type: 'string', description: 'Name of the student who borrowed the item' } } }, item: { type: 'object' } } } } } } },
         },
       },
       '/api/library/{id}/bookmarks': {
@@ -1702,10 +1702,12 @@ function createApp(db) {
                       properties: {
                         id: { type: 'string' },
                         exam_id: { type: 'string' },
+                        exam_name: { type: 'string' },
                         student_id: { type: 'string' },
                         student_name: { type: 'string' },
                         marks_obtained: { type: 'number' },
                         grade: { type: 'string' },
+                        record_type: { type: 'string', example: 'exam_mark' },
                       },
                     },
                   },
@@ -1714,22 +1716,20 @@ function createApp(db) {
             },
           },
         },
-      },
-      '/api/exam-marks': {
         post: {
           tags: ['Exams'],
           summary: 'Create one student’s score in one specific exam',
-          description: 'Use this endpoint when recording a single student result for a specific exam. Example: Alice scored 82 in the Mathematics Midterm. This is different from a general academic summary record.',
+          description: 'Use the required examId path parameter when recording a single student result for a specific exam. Example: Alice scored 82 in the Mathematics Midterm. This is different from a general academic summary record.',
           security: [{ bearerAuth: [] }],
+          parameters: [{ name: 'examId', in: 'path', required: true, schema: { type: 'string' }, description: 'ID of the exam receiving the mark' }],
           requestBody: {
             required: true,
             content: {
               'application/json': {
                 schema: {
                   type: 'object',
-                  required: ['exam_id', 'student_id', 'marks_obtained'],
+                  required: ['student_id', 'marks_obtained'],
                   properties: {
-                    exam_id: { type: 'string', description: 'Exam ID (UUID)', example: 'cb29b82f-5bc6-4ddf-b8bd-bdd9da36b153' },
                     student_id: { type: 'string', description: 'Student ID', example: 'BPS-2451' },
                     marks_obtained: { type: 'number', description: 'Marks obtained', example: 88 },
                     grade: { type: 'string', description: 'Grade letter (optional)', example: 'A' },
@@ -1748,9 +1748,12 @@ function createApp(db) {
                     properties: {
                       id: { type: 'string' },
                       exam_id: { type: 'string' },
+                      exam_name: { type: 'string' },
                       student_id: { type: 'string' },
+                      student_name: { type: 'string' },
                       marks_obtained: { type: 'number' },
                       grade: { type: 'string' },
+                      record_type: { type: 'string', example: 'exam_mark' },
                     },
                   },
                 },
@@ -2827,7 +2830,7 @@ function createApp(db) {
       if (!student) return res.status(404).json({ message: 'Student not found' });
       
       const [created] = await db('borrowings').insert({ student_id: studentId, item_id: itemId, due_date: dueDate }).returning('*');
-      res.status(201).json({ borrowing: created, item });
+      res.status(201).json({ borrowing: { ...created, student_name: student.name }, item });
     } catch (error) {
       sendServerError(res, error);
     }
@@ -3583,7 +3586,7 @@ function createApp(db) {
   app.get('/api/grades/:studentId', authenticateToken, async (req, res) => {
     try {
       const rows = await db('grades').where({ student_id: req.params.studentId }).select('*');
-      res.json(rows);
+      res.json(rows.map(row => ({ ...row, record_type: 'academic_grade' })));
     } catch (error) {
       sendServerError(res, error);
     }
@@ -3592,7 +3595,7 @@ function createApp(db) {
   app.post('/api/grades', authenticateToken, async (req, res) => {
     try {
       const [created] = await db('grades').insert(req.body).returning('*');
-      res.status(201).json(created);
+      res.status(201).json({ ...created, record_type: 'academic_grade' });
     } catch (error) {
       sendServerError(res, error);
     }
@@ -4128,32 +4131,45 @@ function createApp(db) {
   app.get('/api/exam-marks/:examId', authenticateToken, async (req, res) => {
     try {
       const examId = req.params.examId;
+      const exam = await db('exams').whereRaw('id::text = ?', [examId]).first();
+      if (!exam) return res.status(404).json({ message: 'Exam not found' });
+
       const marks = await db('exam_grades')
         .whereRaw('exam_id::text = ?', [examId])
         .join('students', 'exam_grades.student_id', '=', 'students.id')
         .select('exam_grades.*', 'students.name as student_name')
         .orderBy('students.name', 'asc');
-      res.json(marks);
+      res.json(marks.map(mark => ({ ...mark, exam_name: exam.name, record_type: 'exam_mark' })));
     } catch (error) {
       sendServerError(res, error);
     }
   });
 
-  app.post('/api/exam-marks', authenticateToken, async (req, res) => {
+  app.post('/api/exam-marks/:examId', authenticateToken, async (req, res) => {
     try {
       const allowed = ['teacher', 'admin'];
       if (!allowed.includes(req.user.role)) return res.status(403).json({ message: 'Permission denied' });
-      const { exam_id, student_id, marks_obtained, grade } = req.body;
-      if (!exam_id || !student_id || typeof marks_obtained !== 'number') {
-        return res.status(400).json({ message: 'exam_id, student_id, and marks_obtained are required' });
+      const exam_id = req.params.examId;
+      const { student_id, marks_obtained, grade } = req.body;
+      if (!student_id || typeof marks_obtained !== 'number') {
+        return res.status(400).json({ message: 'student_id and marks_obtained are required' });
       }
+      const exam = await db('exams').whereRaw('id::text = ?', [exam_id]).first();
+      if (!exam) return res.status(404).json({ message: 'Exam not found' });
+
       const [created] = await db('exam_grades').insert({
         exam_id,
         student_id,
         marks_obtained,
         grade: grade || null,
       }).returning('*');
-      res.status(201).json(created);
+      const student = await db('students').where({ id: student_id }).first();
+      res.status(201).json({
+        ...created,
+        exam_name: exam?.name || null,
+        student_name: student?.name || null,
+        record_type: 'exam_mark',
+      });
     } catch (error) {
       sendServerError(res, error);
     }
