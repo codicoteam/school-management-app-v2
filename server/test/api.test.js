@@ -717,7 +717,7 @@ describe('API routes', () => {
 
   it('borrows a library item and returns item details', async () => {
     const jwt = require('jsonwebtoken');
-    const token = jwt.sign({ id: 'u1', email: 'student@example.com', role: 'student' }, process.env.JWT_SECRET || 'your-secret-key');
+    const token = jwt.sign({ id: 'teacher-1', email: 'teacher@example.com', role: 'teacher' }, process.env.JWT_SECRET || 'your-secret-key');
 
     const res = await request(app)
       .post('/api/library/li1/borrow')
@@ -730,6 +730,19 @@ describe('API routes', () => {
     expect(res.body).to.have.property('item');
     expect(res.body.item).to.have.property('id', 'li1');
     expect(res.body.item).to.have.property('title', 'Quantum Physics for Beginners');
+  });
+
+  it('accepts a library item ID copied with JSON quotes', async () => {
+    const jwt = require('jsonwebtoken');
+    const token = jwt.sign({ id: 'teacher-1', email: 'teacher@example.com', role: 'teacher' }, process.env.JWT_SECRET || 'your-secret-key');
+
+    const res = await request(app)
+      .post('/api/library/"li1"/borrow')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ student_id: 'BPS-2451', due_date: '2025-05-20' });
+
+    expect(res.status).to.equal(201);
+    expect(res.body.item).to.have.property('id', 'li1');
   });
 
   it('rejects borrowing with invalid date format', async () => {

@@ -34,6 +34,7 @@ function createApp(db) {
   app.use('/uploads', express.static(uploadsDir));
 
   const isUuid = (value) => typeof value === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
+  const normalizePathId = (value) => typeof value === 'string' ? value.trim().replace(/^(["'])(.*)\1$/, '$2') : value;
 
   const sendServerError = (res, error, label = 'Server error') => {
     console.error(label, error);
@@ -2779,7 +2780,7 @@ function createApp(db) {
 
   app.post('/api/library/:id/bookmark', authenticateToken, async (req, res) => {
     try {
-      const itemId = req.params.id;
+      const itemId = normalizePathId(req.params.id);
       const userId = req.user.id;
       const existing = await db('bookmarks').where({ user_id: userId, item_id: itemId }).first();
       if (existing) {
@@ -2795,7 +2796,7 @@ function createApp(db) {
   app.get('/api/library/:id/bookmarks', authenticateToken, async (req, res) => {
     try {
       const userId = req.user.id;
-      const itemId = req.params.id;
+      const itemId = normalizePathId(req.params.id);
       const rows = await db('bookmarks').where({ user_id: userId, item_id: itemId }).select('*');
       const item = await db('library_items').where({ id: itemId }).first();
       const payload = rows.map(row => ({ ...row, item }));
@@ -2808,7 +2809,7 @@ function createApp(db) {
   app.post('/api/library/:id/borrow', authenticateToken, async (req, res) => {
     try {
       const studentId = req.user.role === 'student' ? req.user.id : (req.body.studentId || req.body.student_id || req.user.id);
-      const itemId = req.params.id;
+      const itemId = normalizePathId(req.params.id);
       
       // Parse and validate due date
       let dueDate = req.body.dueDate || req.body.due_date || null;
