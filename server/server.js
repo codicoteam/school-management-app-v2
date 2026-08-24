@@ -2808,7 +2808,8 @@ function createApp(db) {
 
   app.post('/api/library/:id/borrow', authenticateToken, async (req, res) => {
     try {
-      const studentId = req.user.role === 'student' ? req.user.id : (req.body.studentId || req.body.student_id || req.user.id);
+      const requestedStudentId = req.body.studentId || req.body.student_id;
+      const studentIdentifier = req.user.role === 'student' ? req.user.id : (requestedStudentId || req.user.id);
       const itemId = normalizePathId(req.params.id);
       
       // Parse and validate due date
@@ -2827,10 +2828,19 @@ function createApp(db) {
       const item = await db('library_items').where({ id: itemId }).first();
       if (!item) return res.status(404).json({ message: 'Library item not found' });
       
-      const student = await db('students').where({ id: studentId }).first();
+      let student = await db('students').where({ id: studentIdentifier }).first();
+      if (!student && req.user.email) {
+        student = await db('students').where({ email: req.user.email }).first();
+      }
+      if (!student && req.user.role !== 'student') {
+        const user = await db('users').where({ id: studentIdentifier }).first();
+        if (user?.email) {
+          student = await db('students').where({ email: user.email }).first();
+        }
+      }
       if (!student) return res.status(404).json({ message: 'Student not found' });
       
-      const [created] = await db('borrowings').insert({ student_id: studentId, item_id: itemId, due_date: dueDate }).returning('*');
+      const [created] = await db('borrowings').insert({ student_id: student.id, item_id: itemId, due_date: dueDate }).returning('*');
       res.status(201).json({ borrowing: { ...created, student_name: student.name }, item });
     } catch (error) {
       sendServerError(res, error);

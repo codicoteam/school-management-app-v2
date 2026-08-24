@@ -732,6 +732,19 @@ describe('API routes', () => {
     expect(res.body.item).to.have.property('title', 'Quantum Physics for Beginners');
   });
 
+  it('resolves a legacy student ID for a student account UUID', async () => {
+    const jwt = require('jsonwebtoken');
+    const token = jwt.sign({ id: 'u1', email: 'student@example.com', role: 'student' }, process.env.JWT_SECRET || 'your-secret-key');
+
+    const res = await request(app)
+      .post('/api/library/li1/borrow')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ student_id: 'BPS-2451', due_date: '2025-05-20' });
+
+    expect(res.status).to.equal(201);
+    expect(res.body.borrowing).to.have.property('student_id', 'BPS-2451');
+  });
+
   it('accepts a library item ID copied with JSON quotes', async () => {
     const jwt = require('jsonwebtoken');
     const token = jwt.sign({ id: 'teacher-1', email: 'teacher@example.com', role: 'teacher' }, process.env.JWT_SECRET || 'your-secret-key');
