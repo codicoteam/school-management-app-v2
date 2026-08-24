@@ -745,6 +745,19 @@ describe('API routes', () => {
     expect(res.body.borrowing).to.have.property('student_id', 'BPS-2451');
   });
 
+  it('includes the borrower name when borrowings are fetched', async () => {
+    const jwt = require('jsonwebtoken');
+    const token = jwt.sign({ id: 'teacher-1', email: 'teacher@example.com', role: 'teacher' }, process.env.JWT_SECRET || 'your-secret-key');
+
+    await mockDb('borrowings').insert({ id: 'borrowing-1', student_id: 'BPS-2451', item_id: 'li1', status: 'borrowed' });
+    const res = await request(app)
+      .get('/api/borrowings/BPS-2451')
+      .set('Authorization', `Bearer ${token}`);
+
+    expect(res.status).to.equal(200);
+    expect(res.body[0]).to.have.property('student_name', 'Tatenda');
+  });
+
   it('accepts a library item ID copied with JSON quotes', async () => {
     const jwt = require('jsonwebtoken');
     const token = jwt.sign({ id: 'teacher-1', email: 'teacher@example.com', role: 'teacher' }, process.env.JWT_SECRET || 'your-secret-key');
