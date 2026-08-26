@@ -1016,7 +1016,7 @@ function createApp(db) {
           summary: 'Get borrowings for a student',
           security: [{ bearerAuth: [] }],
           parameters: [{ name: 'studentId', in: 'path', required: true, schema: { type: 'string' } }],
-          responses: { '200': { description: 'Borrowings returned with the borrowing student name' } },
+          responses: { '200': { description: 'Borrowings returned with student name, item name, and full item details' } },
         },
       },
       '/api/classes': {
@@ -2853,7 +2853,13 @@ function createApp(db) {
       const rows = await db('borrowings').where({ student_id: sid }).select('*');
       const borrowings = await Promise.all(rows.map(async row => {
         const student = await db('students').where({ id: row.student_id }).first();
-        return { ...row, student_name: student?.name || null };
+        const item = await db('library_items').where({ id: row.item_id }).first();
+        return {
+          ...row,
+          student_name: student?.name || null,
+          item_name: item?.title || null,
+          item: item || null,
+        };
       }));
       res.json(borrowings);
     } catch (error) {

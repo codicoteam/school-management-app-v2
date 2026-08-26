@@ -756,6 +756,9 @@ describe('API routes', () => {
 
     expect(res.status).to.equal(200);
     expect(res.body[0]).to.have.property('student_name', 'Tatenda');
+    expect(res.body[0]).to.have.property('item_name', 'Quantum Physics for Beginners');
+    expect(res.body[0].item).to.have.property('id', 'li1');
+    expect(res.body[0].item).to.have.property('title', 'Quantum Physics for Beginners');
   });
 
   it('accepts a library item ID copied with JSON quotes', async () => {
