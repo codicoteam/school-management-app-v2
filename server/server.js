@@ -2711,11 +2711,30 @@ function createApp(db) {
   app.get('/api/students/:id/exams', authenticateToken, async (req, res) => {
     try {
       const studentId = req.params.id;
-      const sc = await db('student_classes').where({ student_id: studentId }).first();
-      const classId = sc?.class_id;
-      const exams = classId ? await db('exams').where({ class_id: classId }).orderBy('date', 'asc') : [];
-      const upcoming = exams.filter(e => new Date(e.date) >= new Date());
-      res.json({ exams, upcoming });
+      const studentClassRows = await db('student_classes').where({ student_id: studentId }).select('class_id');
+      const classIds = [...new Set((studentClassRows || []).map(row => String(row.class_id)).filter(Boolean))];
+
+      const exams = classIds.length
+        ? await db('exams').whereIn('class_id', classIds).orderBy('date', 'asc').select('*')
+        : [];
+
+      const classRows = classIds.length
+        ? await db('classes').whereIn('id', classIds).select('id', 'name', 'subject', 'subject_code', 'grade')
+        : [];
+
+      const classById = classRows.reduce((map, cls) => {
+        map[String(cls.id)] = cls;
+        return map;
+      }, {});
+
+      const mappedExams = exams.map(exam => ({
+        ...exam,
+        class_name: classById[String(exam.class_id)]?.name || null,
+        subject: classById[String(exam.class_id)]?.subject || exam.subject || null,
+      }));
+
+      const upcoming = mappedExams.filter(e => e.date && new Date(e.date) >= new Date());
+      res.json({ exams: mappedExams, upcoming });
     } catch (error) {
       sendServerError(res, error);
     }

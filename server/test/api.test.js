@@ -352,6 +352,23 @@ describe('API routes', () => {
     expect(res.body).to.have.property('upcoming');
   });
 
+  it('returns exams from all enrolled classes for a student', async () => {
+    const jwt = require('jsonwebtoken');
+    const token = jwt.sign({ id: 'u1', email: 'student@example.com', role: 'student' }, process.env.JWT_SECRET || 'your-secret-key');
+
+    await mockDb('student_classes').insert({ id: 'sc2', student_id: 'BPS-2451', class_id: 'class2' });
+    await mockDb('exams').insert({ id: 'e2', class_id: 'class2', name: 'Science Quiz', date: '2025-06-10' });
+    await mockDb('classes').insert({ id: 'class2', name: 'Form 4B', subject: 'Science', teacher_id: 'teacher-1' });
+
+    const res = await request(app).get('/api/students/BPS-2451/exams').set('Authorization', `Bearer ${token}`);
+    expect(res.status).to.equal(200);
+    expect(res.body.exams).to.be.an('array');
+
+    const examSummaries = res.body.exams.map(exam => ({ id: exam.id, class_id: exam.class_id, name: exam.name }));
+    expect(examSummaries).to.deep.include({ id: 'e1', class_id: 'class1', name: 'Math Midterm' });
+    expect(examSummaries).to.deep.include({ id: 'e2', class_id: 'class2', name: 'Science Quiz' });
+  });
+
   it('creates exam entries for a class', async () => {
     const jwt = require('jsonwebtoken');
     const token = jwt.sign({ id: 'teacher-1', email: 'teacher@example.com', role: 'teacher', name: 'Mr. Mhlanga' }, process.env.JWT_SECRET || 'your-secret-key');
